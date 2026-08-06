@@ -1,6 +1,6 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { PROFILE_PHOTOS_BUCKET } from "@/lib/constants";
+import { PROFILE_PHOTOS_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { ProfilePhoto } from "@/lib/types";
 
 export async function uploadProfilePhoto(
@@ -72,4 +72,28 @@ export async function setCoverPhoto(profileId: string, photoId: string): Promise
     .update({ is_cover: true })
     .eq("id", photoId);
   if (error) throw error;
+}
+
+/** Signed cover-photo URL per profile, for lightweight grid/list views. */
+export async function getCoverPhotoUrls(profileIds: string[]): Promise<Map<string, string>> {
+  if (profileIds.length === 0) return new Map();
+  const supabase = getSupabaseAdmin();
+  const { data: covers } = await supabase
+    .from("profile_photos")
+    .select("profile_id, storage_path")
+    .in("profile_id", profileIds)
+    .eq("is_cover", true);
+
+  if (!covers || covers.length === 0) return new Map();
+
+  const { data: signed } = await supabase.storage
+    .from(PROFILE_PHOTOS_BUCKET)
+    .createSignedUrls(covers.map((c) => c.storage_path), SIGNED_URL_TTL_SECONDS);
+
+  const map = new Map<string, string>();
+  covers.forEach((c, i) => {
+    const url = signed?.[i]?.signedUrl;
+    if (url) map.set(c.profile_id, url);
+  });
+  return map;
 }

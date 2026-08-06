@@ -11,7 +11,7 @@ import { uploadPhotosAction } from "@/lib/actions/photos";
 
 export default async function ProfileDetailPage({
   params,
-}: PageProps<"/owner/profiles/[id]">) {
+}: PageProps<"/admin/profiles/[id]">) {
   const { id } = await params;
 
   const [profile, allProfiles, settings] = await Promise.all([

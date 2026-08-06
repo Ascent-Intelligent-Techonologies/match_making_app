@@ -1,7 +1,7 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { OWNER_SESSION_COOKIE } from "@/lib/constants";
+import { ADMIN_SESSION_COOKIE } from "@/lib/constants";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 
@@ -15,35 +15,35 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function createOwnerSessionToken(): Promise<string> {
-  return new SignJWT({ role: "owner" })
+export async function createAdminSessionToken(): Promise<string> {
+  return new SignJWT({ role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
     .sign(getSecretKey());
 }
 
-export async function verifyOwnerSessionToken(token: string): Promise<boolean> {
+export async function verifyAdminSessionToken(token: string): Promise<boolean> {
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
-    return payload.role === "owner";
+    return payload.role === "admin";
   } catch {
     return false;
   }
 }
 
-/** Reads and validates the owner session cookie from a Server Component/Action. */
-export async function isOwnerAuthenticated(): Promise<boolean> {
+/** Reads and validates the admin session cookie from a Server Component/Action. */
+export async function isAdminAuthenticated(): Promise<boolean> {
   const store = await cookies();
-  const token = store.get(OWNER_SESSION_COOKIE)?.value;
+  const token = store.get(ADMIN_SESSION_COOKIE)?.value;
   if (!token) return false;
-  return verifyOwnerSessionToken(token);
+  return verifyAdminSessionToken(token);
 }
 
-export async function setOwnerSessionCookie() {
-  const token = await createOwnerSessionToken();
+export async function setAdminSessionCookie() {
+  const token = await createAdminSessionToken();
   const store = await cookies();
-  store.set(OWNER_SESSION_COOKIE, token, {
+  store.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -52,7 +52,7 @@ export async function setOwnerSessionCookie() {
   });
 }
 
-export async function clearOwnerSessionCookie() {
+export async function clearAdminSessionCookie() {
   const store = await cookies();
-  store.delete(OWNER_SESSION_COOKIE);
+  store.delete(ADMIN_SESSION_COOKIE);
 }

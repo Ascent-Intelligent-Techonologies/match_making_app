@@ -32,7 +32,7 @@ changes needed elsewhere in the app.
 - **Supabase** (Postgres + Storage) is already a separate, independently
   hosted service — no changes needed there regardless of where Next.js runs.
 - **Environment variables** (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-  `OWNER_PASSWORD_HASH`, `SESSION_SECRET`, `NEXT_PUBLIC_SITE_URL`) are copied
+  `ADMIN_PASSWORD_HASH`, `SESSION_SECRET`, `NEXT_PUBLIC_SITE_URL`) are copied
   as-is into whichever platform replaces Vercel.
 - **`src/proxy.ts`** (Next's middleware equivalent) runs fine under Node.js
   hosting; no rewrite required.
@@ -81,11 +81,11 @@ Using App Service:
 1. Create an **App Service** (Linux, Node 22 runtime).
 2. Deploy via GitHub Actions (Azure provides a ready-made workflow) or
    `az webapp deploy` with the built `.next` output.
-3. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OWNER_PASSWORD_HASH`,
+3. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD_HASH`,
    `SESSION_SECRET`, `NEXT_PUBLIC_SITE_URL` under
    **Configuration → Application settings**.
 4. Enable **Always On** so the Node process (and cookie/session handling)
-   doesn't cold-start between owner logins.
+   doesn't cold-start between admin logins.
 
 Container route (same Dockerfile as above) works identically via
 **Azure Container Apps**, with secrets in **Azure Key Vault** referenced as
@@ -115,7 +115,7 @@ so both the database and the files migrate cleanly to either cloud.
    enabled with zero policies — see [schema.sql](../supabase/schema.sql)),
    there's nothing RLS-related to port. On the new database, just create an
    app-specific DB user/role with normal `GRANT` privileges on the `public`
-   schema; the app's Node code remains the only thing enforcing owner vs.
+   schema; the app's Node code remains the only thing enforcing admin vs.
    client access.
 6. Swap `src/lib/supabase/admin.ts` for a plain Postgres client — e.g.
    [`postgres`](https://www.npmjs.com/package/postgres) or
@@ -159,7 +159,7 @@ credentials, e.g.:
 - Azure: `DATABASE_URL` (Flexible Server connection string),
   `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER_NAME`.
 
-`OWNER_PASSWORD_HASH`, `SESSION_SECRET` and `NEXT_PUBLIC_SITE_URL` are
+`ADMIN_PASSWORD_HASH`, `SESSION_SECRET` and `NEXT_PUBLIC_SITE_URL` are
 unaffected by this migration since they're app-level, not Supabase-related.
 
 ## Things to double check after moving off Vercel
@@ -168,10 +168,10 @@ unaffected by this migration since they're app-level, not Supabase-related.
   [next.config.ts](../next.config.ts) already allow `*.supabase.co` — no
   change needed since photos are served from Supabase Storage, not the
   hosting platform.
-- **Cookies/session**: the owner session cookie is a self-signed JWT (via
+- **Cookies/session**: the admin session cookie is a self-signed JWT (via
   `jose`), so it doesn't depend on any platform-specific session store.
 - **Custom domain + HTTPS**: re-issue/verify TLS certs on the new platform
   before cutting over DNS.
 - **Cold starts**: AWS App Runner/ECS and Azure App Service don't behave
-  exactly like Vercel's edge network — if the owner dashboard feels slow on
+  exactly like Vercel's edge network — if the admin dashboard feels slow on
   first request, enable "always on"/minimum instance count.

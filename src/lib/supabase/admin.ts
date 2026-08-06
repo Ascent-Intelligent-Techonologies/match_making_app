@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 /**
  * Server-only Supabase client using the service role key. This bypasses
  * Row Level Security entirely, so it must never be imported into client
- * components or exposed to the browser. All access control (owner vs
+ * components or exposed to the browser. All access control (admin vs
  * client, partial vs full profile data) is enforced in application code.
  */
 export function getSupabaseAdmin() {

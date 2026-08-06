@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { UploadCloud } from "lucide-react";
+import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import {
   RELIGIONS,
@@ -41,6 +42,7 @@ export function ProfileForm({
     {}
   );
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Basic");
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const errors = state.fieldErrors ?? {};
 
   return (
@@ -66,6 +68,46 @@ export function ProfileForm({
         <p className="rounded-lg bg-red-700/10 px-4 py-2.5 text-sm text-red-700">
           {state.error}
         </p>
+      )}
+
+      {!profile && (
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-gold-400/50 bg-blush-100/60 p-4">
+          <FieldLabel htmlFor="photos">Photos (optional)</FieldLabel>
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
+            <UploadCloud size={18} />
+            <span>Choose photos to upload on save</span>
+            <input
+              id="photos"
+              type="file"
+              name="photos"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+                const files = Array.from(e.target.files ?? []);
+                setPhotoPreviews(files.map((f) => URL.createObjectURL(f)));
+              }}
+            />
+          </label>
+          {photoPreviews.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {photoPreviews.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url}
+                  src={url}
+                  alt={`Selected photo ${i + 1}`}
+                  className="h-20 w-20 rounded-lg border border-blush-200 object-cover"
+                />
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-ink-900/50">
+            The first photo becomes the cover. You can add more, reorder and manage them
+            after saving.
+          </p>
+        </div>
       )}
 
       <div className={activeTab === "Basic" ? "grid gap-5 sm:grid-cols-2" : "hidden"}>
@@ -244,7 +286,7 @@ export function ProfileForm({
 
       <div className={activeTab === "Confidential" ? "grid gap-5 sm:grid-cols-2" : "hidden"}>
         <p className="sm:col-span-2 text-xs text-ink-900/50">
-          These fields are always owner-only and are never shown to clients, even with a
+          These fields are always admin-only and are never shown to clients, even with a
           &quot;Full&quot; access share link.
         </p>
         <Field label="Contact Phone" htmlFor="contact_phone">
@@ -259,7 +301,7 @@ export function ProfileForm({
           </Field>
         </div>
         <div className="sm:col-span-2">
-          <Field label="Private Owner Notes" htmlFor="owner_private_notes">
+          <Field label="Private Admin Notes" htmlFor="owner_private_notes">
             <Textarea
               id="owner_private_notes"
               name="owner_private_notes"

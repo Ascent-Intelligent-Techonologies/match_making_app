@@ -97,7 +97,7 @@ export interface AppSettings {
   default_expiry_days: number;
 }
 
-/** Fields visible to clients before the owner grants full access. */
+/** Fields visible to clients before the admin grants full access. */
 export const PARTIAL_VISIBLE_FIELDS = [
   "full_name",
   "gender",
@@ -136,8 +136,8 @@ export const FULL_ONLY_FIELDS = [
   "contact_email",
 ] as const;
 
-/** Never exposed to clients, owner-only regardless of access level. */
-export const OWNER_ONLY_FIELDS = [
+/** Never exposed to clients, admin-only regardless of access level. */
+export const ADMIN_ONLY_FIELDS = [
   "net_worth_notes",
   "owner_private_notes",
 ] as const;

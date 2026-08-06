@@ -8,6 +8,7 @@ import {
   updateProfile,
   deleteProfile,
 } from "@/lib/data/profiles";
+import { uploadProfilePhoto } from "@/lib/data/photos";
 
 export interface ProfileFormState {
   error?: string;
@@ -41,8 +42,18 @@ export async function createProfileAction(
   }
 
   const profile = await createProfile(parsed.data);
-  revalidatePath("/owner");
-  redirect(`/owner/profiles/${profile.id}`);
+
+  const photos = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+  for (const photo of photos) {
+    try {
+      await uploadProfilePhoto(profile.id, photo);
+    } catch {
+      // Profile is already saved; skip a bad photo rather than losing the profile data.
+    }
+  }
+
+  revalidatePath("/admin");
+  redirect(`/admin/profiles/${profile.id}`);
 }
 
 export async function updateProfileAction(
@@ -59,13 +70,13 @@ export async function updateProfileAction(
   }
 
   await updateProfile(profileId, parsed.data);
-  revalidatePath("/owner");
-  revalidatePath(`/owner/profiles/${profileId}`);
+  revalidatePath("/admin");
+  revalidatePath(`/admin/profiles/${profileId}`);
   return { error: undefined };
 }
 
 export async function deleteProfileAction(profileId: string) {
   await deleteProfile(profileId);
-  revalidatePath("/owner");
-  redirect("/owner");
+  revalidatePath("/admin");
+  redirect("/admin");
 }

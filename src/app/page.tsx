@@ -29,9 +29,16 @@ export default function Home() {
           every introduction handled with discretion and care.
         </p>
 
-        <Link href="/owner/login">
-          <Button size="lg">Owner Login</Button>
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link href="/browse">
+            <Button size="lg" variant="secondary">
+              Browse Profiles
+            </Button>
+          </Link>
+          <Link href="/admin/login">
+            <Button size="lg">Admin Login</Button>
+          </Link>
+        </div>
       </div>
     </main>
   );

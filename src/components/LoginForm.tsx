@@ -8,7 +8,7 @@ import { loginAction, type LoginState } from "@/lib/actions/auth";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/owner";
+  const next = searchParams.get("next") ?? "/admin";
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     loginAction,
     {}

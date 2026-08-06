@@ -45,13 +45,13 @@ export const ACCESS_LEVEL_OPTIONS: { value: string; label: string; description: 
   {
     value: "full",
     label: "Full",
-    description: "Everything except confidential owner notes and net worth.",
+    description: "Everything except confidential admin notes and net worth.",
   },
 ];
 
 export const DEFAULT_SHARE_EXPIRY_DAYS = 3;
 
-export const OWNER_SESSION_COOKIE = "aura_owner_session";
+export const ADMIN_SESSION_COOKIE = "aura_admin_session";
 
 export const PROFILE_PHOTOS_BUCKET = "profile-photos";
 

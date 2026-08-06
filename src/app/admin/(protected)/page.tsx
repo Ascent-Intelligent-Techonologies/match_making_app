@@ -2,40 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Plus } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
+import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { calculateAge, formatInrCompact, titleCase } from "@/lib/format";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { PROFILE_PHOTOS_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 
-async function getCoverPhotoUrls(profileIds: string[]) {
-  if (profileIds.length === 0) return new Map<string, string>();
-  const supabase = getSupabaseAdmin();
-  const { data: covers } = await supabase
-    .from("profile_photos")
-    .select("profile_id, storage_path")
-    .in("profile_id", profileIds)
-    .eq("is_cover", true);
-
-  if (!covers || covers.length === 0) return new Map<string, string>();
-
-  const { data: signed } = await supabase.storage
-    .from(PROFILE_PHOTOS_BUCKET)
-    .createSignedUrls(covers.map((c) => c.storage_path), SIGNED_URL_TTL_SECONDS);
-
-  const map = new Map<string, string>();
-  covers.forEach((c, i) => {
-    const url = signed?.[i]?.signedUrl;
-    if (url) map.set(c.profile_id, url);
-  });
-  return map;
-}
-
-export default async function OwnerDashboardPage({
+export default async function AdminDashboardPage({
   searchParams,
-}: PageProps<"/owner">) {
+}: PageProps<"/admin">) {
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -61,7 +37,7 @@ export default async function OwnerDashboardPage({
             {profiles.length} profile{profiles.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Link href="/owner/profiles/new">
+        <Link href="/admin/profiles/new">
           <Button>
             <Plus size={16} /> New Profile
           </Button>
@@ -80,7 +56,7 @@ export default async function OwnerDashboardPage({
             const age = calculateAge(profile.dob);
             const coverUrl = coverUrls.get(profile.id);
             return (
-              <Link key={profile.id} href={`/owner/profiles/${profile.id}`}>
+              <Link key={profile.id} href={`/admin/profiles/${profile.id}`}>
                 <Card className="overflow-hidden transition-transform hover:-translate-y-0.5">
                   <div className="relative aspect-[4/3] bg-blush-100">
                     {coverUrl && (

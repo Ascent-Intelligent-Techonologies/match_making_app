@@ -33,7 +33,7 @@ export async function createShareLinkAction(
   }
 
   const link = await createShareLink(parsed.data);
-  revalidatePath("/owner/links");
+  revalidatePath("/admin/links");
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   return { createdUrl: `${siteUrl}/share/${link.token}` };
@@ -41,17 +41,17 @@ export async function createShareLinkAction(
 
 export async function revokeShareLinkAction(id: string) {
   await revokeShareLink(id);
-  revalidatePath("/owner/links");
+  revalidatePath("/admin/links");
 }
 
 export async function extendShareLinkAction(id: string, additionalDays: number) {
   await extendShareLink(id, additionalDays);
-  revalidatePath("/owner/links");
+  revalidatePath("/admin/links");
 }
 
 export async function updateAccessLevelAction(id: string, accessLevel: AccessLevel) {
   await updateShareLinkAccessLevel(id, accessLevel);
-  revalidatePath("/owner/links");
+  revalidatePath("/admin/links");
 }
 
 export async function updateDefaultExpiryAction(formData: FormData) {
@@ -59,5 +59,5 @@ export async function updateDefaultExpiryAction(formData: FormData) {
   if (Number.isFinite(days) && days > 0) {
     await updateDefaultExpiryDays(days);
   }
-  revalidatePath("/owner/links");
+  revalidatePath("/admin/links");
 }
