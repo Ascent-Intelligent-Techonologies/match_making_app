@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -43,7 +43,23 @@ export function ProfileForm({
   );
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Basic");
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const photosInputRef = useRef<HTMLInputElement>(null);
   const errors = state.fieldErrors ?? {};
+
+  function applyFiles(files: FileList | File[]) {
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+
+    const dt = new DataTransfer();
+    images.forEach((f) => dt.items.add(f));
+    if (photosInputRef.current) {
+      photosInputRef.current.files = dt.files;
+    }
+
+    photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+    setPhotoPreviews(images.map((f) => URL.createObjectURL(f)));
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -71,23 +87,36 @@ export function ProfileForm({
       )}
 
       {!profile && (
-        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-gold-400/50 bg-blush-100/60 p-4">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            applyFiles(e.dataTransfer.files);
+          }}
+          className={`flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors ${
+            isDragging
+              ? "border-maroon-600 bg-blush-200/70"
+              : "border-gold-400/50 bg-blush-100/60"
+          }`}
+        >
           <FieldLabel htmlFor="photos">Photos (optional)</FieldLabel>
           <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
             <UploadCloud size={18} />
-            <span>Choose photos to upload on save</span>
+            <span>Choose photos to upload on save, or drag them here</span>
             <input
+              ref={photosInputRef}
               id="photos"
               type="file"
               name="photos"
               accept="image/*"
               multiple
               className="hidden"
-              onChange={(e) => {
-                photoPreviews.forEach((url) => URL.revokeObjectURL(url));
-                const files = Array.from(e.target.files ?? []);
-                setPhotoPreviews(files.map((f) => URL.createObjectURL(f)));
-              }}
+              onChange={(e) => applyFiles(e.target.files ?? [])}
             />
           </label>
           {photoPreviews.length > 0 && (

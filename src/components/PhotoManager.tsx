@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Star, Trash2, ArrowLeft, ArrowRight, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +29,9 @@ export function PhotoManager({
     {}
   );
   const [isPending, startTransition] = useTransition();
+  const [isDragging, setIsDragging] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function move(index: number, direction: -1 | 1) {
     const next = [...photos];
@@ -41,6 +43,15 @@ export function PhotoManager({
     });
   }
 
+  function uploadFiles(files: FileList | File[]) {
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0 || !inputRef.current) return;
+    const dt = new DataTransfer();
+    images.forEach((f) => dt.items.add(f));
+    inputRef.current.files = dt.files;
+    formRef.current?.requestSubmit();
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <form
@@ -49,12 +60,27 @@ export function PhotoManager({
           formAction(fd);
           formRef.current?.reset();
         }}
-        className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-gold-400/50 bg-blush-100/60 p-4"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          uploadFiles(e.dataTransfer.files);
+        }}
+        className={`flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-4 transition-colors ${
+          isDragging
+            ? "border-maroon-600 bg-blush-200/70"
+            : "border-gold-400/50 bg-blush-100/60"
+        }`}
       >
         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
           <UploadCloud size={18} />
           <span>Choose photos</span>
           <input
+            ref={inputRef}
             type="file"
             name="photos"
             accept="image/*"
@@ -66,6 +92,7 @@ export function PhotoManager({
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Uploading…" : "Upload"}
         </Button>
+        <span className="text-xs text-ink-900/40">or drag photos here</span>
         {state.error && <p className="text-xs text-red-700">{state.error}</p>}
       </form>
 
