@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  /* Aura brand palette, drawn from the lotus logo */
+  --color-blush-50: #fff9f7;
+  --color-blush-100: #fdf0ec;
+  --color-blush-200: #fadfd8;
+  --color-blush-300: #f4c6ba;
+  --color-rose-400: #eca9b8;
+  --color-maroon-600: #7c3038;
+  --color-maroon-700: #5e232a;
+  --color-maroon-800: #401920;
+  --color-olive-500: #7d7a4c;
+  --color-olive-600: #625f3a;
+  --color-gold-400: #c9a668;
+  --color-gold-500: #b8905a;
+  --color-ink-900: #2c2320;
+
+  --background: var(--color-blush-50);
+  --foreground: var(--color-ink-900);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-blush-50: var(--color-blush-50);
+  --color-blush-100: var(--color-blush-100);
+  --color-blush-200: var(--color-blush-200);
+  --color-blush-300: var(--color-blush-300);
+  --color-rose-400: var(--color-rose-400);
+  --color-maroon-600: var(--color-maroon-600);
+  --color-maroon-700: var(--color-maroon-700);
+  --color-maroon-800: var(--color-maroon-800);
+  --color-olive-500: var(--color-olive-500);
+  --color-olive-600: var(--color-olive-600);
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-ink-900: var(--color-ink-900);
+
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
+  --font-script: var(--font-script);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-gold-400);
+  color: var(--color-maroon-800);
+}
