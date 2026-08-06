@@ -12,7 +12,8 @@ export async function loginAction(
   _prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const password = String(formData.get("password") ?? "");
+  // Trim to tolerate stray whitespace/newlines from copy-pasting the password.
+  const password = String(formData.get("password") ?? "").trim();
   const next = String(formData.get("next") ?? "/admin");
 
   const valid = await verifyAdminPassword(password);

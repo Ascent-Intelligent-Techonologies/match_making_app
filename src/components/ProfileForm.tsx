@@ -47,7 +47,7 @@ export function ProfileForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-1 rounded-full bg-blush-100 p-1.5">
+      <div className="flex flex-wrap gap-1 rounded-2xl bg-blush-100 p-1.5">
         {TABS.map((tab) => (
           <button
             type="button"

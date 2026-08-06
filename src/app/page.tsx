@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
@@ -8,8 +7,10 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,var(--color-blush-200),transparent_60%)]" />
 
       <div className="relative flex flex-col items-center gap-6">
-        <div className="relative h-28 w-28 overflow-hidden rounded-full border border-gold-400/40 bg-blush-100 shadow-lg">
-          <Image src="/logo.png" alt="Aura" fill className="object-cover" />
+        <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-gold-400/40 bg-blush-100 shadow-lg">
+          <span className="font-serif text-4xl font-semibold text-olive-500" aria-hidden="true">
+            A
+          </span>
         </div>
 
         <div>

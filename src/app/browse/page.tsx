@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ImageOff } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { PublicSearchFilterBar } from "@/components/PublicSearchFilterBar";
@@ -51,9 +52,17 @@ export default async function BrowseProfilesPage({
             return (
               <Link key={profile.id} href={`/browse/${profile.id}`}>
                 <Card className="overflow-hidden transition-transform hover:-translate-y-0.5">
-                  <div className="relative aspect-[4/5] bg-blush-100">
-                    {coverUrl && (
-                      <Image src={coverUrl} alt={profile.full_name} fill className="object-cover" />
+                  <div className="relative flex aspect-[4/5] items-center justify-center bg-blush-100">
+                    {coverUrl ? (
+                      <Image
+                        src={coverUrl}
+                        alt={profile.full_name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <ImageOff size={32} strokeWidth={1.25} className="text-maroon-700/40" />
                     )}
                   </div>
                   <div className="flex flex-col gap-2 p-4">
