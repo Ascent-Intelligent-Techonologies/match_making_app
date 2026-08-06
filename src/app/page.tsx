@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
@@ -7,22 +8,15 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,var(--color-blush-200),transparent_60%)]" />
 
       <div className="relative flex flex-col items-center gap-6">
-        <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-gold-400/40 bg-blush-100 shadow-lg">
-          <span className="font-serif text-4xl font-semibold text-olive-500" aria-hidden="true">
-            A
-          </span>
-        </div>
-
-        <div>
-          <p className="font-serif text-sm uppercase tracking-[0.35em] text-maroon-700">
-            Anupama Reddy
-          </p>
-          <h1 className="font-serif text-6xl font-semibold text-olive-500 sm:text-7xl">
-            AURA
-          </h1>
-          <p className="mt-2 font-script text-2xl italic text-maroon-700">
-            Where destiny aligns
-          </p>
+        <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-lg">
+          <Image
+            src="/logo.png"
+            alt="Aura — Anupama Reddy — Where destiny aligns"
+            fill
+            sizes="(max-width: 640px) 100vw, 384px"
+            className="object-cover"
+            priority
+          />
         </div>
 
         <p className="max-w-md text-balance text-ink-900/70">

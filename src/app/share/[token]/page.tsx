@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getShareLinkByToken } from "@/lib/data/share-links";
 import { getManyProfilesWithPhotos } from "@/lib/data/profiles";
 import { toPublicProfile } from "@/lib/types";
@@ -35,13 +36,15 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
       <header className="flex flex-col items-center gap-2 text-center">
-        <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-gold-400/40 bg-blush-100">
-          <span className="font-serif text-2xl font-semibold text-olive-500" aria-hidden="true">
-            A
-          </span>
+        <div className="relative aspect-square w-full max-w-[220px] overflow-hidden rounded-2xl shadow-sm">
+          <Image
+            src="/logo.png"
+            alt="Aura — Where destiny aligns"
+            fill
+            sizes="220px"
+            className="object-cover"
+          />
         </div>
-        <p className="font-serif text-3xl font-semibold text-olive-500">AURA</p>
-        <p className="font-script text-lg italic text-maroon-700">Where destiny aligns</p>
       </header>
 
       <div className="flex flex-col gap-6">
