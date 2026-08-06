@@ -115,7 +115,7 @@ export function ProfileForm({
               name="photos"
               accept="image/*"
               multiple
-              className="hidden"
+              className="sr-only"
               onChange={(e) => applyFiles(e.target.files ?? [])}
             />
           </label>

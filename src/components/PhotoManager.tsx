@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Star, Trash2, ArrowLeft, ArrowRight, UploadCloud } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import type { ProfilePhoto } from "@/lib/types";
 import type { PhotoActionState } from "@/lib/actions/photos";
 import {
@@ -52,6 +51,20 @@ export function PhotoManager({
     formRef.current?.requestSubmit();
   }
 
+  // Paste-to-upload: a third input path that needs neither the OS file picker
+  // nor a drag source. Copy an image anywhere, then press Cmd/Ctrl+V.
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.some((f) => f.type.startsWith("image/"))) {
+        e.preventDefault();
+        uploadFiles(files);
+      }
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  });
+
   return (
     <div className="flex flex-col gap-5">
       <form
@@ -76,23 +89,27 @@ export function PhotoManager({
             : "border-gold-400/50 bg-blush-100/60"
         }`}
       >
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
-          <UploadCloud size={18} />
-          <span>Choose photos</span>
+        {/* Single control: selecting files uploads them immediately, so a
+            separate submit button would only ever be a dead end. */}
+        <label
+          className={`inline-flex items-center gap-2 rounded-full bg-maroon-600 px-5 py-2.5 text-sm font-medium text-blush-50 transition-opacity focus-within:ring-2 focus-within:ring-maroon-600/40 ${
+            pending ? "cursor-wait opacity-70" : "cursor-pointer hover:opacity-90"
+          }`}
+        >
+          <UploadCloud size={16} />
+          <span>{pending ? "Uploading…" : "Add photos"}</span>
           <input
             ref={inputRef}
             type="file"
             name="photos"
             accept="image/*"
             multiple
-            className="hidden"
+            disabled={pending}
+            className="sr-only"
             onChange={() => formRef.current?.requestSubmit()}
           />
         </label>
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Uploading…" : "Upload"}
-        </Button>
-        <span className="text-xs text-ink-900/40">or drag photos here</span>
+        <span className="text-xs text-ink-900/40">or drag photos here, or paste one</span>
         {state.error && <p className="text-xs text-red-700">{state.error}</p>}
       </form>
 
