@@ -1,14 +1,33 @@
-# Migrating from Vercel to AWS or Azure
+# Migrating off Vercel and off Supabase
 
-This app is a standard Next.js 16 (App Router) app with a Supabase backend, so it
-isn't locked into Vercel. The only Vercel-specific pieces are the build/deploy
-pipeline and environment variable storage — the app code itself is portable.
+This app is a standard Next.js 16 (App Router) app with a Supabase backend
+(Postgres + Storage), so it isn't locked into either. This doc covers two
+independent migrations:
 
-Before migrating, confirm the app is stable on Vercel (auth, CRUD, photo
-upload, share links, expiry) since that's the fastest feedback loop during
-active development.
+1. **Part 1** — moving the Next.js app's hosting off Vercel to AWS or Azure
+   (Supabase stays as-is).
+2. **Part 2** — moving the data layer off Supabase entirely, onto AWS
+   (RDS + S3) or Azure (Flexible Server Postgres + Blob Storage).
 
-## What stays the same
+You can do Part 1 without Part 2 (keep using Supabase from AWS/Azure-hosted
+Next.js), or Part 2 without Part 1 (keep Vercel hosting, own your data).
+Before migrating either, confirm the app is stable on Vercel + Supabase
+(auth, CRUD, photo upload, share links, expiry) since that's the fastest
+feedback loop during active development.
+
+## Why this app is portable
+
+Supabase-specific code is isolated to two places:
+[src/lib/supabase/admin.ts](../src/lib/supabase/admin.ts) (the client) and the
+repository layer in [src/lib/data/](../src/lib/data) (`profiles.ts`,
+`photos.ts`, `share-links.ts`, `settings.ts`) — these are the only places that
+call `supabase.from(...)` or `supabase.storage...`. Pages, Server Actions and
+components only import functions like `listProfiles()` or
+`uploadProfilePhoto()`, never the Supabase client directly. So swapping the
+backend means rewriting the *internals* of those data-layer files only — no
+changes needed elsewhere in the app.
+
+## Part 1 — What stays the same when just moving hosting
 
 - **Supabase** (Postgres + Storage) is already a separate, independently
   hosted service — no changes needed there regardless of where Next.js runs.
@@ -71,6 +90,77 @@ Using App Service:
 Container route (same Dockerfile as above) works identically via
 **Azure Container Apps**, with secrets in **Azure Key Vault** referenced as
 app setting values.
+
+## Part 2 — Moving the data layer off Supabase
+
+Supabase Postgres is vanilla Postgres and Supabase Storage is S3-compatible,
+so both the database and the files migrate cleanly to either cloud.
+
+### 2a. Database (Postgres → RDS or Azure Flexible Server)
+
+1. Dump only the app schema (skip Supabase's internal `storage`, `auth`,
+   `realtime` schemas — this app doesn't use Supabase Auth or Realtime):
+   ```bash
+   pg_dump "$SUPABASE_DB_URL" \
+     --schema=public --format=custom --file=aura.dump
+   ```
+2. Create the target database:
+   - **AWS**: Amazon RDS for PostgreSQL (or Aurora PostgreSQL) 15+.
+   - **Azure**: Azure Database for PostgreSQL – Flexible Server.
+3. Restore: `pg_restore --no-owner --no-privileges -d "$NEW_DB_URL" aura.dump`.
+4. `pgcrypto` (used for `gen_random_uuid()`) is available on both RDS and
+   Azure Flexible Server — re-run `create extension if not exists pgcrypto;`
+   if `pg_restore` didn't already.
+5. Since we never rely on Supabase Row Level Security policies (RLS is
+   enabled with zero policies — see [schema.sql](../supabase/schema.sql)),
+   there's nothing RLS-related to port. On the new database, just create an
+   app-specific DB user/role with normal `GRANT` privileges on the `public`
+   schema; the app's Node code remains the only thing enforcing owner vs.
+   client access.
+6. Swap `src/lib/supabase/admin.ts` for a plain Postgres client — e.g.
+   [`postgres`](https://www.npmjs.com/package/postgres) or
+   [`pg`](https://www.npmjs.com/package/pg) (or an ORM like Drizzle/Prisma if
+   you want typed queries). Rewrite the query bodies inside
+   `src/lib/data/*.ts` to use SQL/ORM calls instead of
+   `supabase.from(...).select(...)` — the exported function names and
+   signatures (`listProfiles`, `getProfileWithPhotos`, `createShareLink`,
+   etc.) can stay identical so no caller changes are needed.
+
+### 2b. File storage (Supabase Storage → S3 or Blob Storage)
+
+Supabase Storage exposes an S3-compatible endpoint
+(`https://<project-ref>.supabase.co/storage/v1/s3`), which makes bulk copying
+straightforward:
+
+- **AWS**: create an S3 bucket, then copy objects with
+  [`rclone`](https://rclone.org/s3/) configured with Supabase's S3 endpoint as
+  the source and the new S3 bucket as the destination — object keys map
+  directly to the `storage_path` column in `profile_photos`, so no DB changes
+  needed beyond pointing at the new bucket name.
+- **Azure**: create a Blob Storage container, then copy with
+  [`azcopy`](https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-v10)
+  (`azcopy copy` supports S3 as a source directly).
+- Update `src/lib/data/photos.ts` (upload/delete) and
+  `src/lib/data/profiles.ts` (`attachSignedPhotoUrls`) to use:
+  - **AWS**: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`
+    (`getSignedUrl`) in place of `createSignedUrl`/`createSignedUrls`.
+  - **Azure**: `@azure/storage-blob`'s `generateBlobSASQueryParameters` for
+    time-limited read URLs, mirroring the current 1-hour signed URL TTL in
+    [src/lib/constants.ts](../src/lib/constants.ts).
+
+### 2c. Env vars after leaving Supabase
+
+Replace `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` with the new provider's
+credentials, e.g.:
+
+- AWS: `DATABASE_URL` (RDS connection string), `AWS_REGION`,
+  `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (or an IAM role if hosting on
+  AWS), `S3_BUCKET_NAME`.
+- Azure: `DATABASE_URL` (Flexible Server connection string),
+  `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER_NAME`.
+
+`OWNER_PASSWORD_HASH`, `SESSION_SECRET` and `NEXT_PUBLIC_SITE_URL` are
+unaffected by this migration since they're app-level, not Supabase-related.
 
 ## Things to double check after moving off Vercel
 
