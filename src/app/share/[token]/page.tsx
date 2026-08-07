@@ -36,12 +36,12 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
       <header className="flex flex-col items-center gap-2 text-center">
-        <div className="relative aspect-square w-full max-w-[220px] overflow-hidden rounded-2xl shadow-sm">
+        <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm sm:max-w-[180px]">
           <Image
             src="/logo.png"
             alt="Aura — Where destiny aligns"
             fill
-            sizes="220px"
+            sizes="(max-width: 640px) 120px, 180px"
             className="object-cover"
           />
         </div>
