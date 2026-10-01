@@ -23,18 +23,34 @@ export const profileSchema = z.object({
     .optional(),
   religion: optionalString,
   caste: optionalString,
+  sub_caste: optionalString,
   mother_tongue: optionalString,
+  surname: optionalString,
+  rasi: optionalString,
+  nakshatram: optionalString,
+  gotram: optionalString,
 
   education_degree: optionalString,
   institution: optionalString,
+  school: optionalString,
   profession: optionalString,
   company: optionalString,
+  business: optionalString,
+  salary: optionalString,
+  citizenship: optionalString,
   annual_income_inr: optionalNumber,
 
+  father_name: optionalString,
   father_profession: optionalString,
+  father_native_place: optionalString,
+  mother_name: optionalString,
   mother_profession: optionalString,
+  mother_native_place: optionalString,
   siblings_count: optionalNumber,
+  siblings_name: optionalString,
+  siblings_details: optionalString,
   family_status_notes: optionalString,
+  current_address: optionalString,
 
   birth_time: optionalString,
   birth_place: optionalString,
@@ -49,7 +65,9 @@ export const profileSchema = z.object({
   partner_expectations: optionalString,
 
   net_worth_notes: optionalString,
+  tag: optionalString,
   contact_phone: optionalString,
+  middlemen_contact: optionalString,
   contact_email: z.preprocess(
     emptyToUndefined,
     z.string().trim().email().optional()
@@ -63,7 +81,7 @@ export type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export const shareLinkSchema = z.object({
   profileIds: z.array(z.string().uuid()).min(1, "Select at least one profile"),
-  accessLevel: z.enum(["partial", "full"]),
+  accessLevel: z.enum(["photos_only", "partial", "full"]),
   expiryDays: z.coerce.number().int().min(1).max(90),
   label: z.string().trim().optional(),
   // Every link is shared on behalf of someone, so we can track who saw what.

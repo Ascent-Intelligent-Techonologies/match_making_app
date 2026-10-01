@@ -15,6 +15,12 @@ export interface ProfileFilters {
   minAge?: number;
   maxAge?: number;
   minIncome?: number;
+  caste?: string;
+  tag?: string;
+  minHeight?: number;
+  maxHeight?: number;
+  minFinances?: number;
+  maxFinances?: number;
 }
 
 function dobFromAge(age: number): string {
@@ -48,6 +54,12 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
   if (filters.minAge) query = query.lte("dob", dobFromAge(filters.minAge));
   if (filters.maxAge) query = query.gte("dob", dobFromAge(filters.maxAge));
   if (filters.minIncome) query = query.gte("annual_income_inr", filters.minIncome);
+  if (filters.caste) query = query.ilike("caste", `%${filters.caste}%`);
+  if (filters.tag) query = query.eq("tag", filters.tag);
+  if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
+  if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
+  if (filters.minFinances) query = query.gte("annual_income_inr", filters.minFinances);
+  if (filters.maxFinances) query = query.lte("annual_income_inr", filters.maxFinances);
 
   const { data, error } = await query;
   if (error) throw error;

@@ -15,7 +15,7 @@ export type Diet =
   | "vegan"
   | "jain";
 
-export type AccessLevel = "partial" | "full";
+export type AccessLevel = "photos_only" | "partial" | "full";
 
 export interface ProfilePhoto {
   id: string;
@@ -70,6 +70,27 @@ export interface Profile {
   contact_phone: string | null;
   contact_email: string | null;
   owner_private_notes: string | null;
+
+  // --- intake-form fields (see supabase/migrations/002_*.sql) ---
+  surname: string | null;
+  rasi: string | null;
+  nakshatram: string | null;
+  gotram: string | null;
+  sub_caste: string | null;
+  school: string | null;
+  business: string | null;
+  salary: string | null;
+  citizenship: string | null;
+  father_name: string | null;
+  father_native_place: string | null;
+  mother_name: string | null;
+  mother_native_place: string | null;
+  siblings_name: string | null;
+  siblings_details: string | null;
+  current_address: string | null;
+  middlemen_contact: string | null;
+  /** Internal classification from the intake sheet (AM / AMP / AMO). */
+  tag: string | null;
 
   is_active: boolean;
 }
@@ -132,49 +153,77 @@ export interface AppSettings {
   default_expiry_days: number;
 }
 
-/** Fields visible to clients before the admin grants full access. */
+/** Shared when access_level is "photos_only" — the gallery and nothing else. */
+// Name is kept so the client can refer to a profile when they shortlist it.
+export const PHOTOS_ONLY_FIELDS = ["full_name", "photos"] as const;
+
+/**
+ * Shared at "partial" — mirrors the basic-details tab of the intake sheet:
+ * name (no surname), birth details, height, photos, job/business and native place.
+ */
 export const PARTIAL_VISIBLE_FIELDS = [
   "full_name",
-  "gender",
   "dob",
+  "birth_place",
+  "birth_time",
   "height_cm",
+  "profession",
+  "business",
   "city",
   "state",
-  "country",
-  "marital_status",
-  "religion",
-  "mother_tongue",
-  "education_degree",
-  "profession",
-  "hobbies",
-  "diet",
   "photos",
 ] as const;
 
-/** Fields withheld from clients until access_level is "full". */
+/**
+ * Added at "full" — the all-details tab of the intake sheet. Marital status,
+ * finances and tag are deliberately absent: the sheet keeps those internal.
+ */
 export const FULL_ONLY_FIELDS = [
+  "surname",
+  "gender",
+  "country",
+  "religion",
   "caste",
-  "institution",
-  "company",
-  "annual_income_inr",
-  "father_profession",
-  "mother_profession",
-  "siblings_count",
-  "family_status_notes",
-  "birth_time",
-  "birth_place",
+  "sub_caste",
+  "mother_tongue",
+  "rasi",
+  "nakshatram",
+  "gotram",
   "star_sign",
   "manglik",
   "horoscope_notes",
+  "education_degree",
+  "institution",
+  "school",
+  "citizenship",
+  "company",
+  "salary",
+  "father_name",
+  "father_profession",
+  "father_native_place",
+  "mother_name",
+  "mother_profession",
+  "mother_native_place",
+  "siblings_count",
+  "siblings_name",
+  "siblings_details",
+  "family_status_notes",
+  "current_address",
+  "hobbies",
+  "diet",
   "partner_expectations",
   "contact_phone",
   "contact_email",
 ] as const;
 
-/** Never exposed to clients, admin-only regardless of access level. */
+/** Never exposed to clients, whatever the access level. */
 export const ADMIN_ONLY_FIELDS = [
   "net_worth_notes",
   "owner_private_notes",
+  "middlemen_contact",
+  "marital_status",
+  "annual_income_inr",
+  "tag",
 ] as const;
 
 export type PublicProfile = Partial<Profile> &
@@ -184,10 +233,14 @@ export function toPublicProfile(
   profile: ProfileWithPhotos,
   accessLevel: AccessLevel
 ): PublicProfile {
-  const visibleKeys = new Set<string>([
-    ...PARTIAL_VISIBLE_FIELDS,
-    ...(accessLevel === "full" ? FULL_ONLY_FIELDS : []),
-  ]);
+  const visibleKeys = new Set<string>(
+    accessLevel === "photos_only"
+      ? PHOTOS_ONLY_FIELDS
+      : [
+          ...PARTIAL_VISIBLE_FIELDS,
+          ...(accessLevel === "full" ? FULL_ONLY_FIELDS : []),
+        ]
+  );
 
   const result: Record<string, unknown> = { id: profile.id, photos: profile.photos };
   for (const key of Object.keys(profile) as (keyof ProfileWithPhotos)[]) {

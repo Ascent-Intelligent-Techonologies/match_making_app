@@ -2,16 +2,50 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input, Select } from "@/components/ui/Field";
-import {
-  RELIGIONS,
-  DIET_OPTIONS,
-  MARITAL_STATUS_OPTIONS,
-  MANGLIK_OPTIONS,
-  GENDER_OPTIONS,
-} from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { CASTE_OPTIONS, GENDER_OPTIONS, TAG_OPTIONS } from "@/lib/constants";
 
+function RangePair({
+  label,
+  minKey,
+  maxKey,
+  minValue,
+  maxValue,
+  onChange,
+}: {
+  label: string;
+  minKey: string;
+  maxKey: string;
+  minValue: string;
+  maxValue: string;
+  onChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+        {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          placeholder="More than"
+          defaultValue={minValue}
+          onChange={(e) => onChange(minKey, e.target.value)}
+        />
+        <Input
+          type="number"
+          placeholder="Less than"
+          defaultValue={maxValue}
+          onChange={(e) => onChange(maxKey, e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Filters mirror the search tab of the intake spreadsheet. */
 export function SearchFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,97 +59,121 @@ export function SearchFilterBar() {
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  function onSearchChange(value: string) {
+  function onDebouncedChange(key: string, value: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setParam("search", value), 350);
+    debounceRef.current = setTimeout(() => setParam(key, value), 350);
+  }
+
+  const hasFilters = Array.from(searchParams.keys()).some((k) => k !== "client");
+
+  function clearAll() {
+    const params = new URLSearchParams();
+    // Keep the client we are searching on behalf of.
+    const client = searchParams.get("client");
+    if (client) params.set("client", client);
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-gold-400/25 bg-white/60 p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-gold-400/25 bg-white/60 p-4">
       <div className="relative">
-        <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-900/40" />
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-900/40"
+        />
         <Input
-          placeholder="Search by name, city, profession, religion…"
+          placeholder="Name of the person we are searching for…"
           defaultValue={searchParams.get("search") ?? ""}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => onDebouncedChange("search", e.target.value)}
           className="pl-10"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        <Select
-          defaultValue={searchParams.get("gender") ?? ""}
-          onChange={(e) => setParam("gender", e.target.value)}
-        >
-          <option value="">All</option>
-          {GENDER_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+            Looking for
+          </span>
+          <Select
+            defaultValue={searchParams.get("gender") ?? ""}
+            onChange={(e) => setParam("gender", e.target.value)}
+          >
+            <option value="">All</option>
+            {GENDER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <Select
-          defaultValue={searchParams.get("religion") ?? ""}
-          onChange={(e) => setParam("religion", e.target.value)}
-        >
-          <option value="">Any religion</option>
-          {RELIGIONS.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+            Caste
+          </span>
+          <Select
+            defaultValue={searchParams.get("caste") ?? ""}
+            onChange={(e) => setParam("caste", e.target.value)}
+          >
+            <option value="">All caste</option>
+            {CASTE_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <Select
-          defaultValue={searchParams.get("maritalStatus") ?? ""}
-          onChange={(e) => setParam("maritalStatus", e.target.value)}
-        >
-          <option value="">Any marital status</option>
-          {MARITAL_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+            Tag
+          </span>
+          <Select
+            defaultValue={searchParams.get("tag") ?? ""}
+            onChange={(e) => setParam("tag", e.target.value)}
+          >
+            <option value="">Any tag</option>
+            {TAG_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <Select
-          defaultValue={searchParams.get("diet") ?? ""}
-          onChange={(e) => setParam("diet", e.target.value)}
-        >
-          <option value="">Any diet</option>
-          {DIET_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-
-        <Select
-          defaultValue={searchParams.get("manglik") ?? ""}
-          onChange={(e) => setParam("manglik", e.target.value)}
-        >
-          <option value="">Any manglik status</option>
-          {MANGLIK_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-
-        <Input
-          type="number"
-          placeholder="Min age"
-          defaultValue={searchParams.get("minAge") ?? ""}
-          onChange={(e) => setParam("minAge", e.target.value)}
+        <RangePair
+          label="Age (years)"
+          minKey="minAge"
+          maxKey="maxAge"
+          minValue={searchParams.get("minAge") ?? ""}
+          maxValue={searchParams.get("maxAge") ?? ""}
+          onChange={onDebouncedChange}
         />
-        <Input
-          type="number"
-          placeholder="Max age"
-          defaultValue={searchParams.get("maxAge") ?? ""}
-          onChange={(e) => setParam("maxAge", e.target.value)}
+        <RangePair
+          label="Height (cm)"
+          minKey="minHeight"
+          maxKey="maxHeight"
+          minValue={searchParams.get("minHeight") ?? ""}
+          maxValue={searchParams.get("maxHeight") ?? ""}
+          onChange={onDebouncedChange}
+        />
+        <RangePair
+          label="Finances (INR)"
+          minKey="minFinances"
+          maxKey="maxFinances"
+          minValue={searchParams.get("minFinances") ?? ""}
+          maxValue={searchParams.get("maxFinances") ?? ""}
+          onChange={onDebouncedChange}
         />
       </div>
+
+      {hasFilters && (
+        <div className="flex justify-end">
+          <Button type="button" size="sm" variant="ghost" onClick={clearAll}>
+            <X size={14} /> Clear filters
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

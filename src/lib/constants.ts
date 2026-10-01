@@ -38,16 +38,29 @@ export const GENDER_OPTIONS: { value: string; label: string }[] = [
 
 export const ACCESS_LEVEL_OPTIONS: { value: string; label: string; description: string }[] = [
   {
+    value: "photos_only",
+    label: "Photos only",
+    description: "Just the name and photo gallery — no other details.",
+  },
+  {
     value: "partial",
-    label: "Partial",
-    description: "Basic info & photos only. Family, career and horoscope details stay hidden.",
+    label: "Basic details",
+    description:
+      "Name, birth details, height, job/business, native place and photos.",
   },
   {
     value: "full",
-    label: "Full",
-    description: "Everything except confidential admin notes and net worth.",
+    label: "All details",
+    description:
+      "Everything the client can see. Finances, marital status and internal notes stay hidden.",
   },
 ];
+
+/** Castes offered in the search filter, per the intake sheet. */
+export const CASTE_OPTIONS = ["Reddy", "Kamma", "Velama"] as const;
+
+/** Internal classification from the intake sheet. */
+export const TAG_OPTIONS = ["AM", "AMP", "AMO"] as const;
 
 export const DEFAULT_SHARE_EXPIRY_DAYS = 3;
 
