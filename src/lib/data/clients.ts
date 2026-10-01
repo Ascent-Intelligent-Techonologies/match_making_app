@@ -167,3 +167,19 @@ export async function getClientAnalytics(): Promise<ClientAnalytics> {
     totalShortlists: summaries.reduce((n, c) => n + c.shortlistedCount, 0),
   };
 }
+
+/** Profile ids already shared with this client, used to grey out search hits. */
+export async function getSharedProfileIdsForClient(clientId: string): Promise<string[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("share_links")
+    .select("share_link_profiles(profile_id)")
+    .eq("client_id", clientId);
+  if (error) throw error;
+
+  const ids = new Set<string>();
+  for (const row of (data ?? []) as { share_link_profiles: { profile_id: string }[] }[]) {
+    for (const slp of row.share_link_profiles ?? []) ids.add(slp.profile_id);
+  }
+  return Array.from(ids);
+}

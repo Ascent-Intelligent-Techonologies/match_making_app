@@ -1,78 +1,72 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { listProfiles } from "@/lib/data/profiles";
-import { getCoverPhotoUrls } from "@/lib/data/photos";
-import { getAppSettings } from "@/lib/data/settings";
-import { listClientsForPicker } from "@/lib/data/clients";
-import { SearchFilterBar } from "@/components/SearchFilterBar";
-import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
-import { Button } from "@/components/ui/Button";
+import { BarChart3, LayoutGrid, Search, UserPlus, Users, Link2 } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 
-export default async function AdminDashboardPage({
-  searchParams,
-}: PageProps<"/admin">) {
-  const params = await searchParams;
-  const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const SECTIONS = [
+  {
+    href: "/admin/profiles/new",
+    title: "New Profile",
+    description: "Add a profile using the full intake form.",
+    Icon: UserPlus,
+  },
+  {
+    href: "/admin/search",
+    title: "Search",
+    description: "Search profiles for a client and share a shortlist with them.",
+    Icon: Search,
+  },
+  {
+    href: "/admin/profiles",
+    title: "All Profiles",
+    description: "Browse, filter and edit every profile on the books.",
+    Icon: LayoutGrid,
+  },
+  {
+    href: "/admin/analytics",
+    title: "Dashboard",
+    description: "Who was contacted recently, and who has gone quiet.",
+    Icon: BarChart3,
+  },
+];
 
-  const [profiles, settings, clients] = await Promise.all([
-    listProfiles({
-      search: getStr(params.search),
-      gender: getStr(params.gender),
-      religion: getStr(params.religion),
-      maritalStatus: getStr(params.maritalStatus),
-      diet: getStr(params.diet),
-      manglik: getStr(params.manglik),
-      caste: getStr(params.caste),
-      tag: getStr(params.tag),
-      minAge: params.minAge ? Number(getStr(params.minAge)) : undefined,
-      maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
-      minHeight: params.minHeight ? Number(getStr(params.minHeight)) : undefined,
-      maxHeight: params.maxHeight ? Number(getStr(params.maxHeight)) : undefined,
-      minFinances: params.minFinances ? Number(getStr(params.minFinances)) : undefined,
-      maxFinances: params.maxFinances ? Number(getStr(params.maxFinances)) : undefined,
-    }),
-    getAppSettings(),
-    listClientsForPicker(),
-  ]);
+const SECONDARY = [
+  { href: "/admin/clients", title: "Clients", Icon: Users },
+  { href: "/admin/links", title: "Share Links", Icon: Link2 },
+];
 
-  const coverUrls = await getCoverPhotoUrls(profiles.map((p) => p.id));
-
-  const selectableProfiles = profiles.map((p) => ({
-    id: p.id,
-    full_name: p.full_name,
-    city: p.city,
-    dob: p.dob,
-    is_active: p.is_active,
-    profession: p.profession,
-    religion: p.religion,
-    annual_income_inr: p.annual_income_inr,
-    marital_status: p.marital_status,
-    coverUrl: coverUrls.get(p.id),
-  }));
-
+export default function AdminHomePage() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold text-maroon-700">Profiles</h1>
-          <p className="text-sm text-ink-900/60">
-            {profiles.length} profile{profiles.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <Link href="/admin/profiles/new">
-          <Button>
-            <Plus size={16} /> New Profile
-          </Button>
-        </Link>
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="font-serif text-3xl font-semibold text-maroon-700">AnuRupa Matrimony</h1>
+        <p className="text-sm text-ink-900/60">Where would you like to start?</p>
       </div>
 
-      <SearchFilterBar />
+      <div className="grid gap-5 sm:grid-cols-2">
+        {SECTIONS.map(({ href, title, description, Icon }) => (
+          <Link key={href} href={href}>
+            <Card className="flex h-full flex-col gap-3 p-6 transition-transform hover:-translate-y-0.5">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-maroon-600 text-blush-50">
+                <Icon size={22} />
+              </span>
+              <h2 className="font-serif text-2xl font-semibold text-maroon-700">{title}</h2>
+              <p className="text-sm text-ink-900/60">{description}</p>
+            </Card>
+          </Link>
+        ))}
+      </div>
 
-      <ProfileSelectionGrid
-        profiles={selectableProfiles}
-        defaultExpiryDays={settings.default_expiry_days}
-        existingClients={clients}
-      />
+      <div className="flex flex-wrap gap-3">
+        {SECONDARY.map(({ href, title, Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className="inline-flex items-center gap-2 rounded-full border border-gold-400 px-5 py-2.5 text-sm font-medium text-maroon-700 hover:bg-blush-100"
+          >
+            <Icon size={15} /> {title}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
