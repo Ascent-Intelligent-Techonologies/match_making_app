@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, Phone } from "lucide-react";
 import { getClientById } from "@/lib/data/clients";
 import { listShareLinksForClient } from "@/lib/data/share-links";
 import { listShortlistedProfiles } from "@/lib/data/shortlists";
+import { listClientSearches } from "@/lib/data/searches";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatRelativeDays } from "@/lib/format";
@@ -14,9 +15,10 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const [links, shortlisted] = await Promise.all([
+  const [links, shortlisted, searches] = await Promise.all([
     listShareLinksForClient(id),
     listShortlistedProfiles(id),
+    listClientSearches(id).catch(() => []),
   ]);
 
   // The same profile can appear in several links; show each one once.
@@ -99,6 +101,35 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
                   {p.full_name}
                 </Badge>
               </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
+        <h2 className="mb-3 font-serif text-xl font-semibold text-maroon-700">
+          What they searched for
+        </h2>
+        {searches.length === 0 ? (
+          <p className="text-sm text-ink-900/50">No searches recorded yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {searches.map((s) => (
+              <div
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm"
+              >
+                <span className="flex flex-wrap gap-1.5">
+                  {Object.entries(s.filters).map(([k, v]) => (
+                    <Badge key={k} tone="neutral">
+                      {k}: {v}
+                    </Badge>
+                  ))}
+                </span>
+                <span className="text-xs text-ink-900/50">
+                  {s.result_count ?? 0} results · {formatDate(s.created_at)}
+                </span>
+              </div>
             ))}
           </div>
         )}

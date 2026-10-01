@@ -3,7 +3,12 @@ import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
+import { getShortlistedProfileIds } from "@/lib/data/shortlists";
+import { getBrowsingClientId } from "@/lib/auth/client-session";
 import { PublicSearchFilterBar } from "@/components/PublicSearchFilterBar";
+import { BrowseGate } from "@/components/BrowseGate";
+import { BrowseSearchTracker } from "@/components/BrowseSearchTracker";
+import { BrowseShortlistButton } from "@/components/BrowseShortlistButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { calculateAge, titleCase } from "@/lib/format";
@@ -11,11 +16,16 @@ import { calculateAge, titleCase } from "@/lib/format";
 export default async function BrowseProfilesPage({
   searchParams,
 }: PageProps<"/browse">) {
+  // Nobody browses anonymously: we capture name + number first so filters and
+  // likes are attributed to a client.
+  const clientId = await getBrowsingClientId();
+  if (!clientId) return <BrowseGate />;
+
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
   // Deliberately whitelisted: income/manglik filters are never exposed on the public route.
-  const profiles = await listProfiles({
+  const filters = {
     search: getStr(params.search),
     gender: getStr(params.gender),
     religion: getStr(params.religion),
@@ -23,18 +33,38 @@ export default async function BrowseProfilesPage({
     diet: getStr(params.diet),
     minAge: params.minAge ? Number(getStr(params.minAge)) : undefined,
     maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
-  });
+  };
 
-  const coverUrls = await getCoverPhotoUrls(profiles.map((p) => p.id));
+  const profiles = await listProfiles(filters);
+  const [coverUrls, shortlistedIds] = await Promise.all([
+    getCoverPhotoUrls(profiles.map((p) => p.id)),
+    getShortlistedProfileIds(clientId),
+  ]);
+  const shortlisted = new Set(shortlistedIds);
+
+  const appliedFilters = Object.fromEntries(
+    Object.entries(filters)
+      .filter(([, v]) => v !== undefined && v !== "")
+      .map(([k, v]) => [k, String(v)])
+  );
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
+      <BrowseSearchTracker filters={appliedFilters} resultCount={profiles.length} />
+
       <header className="flex flex-col items-center gap-1 text-center">
-        <p className="font-serif text-3xl font-semibold text-olive-500">AURA</p>
-        <p className="font-script text-lg italic text-maroon-700">Where destiny aligns</p>
+        <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm">
+          <Image
+            src="/logo-anurupa.jpg"
+            alt="AnuRupa Matrimony"
+            fill
+            sizes="120px"
+            className="object-cover"
+          />
+        </div>
         <p className="mt-2 max-w-lg text-sm text-ink-900/60">
-          Browse a curated selection of profiles. Reach out to your Aura consultant for a
-          personal introduction and full details.
+          Browse a curated selection of profiles and tap the heart on anyone you like.
+          Your consultant will follow up with full details.
         </p>
       </header>
 
@@ -50,38 +80,44 @@ export default async function BrowseProfilesPage({
             const age = calculateAge(profile.dob);
             const coverUrl = coverUrls.get(profile.id);
             return (
-              <Link key={profile.id} href={`/browse/${profile.id}`}>
-                <Card className="overflow-hidden transition-transform hover:-translate-y-0.5">
-                  <div className="relative flex aspect-[4/5] items-center justify-center bg-blush-100">
-                    {coverUrl ? (
-                      <Image
-                        src={coverUrl}
-                        alt={profile.full_name}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <ImageOff size={32} strokeWidth={1.25} className="text-maroon-700/40" />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 p-4">
-                    <h2 className="font-serif text-lg font-semibold text-maroon-700">
-                      {profile.full_name}
-                    </h2>
-                    <p className="text-sm text-ink-900/60">
-                      {age ? `${age} yrs` : "Age —"} · {profile.city ?? "City —"}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {profile.profession && <Badge tone="olive">{profile.profession}</Badge>}
-                      {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
-                      {profile.marital_status && (
-                        <Badge tone="neutral">{titleCase(profile.marital_status)}</Badge>
+              <div key={profile.id} className="relative">
+                <BrowseShortlistButton
+                  profileId={profile.id}
+                  initialShortlisted={shortlisted.has(profile.id)}
+                />
+                <Link href={`/browse/${profile.id}`}>
+                  <Card className="overflow-hidden transition-transform hover:-translate-y-0.5">
+                    <div className="relative flex aspect-[4/5] items-center justify-center bg-blush-100">
+                      {coverUrl ? (
+                        <Image
+                          src={coverUrl}
+                          alt={profile.full_name}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <ImageOff size={32} strokeWidth={1.25} className="text-maroon-700/40" />
                       )}
                     </div>
-                  </div>
-                </Card>
-              </Link>
+                    <div className="flex flex-col gap-2 p-4">
+                      <h2 className="font-serif text-lg font-semibold text-maroon-700">
+                        {profile.full_name}
+                      </h2>
+                      <p className="text-sm text-ink-900/60">
+                        {age ? `${age} yrs` : "Age —"} · {profile.city ?? "City —"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.profession && <Badge tone="olive">{profile.profession}</Badge>}
+                        {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
+                        {profile.marital_status && (
+                          <Badge tone="neutral">{titleCase(profile.marital_status)}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              </div>
             );
           })}
         </div>

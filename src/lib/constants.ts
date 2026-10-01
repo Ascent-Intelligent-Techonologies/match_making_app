@@ -69,3 +69,6 @@ export const ADMIN_SESSION_COOKIE = "aura_admin_session";
 export const PROFILE_PHOTOS_BUCKET = "profile-photos";
 
 export const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour, regenerated on each render
+
+/** Cookie holding the signed id of the client currently browsing. */
+export const CLIENT_SESSION_COOKIE = "aura_client_session";
