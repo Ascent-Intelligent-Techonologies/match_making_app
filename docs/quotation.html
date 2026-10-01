@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quotation — AnuRupa Matrimony</title>
+<link rel="stylesheet" href="_style.css">
+<style>
+.boxes{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:30px 0 10px}
+.scope{display:grid;grid-template-columns:200px 1fr;gap:14px;padding:18px 0;border-bottom:1px solid var(--line)}
+.scope .lbl{font-size:13.5px}
+.scope .lbl .nn{display:block;color:var(--accent);font-weight:700;font-size:12px;margin-bottom:3px}
+.scope .lbl b{font-weight:700}
+.scope ul{margin:0;padding-left:18px}
+.scope li{margin:5px 0;font-size:13.5px}
+.sign{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px}
+.sign .box{border:1px solid var(--line);border-radius:10px;padding:18px;min-height:150px}
+.sign h4{color:var(--accent);font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 30px}
+.sign .line{border-top:1px solid var(--ink);margin-top:40px;padding-top:6px;font-size:12px;color:var(--muted)}
+.ol li{margin:9px 0;font-size:13.5px}
+@media screen and (max-width:620px){.boxes,.sign,.scope{grid-template-columns:1fr}}
+</style></head>
+<body><div class="page">
+
+<header class="doc">
+  <div class="brand">ASCENT INTELLIGENT<small>Technologies</small>
+    <span class="addr">Ascent Intelligent Technologies Private Limited<br>
+    08th Floor, SLN Terminus T, Regus Grandeur Offices<br>
+    Survey No. 133, Beside Botanical Gardens, Gachibowli<br>
+    Hyderabad, Telangana – 500032<br>GSTIN: Not applicable</span>
+  </div>
+  <div class="doctitle"><h1>Quotation</h1>
+    <div class="meta">QUOTATION NO. <b>AIT/QT/2026-27/002</b><br>DATE <b>2 October 2026</b><br>AMOUNT <b>₹ 2,50,000</b></div>
+  </div>
+</header>
+
+<div class="boxes">
+  <div class="card"><h4>Quotation for</h4>
+    <b>ANUPAMA REDDY — ANURUPA MATRIMONY</b><br>
+    <span style="color:var(--muted);font-size:13px">
+    [Address line 1]<br>[Address line 2]<br>Hyderabad, Telangana<br>Email: [client email]</span>
+  </div>
+  <div class="card"><h4>Project</h4>
+    <b>AnuRupa Matrimony Platform</b><br>
+    <span style="color:var(--muted);font-size:13px">Design, development, cloud deployment and bug-fix
+    support of a private matchmaking platform for AnuRupa Matrimony.<br>
+    Engagement: fixed price, paid in three monthly instalments.</span>
+  </div>
+</div>
+
+<h2><span class="n">1</span>Project overview</h2>
+<p>Ascent Intelligent Technologies will design, build, deploy and hand over a private matchmaking
+platform for AnuRupa Matrimony. It holds the profile book, lets the consultant search it on behalf of
+a named client, and share a curated shortlist over WhatsApp at three levels of detail — then reports
+which links were opened and which profiles each family shortlisted. Section 2 lists the full scope.
+Sections 4 to 7 set out the price, payment schedule, hosting and post go-live support.</p>
+
+<h2><span class="n">2</span>Scope of work</h2>
+
+<div class="scope"><div class="lbl"><span class="nn">2.1</span><b>Platform foundation</b></div><ul>
+<li>Web application built on Next.js 16 and TypeScript with a managed PostgreSQL database and private object storage for photographs.</li>
+<li>Responsive interface in the AnuRupa brand design for desktop, tablet and mobile; the full admin workflow is usable from a phone.</li>
+<li>Server-rendered pages with validated server actions, so no business rule depends on the browser.</li>
+<li>Configuration held in environment settings, so credentials and endpoints change without code changes.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.2</span><b>Access &amp; security</b></div><ul>
+<li>Password-protected administrator area with a signed, HTTP-only session cookie and a 12-hour session.</li>
+<li>Database locked down at row level; all access is through the application's service credentials, never from the browser.</li>
+<li>Photographs held in a private bucket and served only through short-lived signed URLs that expire after one hour.</li>
+<li>Field-level visibility rules enforced on the server, so admin-only data cannot leak through a share link.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.3</span><b>Profile intake &amp; management</b></div><ul>
+<li>Intake form laid out in the same sections as the client's own spreadsheet: Personal, Education, Professional, Family, Contact, Requirements and Internal.</li>
+<li>Approximately 50 fields including surname, date / time / place of birth, rasi, nakshatram, gotram, caste and sub-caste, height, degree, university, school, job, business, salary, citizenship, parent names, details and native places, siblings, current address, primary and middlemen contacts.</li>
+<li>Internal classification tag (AM / AMP / AMO), finances, net-worth notes and private notes, none of which are ever shared with a client.</li>
+<li>Full edit of every field after creation, and an active/inactive toggle that removes a profile from search without deleting it.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.4</span><b>Photographs</b></div><ul>
+<li>Upload by file picker, by dragging images onto the page, or by pasting an image from the clipboard.</li>
+<li>Multiple photographs per profile with reordering, cover-photo selection and deletion; controls remain visible on touch screens.</li>
+<li>Swipeable photo carousel on the pages that clients see.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.5</span><b>Search &amp; filters</b></div><ul>
+<li>Filters matching the client's search sheet: name, bride/groom, caste (Reddy, Kamma, Velama or all), internal tag, and more-than / less-than ranges for age, height and finances.</li>
+<li>Full-profile browse with the same filters, newest first, and direct access to edit any record.</li>
+<li>Search results show only name, date of birth, height, caste and requirements, with one click through to the complete record.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.6</span><b>Client-led search</b></div><ul>
+<li>Every search runs on behalf of a named client, chosen or created at the start of the search.</li>
+<li>Profiles already sent to that client are greyed out and badged, preventing duplicate sends.</li>
+<li>Profiles that client has shortlisted are badged, so interest is visible while searching.</li>
+<li>Select individual results, or select all, and share them as a single link.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.7</span><b>Sharing &amp; access levels</b></div><ul>
+<li>Three levels of disclosure, enforced field by field on the server: <b>Photos only</b>, <b>Basic details</b> and <b>All details</b>.</li>
+<li>Finances, marital status, internal tag, middlemen contact and private notes are withheld at every level.</li>
+<li>Expiring links with a configurable default, per-link expiry, extension and immediate revocation.</li>
+<li>One-tap WhatsApp sharing with the message pre-composed and addressed to the client by name; copy-link alternative.</li>
+<li>Share-link register showing recipient, profiles included, access level, open count and expiry.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.8</span><b>Client tracking &amp; shortlisting</b></div><ul>
+<li>Clients identified by name and phone number, with numbers normalised so "+91 98765 43210" and "9876543210" resolve to one record.</li>
+<li>Heart control on every shared profile; selections recorded against the client immediately.</li>
+<li>Link-open tracking recorded from the client's browser, with first-opened, last-opened and open count.</li>
+<li>Client directory searchable by name or phone, showing profiles shared, profiles shortlisted and last activity.</li>
+<li>Client detail page showing everything sent, everything liked, every search they ran and every link with its open status.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.9</span><b>Public browsing with identity capture</b></div><ul>
+<li>Public browse page that shows no profile until the visitor provides a name and phone number.</li>
+<li>Visitors matched to the existing client book by phone, so a walk-in and a later WhatsApp recipient remain one client.</li>
+<li>Browsing visitors can shortlist profiles, and the filters they apply are recorded against them.</li>
+<li>Identity held in a signed, HTTP-only cookie so it cannot be altered to impersonate another client.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.10</span><b>Dashboard &amp; analytics</b></div><ul>
+<li>Clients contacted in the last 7 days.</li>
+<li>Clients with no response in 30 or more days — contacted over a month ago and silent since, as a follow-up worklist.</li>
+<li>Clients who have never opened a link despite being sent profiles.</li>
+<li>Totals for clients and shortlists, with every name linking through to that client.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">2.11</span><b>Cloud deployment &amp; operations</b></div><ul>
+<li>Deployment to <b>Microsoft Azure</b> or <b>Amazon Web Services</b>, on the client's own cloud account, as the client prefers.</li>
+<li>Application, managed PostgreSQL database and private object storage provisioned and configured, with environment configuration and secrets handled outside the codebase.</li>
+<li>Custom domain and HTTPS certificate configured.</li>
+<li>Database schema with versioned, re-runnable migration scripts.</li>
+<li>Deployment runbook covering build, release, configuration and rollback.</li>
+</ul></div>
+
+<h2><span class="n">3</span>Deliverables</h2>
+<ul>
+<li>The platform deployed to production on the client's Azure or AWS account, with the custom domain live.</li>
+<li>Complete application source code, database schema and migration scripts.</li>
+<li>User guide covering every feature, with screenshots (supplied alongside this quotation).</li>
+<li>Technical and operations documentation: architecture, configuration, deployment, backup and restore.</li>
+<li>Administrator account set up and a handover walkthrough of the platform.</li>
+</ul>
+
+<h2><span class="n">4</span>Commercial summary</h2>
+<table>
+<tr><th>#</th><th>Description</th><th class="num">Amount (₹)</th></tr>
+<tr><td>1</td><td><b>Matchmaking platform development and cloud deployment — AnuRupa Matrimony</b><br>
+<span style="color:var(--muted);font-size:12.5px">Full scope as described in Section 2, deliverables in Section 3, and bug-fix support for 3 months after go-live as described in Section 6.</span></td>
+<td class="num">2,50,000</td></tr>
+<tr class="total"><td></td><td>Total</td><td class="num">₹ 2,50,000</td></tr>
+</table>
+<p><b>Amount in words:</b> Rupees Two Lakh Fifty Thousand Only.<br>
+<span style="font-size:12.5px;color:var(--muted)">No GST is charged on this quotation. The price is fixed for the scope above.</span></p>
+
+<div class="note"><b>How this compares.</b> Productised Indian matrimonial software runs from roughly
+₹50,000 for a basic script to ₹1,50,000 for a starter self-hosted edition and ₹3,50,000 once a mobile
+app and payment gateway are added. Subscription matchmaker CRMs cost roughly ₹52,000 to ₹1,57,000
+<i>per year, every year</i>, with no source code. This quotation sits in the custom-build band while
+delivering workflow — client-led search, three-tier sharing, shortlist tracking and follow-up
+analytics — that the off-the-shelf products do not offer, with source code owned outright and no
+annual licence fee.</div>
+
+<h2><span class="n">5</span>Payment schedule</h2>
+<table>
+<tr><th>Instalment</th><th>Due</th><th class="num">Amount (₹)</th></tr>
+<tr><td>1</td><td>On acceptance of this quotation</td><td class="num">1,00,000</td></tr>
+<tr><td>2</td><td>Month 2</td><td class="num">75,000</td></tr>
+<tr><td>3</td><td>On go-live</td><td class="num">75,000</td></tr>
+<tr class="total"><td></td><td>Total</td><td class="num">₹ 2,50,000</td></tr>
+</table>
+<ul>
+<li>An invoice is raised for each instalment as it falls due.</li>
+<li>Payment is due within 30 days of the invoice date, by bank transfer (NEFT / RTGS / IMPS) to the account in Section 9, or by cheque payable to Ascent Intelligent Technologies.</li>
+</ul>
+
+<h2><span class="n">6</span>Post go-live support</h2>
+<p>Bug-fix support is included in the quoted amount for <b>3 months from go-live</b> at no additional charge.</p>
+<div class="boxes" style="margin-top:6px">
+  <div><b style="font-size:13.5px">Covered</b><ul style="font-size:13.5px">
+    <li>Fixing defects in delivered functionality: errors, crashes, incorrect results, or behaviour that does not match the scope in Section 2.</li>
+    <li>Faults in the delivered integrations caused by the application code.</li>
+    <li>Deploying those fixes to the production environment.</li>
+  </ul></div>
+  <div><b style="font-size:13.5px">Not covered</b><ul style="font-size:13.5px">
+    <li>New features, modules, reports, screens or integrations.</li>
+    <li>Enhancements or changes to existing workflows, business rules or layouts.</li>
+    <li>Outages, suspensions or pricing changes at the cloud or third-party providers.</li>
+    <li>Hardware, network or hosting failures.</li>
+    <li>Defects caused by changes the client or other developers make to the code or environment.</li>
+  </ul></div>
+</div>
+<div class="note"><b>No feature development during the support period.</b> The support period covers bug
+fixes only. <b>Feature updates and enhancements will be discussed and quoted separately</b>, and work on
+them starts only after that quotation is accepted.</div>
+
+<h3>Maintenance &amp; operational activities</h3>
+<p>Any maintenance activity requested outside the bug-fix scope above — including backups and restores,
+data migration or clean-up, environment changes, server or database maintenance, and
+performance tuning — is charged at <b>₹2,000 per hour</b>. Time is recorded and reported, and any task
+expected to exceed two hours is estimated for approval before work begins.</p>
+
+<h2><span class="n">7</span>Client responsibilities &amp; third-party costs</h2>
+<ul>
+<li>The client owns, and provides access to, the cloud account the platform runs on — Microsoft Azure or Amazon Web Services — together with the domain name.</li>
+<li>The client pays third-party subscription and usage charges directly to the providers. These are not part of this quotation and include cloud compute, managed database and object storage, bandwidth, domain registration and TLS certificates where chargeable, and any email or messaging service fees.</li>
+<li>The client provides the brand assets, the profile data to be loaded, and timely review of work submitted for acceptance.</li>
+</ul>
+
+<h2><span class="n">8</span>Terms &amp; conditions</h2>
+<ol class="ol">
+<li><b>Scope.</b> The work is limited to the scope in Section 2. Anything not listed there is excluded and requires a separate quotation.</li>
+<li><b>Intellectual property.</b> Ascent Intelligent Technologies and the client jointly own the application source code, and each may use it without the other's consent. The client may use, copy, modify, adapt and extend the source code delivered to it in any way, whether through its own staff or other developers. These rights take effect once all amounts due are paid. The client's data belongs to the client alone. Open-source components remain under their own licences.</li>
+<li><b>Data protection.</b> Both parties comply with the Digital Personal Data Protection Act, 2023. The client is the data fiduciary. Ascent Intelligent Technologies processes personal data only on the client's instructions and for this engagement.</li>
+<li><b>Confidentiality.</b> Each party keeps the other's business and technical information confidential during the engagement and for three years after it ends.</li>
+<li><b>Third-party services.</b> The platform depends on external providers such as Microsoft Azure or Amazon Web Services. Ascent Intelligent Technologies is not responsible for their availability, pricing, policies or account decisions.</li>
+<li><b>Limitation of liability.</b> Total liability is limited to the fees actually paid under this quotation. Neither party is liable for indirect or consequential loss, including loss of profit or data.</li>
+<li><b>Termination.</b> Either party may end the engagement with 30 days' written notice. Instalments for work already completed remain payable.</li>
+<li><b>Non-solicitation.</b> Neither party will solicit the other's staff who worked on this project, during the engagement and for 12 months after it ends.</li>
+<li><b>Force majeure.</b> Neither party is liable for delays caused by events beyond its reasonable control.</li>
+<li><b>Governing law.</b> This quotation is governed by the laws of India. The parties will first try to resolve any dispute amicably; if that fails, the dispute is subject to the exclusive jurisdiction of the courts at Hyderabad, Telangana.</li>
+<li><b>Validity.</b> This quotation is valid for 30 days from the date shown above.</li>
+</ol>
+
+<h2><span class="n">9</span>Payment details</h2>
+<table>
+<tr><td style="width:25%;color:var(--muted)">Account holder</td><td><b>Ascent Intelligent Technologies</b></td>
+<td style="width:20%;color:var(--muted)">IFSC code</td><td><b>HDFC0000545</b></td></tr>
+<tr><td style="color:var(--muted)">Bank</td><td><b>HDFC Bank</b></td>
+<td style="color:var(--muted)">Branch</td><td><b>HITEC City</b></td></tr>
+<tr><td style="color:var(--muted)">Account number</td><td><b>50200068022602</b></td>
+<td style="color:var(--muted)">SWIFT code</td><td><b>HDFCINBBXXX</b></td></tr>
+<tr><td style="color:var(--muted)">Cheques payable to</td><td colspan="3"><b>Ascent Intelligent Technologies</b></td></tr>
+</table>
+
+<h2><span class="n">10</span>Acceptance</h2>
+<p>To accept this quotation, sign below and return a copy, or confirm acceptance by email.</p>
+<div class="sign">
+  <div class="box"><h4>For Ascent Intelligent Technologies Private Limited</h4>
+    <div class="line">Authorised Signatory</div></div>
+  <div class="box"><h4>Accepted for AnuRupa Matrimony</h4>
+    <div style="font-size:13px;color:var(--muted);line-height:2.1">Name:<br>Designation:<br>Date:</div>
+    <div class="line">Authorised Signatory &amp; Seal</div></div>
+</div>
+
+<footer class="doc"><span>Ascent Intelligent Technologies Private Limited</span>
+<span>Quotation AIT/QT/2026-27/002 · AnuRupa Matrimony</span></footer>
+</div></body></html>
