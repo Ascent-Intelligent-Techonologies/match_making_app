@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, LayoutGrid, Link2 } from "lucide-react";
+import { LogOut, LayoutGrid, Link2, Users, BarChart3 } from "lucide-react";
 import { isAdminAuthenticated } from "@/lib/auth/session";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -26,11 +26,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <LayoutGrid size={15} /> <span className="hidden sm:inline">Profiles</span>
             </Link>
             <Link
+              href="/admin/clients"
+              aria-label="Clients"
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium text-maroon-700 hover:bg-blush-100 sm:px-4"
+            >
+              <Users size={15} /> <span className="hidden sm:inline">Clients</span>
+            </Link>
+            <Link
               href="/admin/links"
               aria-label="Share Links"
               className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium text-maroon-700 hover:bg-blush-100 sm:px-4"
             >
               <Link2 size={15} /> <span className="hidden sm:inline">Share Links</span>
+            </Link>
+            <Link
+              href="/admin/analytics"
+              aria-label="Analytics"
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium text-maroon-700 hover:bg-blush-100 sm:px-4"
+            >
+              <BarChart3 size={15} /> <span className="hidden sm:inline">Analytics</span>
             </Link>
             <form action={logoutAction}>
               <button

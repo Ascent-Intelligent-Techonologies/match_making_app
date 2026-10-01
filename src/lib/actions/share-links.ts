@@ -9,11 +9,14 @@ import {
   updateShareLinkAccessLevel,
 } from "@/lib/data/share-links";
 import { updateDefaultExpiryDays } from "@/lib/data/settings";
+import { upsertClientByPhone } from "@/lib/data/clients";
 import type { AccessLevel } from "@/lib/types";
 
 export interface ShareLinkFormState {
   error?: string;
   createdUrl?: string;
+  /** Echoed back so the share message can greet the client by name. */
+  clientName?: string;
 }
 
 export async function createShareLinkAction(
@@ -26,17 +29,31 @@ export async function createShareLinkAction(
     accessLevel: formData.get("accessLevel"),
     expiryDays: formData.get("expiryDays"),
     label: formData.get("label") ?? undefined,
+    clientName: formData.get("clientName"),
+    clientPhone: formData.get("clientPhone"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const link = await createShareLink(parsed.data);
+  // Phone is the client's identity, so re-sharing to the same number attaches
+  // to the existing client instead of creating a duplicate.
+  const client = await upsertClientByPhone({
+    fullName: parsed.data.clientName,
+    phone: parsed.data.clientPhone,
+  });
+
+  const link = await createShareLink({ ...parsed.data, clientId: client.id });
   revalidatePath("/admin/links");
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin/analytics");
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  return { createdUrl: `${siteUrl}/share/${link.token}` };
+  return {
+    createdUrl: `${siteUrl}/share/${link.token}`,
+    clientName: client.full_name,
+  };
 }
 
 export async function revokeShareLinkAction(id: string) {

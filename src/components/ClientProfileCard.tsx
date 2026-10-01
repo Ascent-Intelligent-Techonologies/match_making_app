@@ -1,4 +1,5 @@
 import { ProfilePhotoCarousel } from "@/components/ProfilePhotoCarousel";
+import { ShortlistButton } from "@/components/ShortlistButton";
 import { Badge } from "@/components/ui/Badge";
 import {
   calculateAge,
@@ -20,7 +21,14 @@ function Detail({ label, value }: { label: string; value?: string | number | nul
   );
 }
 
-export function ClientProfileCard({ profile }: { profile: PublicProfile }) {
+export function ClientProfileCard({
+  profile,
+  shortlist,
+}: {
+  profile: PublicProfile;
+  /** Omitted when the link predates client tracking, which hides the heart. */
+  shortlist?: { token: string; shortlisted: boolean };
+}) {
   const age = calculateAge(profile.dob);
 
   return (
@@ -31,14 +39,23 @@ export function ClientProfileCard({ profile }: { profile: PublicProfile }) {
         </div>
 
         <div className="flex flex-col gap-5 p-6">
-          <div>
-            <h2 className="font-serif text-2xl font-semibold text-maroon-700">
-              {profile.full_name}
-            </h2>
-            <p className="text-sm text-ink-900/60">
-              {age ? `${age} years` : null}
-              {profile.city ? ` · ${profile.city}${profile.state ? `, ${profile.state}` : ""}` : ""}
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-maroon-700">
+                {profile.full_name}
+              </h2>
+              <p className="text-sm text-ink-900/60">
+                {age ? `${age} years` : null}
+                {profile.city ? ` · ${profile.city}${profile.state ? `, ${profile.state}` : ""}` : ""}
+              </p>
+            </div>
+            {shortlist && (
+              <ShortlistButton
+                token={shortlist.token}
+                profileId={profile.id}
+                initialShortlisted={shortlist.shortlisted}
+              />
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

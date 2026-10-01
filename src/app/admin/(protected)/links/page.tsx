@@ -1,6 +1,7 @@
 import { listShareLinks } from "@/lib/data/share-links";
 import { listProfiles } from "@/lib/data/profiles";
 import { getAppSettings } from "@/lib/data/settings";
+import { listClientsForPicker } from "@/lib/data/clients";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { ShareLinkRow } from "@/components/ShareLinkRow";
 import { Field, Input } from "@/components/ui/Field";
@@ -8,10 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { updateDefaultExpiryAction } from "@/lib/actions/share-links";
 
 export default async function ShareLinksPage() {
-  const [links, profiles, settings] = await Promise.all([
+  const [links, profiles, settings, clients] = await Promise.all([
     listShareLinks(),
     listProfiles({}),
     getAppSettings(),
+    listClientsForPicker(),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
@@ -30,6 +32,7 @@ export default async function ShareLinksPage() {
         <ShareLinkCreator
           allProfiles={profiles.map((p) => ({ id: p.id, full_name: p.full_name, city: p.city }))}
           defaultExpiryDays={settings.default_expiry_days}
+          existingClients={clients}
         />
       </section>
 

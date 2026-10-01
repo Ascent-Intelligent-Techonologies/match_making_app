@@ -1,8 +1,10 @@
 import Image from "next/image";
 import { getShareLinkByToken } from "@/lib/data/share-links";
 import { getManyProfilesWithPhotos } from "@/lib/data/profiles";
+import { getShortlistedProfileIds } from "@/lib/data/shortlists";
 import { toPublicProfile } from "@/lib/types";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
+import { ShareViewTracker } from "@/components/ShareViewTracker";
 
 function ExpiredNotice({ message }: { message: string }) {
   return (
@@ -33,8 +35,15 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   const profiles = await getManyProfilesWithPhotos(link.profiles.map((p) => p.id));
   const publicProfiles = profiles.map((p) => toPublicProfile(p, link.access_level));
 
+  // Links created before client tracking have no client, so no shortlisting.
+  const shortlistedIds = link.client_id
+    ? new Set(await getShortlistedProfileIds(link.client_id))
+    : null;
+
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
+      <ShareViewTracker token={token} />
+
       <header className="flex flex-col items-center gap-2 text-center">
         <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm sm:max-w-[180px]">
           <Image
@@ -45,11 +54,24 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
             className="object-cover"
           />
         </div>
+        {shortlistedIds && (
+          <p className="max-w-sm text-sm text-ink-900/60">
+            Tap the heart on any profile you would like to take forward.
+          </p>
+        )}
       </header>
 
       <div className="flex flex-col gap-6">
         {publicProfiles.map((profile) => (
-          <ClientProfileCard key={profile.id} profile={profile} />
+          <ClientProfileCard
+            key={profile.id}
+            profile={profile}
+            shortlist={
+              shortlistedIds
+                ? { token, shortlisted: shortlistedIds.has(profile.id) }
+                : undefined
+            }
+          />
         ))}
       </div>
     </main>

@@ -7,7 +7,7 @@ import { Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { ShareLinkCreator } from "@/components/ShareLinkCreator";
+import { ShareLinkCreator, type ClientOption } from "@/components/ShareLinkCreator";
 import { calculateAge, formatInrCompact, titleCase } from "@/lib/format";
 import type { MaritalStatus } from "@/lib/types";
 
@@ -27,9 +27,11 @@ export interface SelectableProfile {
 export function ProfileSelectionGrid({
   profiles,
   defaultExpiryDays,
+  existingClients = [],
 }: {
   profiles: SelectableProfile[];
   defaultExpiryDays: number;
+  existingClients?: ClientOption[];
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
@@ -127,6 +129,7 @@ export function ProfileSelectionGrid({
           }))}
           preselectedIds={selectedVisibleIds}
           defaultExpiryDays={defaultExpiryDays}
+          existingClients={existingClients}
           lockSelection
         />
       )}

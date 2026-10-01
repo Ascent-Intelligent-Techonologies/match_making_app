@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getAppSettings } from "@/lib/data/settings";
+import { listClientsForPicker } from "@/lib/data/clients";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +14,7 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  const [profiles, settings] = await Promise.all([
+  const [profiles, settings, clients] = await Promise.all([
     listProfiles({
       search: getStr(params.search),
       gender: getStr(params.gender),
@@ -25,6 +26,7 @@ export default async function AdminDashboardPage({
       maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
     }),
     getAppSettings(),
+    listClientsForPicker(),
   ]);
 
   const coverUrls = await getCoverPhotoUrls(profiles.map((p) => p.id));
@@ -63,6 +65,7 @@ export default async function AdminDashboardPage({
       <ProfileSelectionGrid
         profiles={selectableProfiles}
         defaultExpiryDays={settings.default_expiry_days}
+        existingClients={clients}
       />
     </div>
   );

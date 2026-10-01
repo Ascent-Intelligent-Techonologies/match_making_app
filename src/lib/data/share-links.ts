@@ -1,10 +1,24 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { generateShareToken } from "@/lib/tokens";
+import { touchClientActivity } from "@/lib/data/clients";
 import type { AccessLevel, ShareLink, ShareLinkWithProfiles } from "@/lib/types";
 
 interface RawShareLinkRow extends ShareLink {
   share_link_profiles: { profiles: { id: string; full_name: string; city: string | null } }[];
+  clients: { id: string; full_name: string; phone_display: string | null } | null;
+}
+
+const LINK_SELECT =
+  "*, share_link_profiles(profiles(id, full_name, city)), clients(id, full_name, phone_display)";
+
+function toLinkWithProfiles(row: RawShareLinkRow): ShareLinkWithProfiles {
+  const { share_link_profiles, clients, ...link } = row;
+  return {
+    ...link,
+    profiles: (share_link_profiles ?? []).map((slp) => slp.profiles),
+    client: clients,
+  };
 }
 
 export interface CreateShareLinkInput {
@@ -12,6 +26,7 @@ export interface CreateShareLinkInput {
   accessLevel: AccessLevel;
   expiryDays: number;
   label?: string;
+  clientId: string;
 }
 
 export async function createShareLink(input: CreateShareLinkInput): Promise<ShareLink> {
@@ -27,6 +42,7 @@ export async function createShareLink(input: CreateShareLinkInput): Promise<Shar
       label: input.label || null,
       access_level: input.accessLevel,
       expires_at: expiresAt.toISOString(),
+      client_id: input.clientId,
     })
     .select("*")
     .single();
@@ -47,17 +63,21 @@ export async function listShareLinks(): Promise<ShareLinkWithProfiles[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("share_links")
-    .select("*, share_link_profiles(profiles(id, full_name, city))")
+    .select(LINK_SELECT)
     .order("created_at", { ascending: false });
   if (error) throw error;
+  return ((data ?? []) as RawShareLinkRow[]).map(toLinkWithProfiles);
+}
 
-  return ((data ?? []) as RawShareLinkRow[]).map((row) => {
-    const { share_link_profiles, ...link } = row;
-    return {
-      ...link,
-      profiles: share_link_profiles.map((slp) => slp.profiles),
-    };
-  });
+export async function listShareLinksForClient(clientId: string): Promise<ShareLinkWithProfiles[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("share_links")
+    .select(LINK_SELECT)
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as RawShareLinkRow[]).map(toLinkWithProfiles);
 }
 
 export async function getShareLinkByToken(
@@ -66,14 +86,38 @@ export async function getShareLinkByToken(
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("share_links")
-    .select("*, share_link_profiles(profiles(id, full_name, city))")
+    .select(LINK_SELECT)
     .eq("token", token)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  return toLinkWithProfiles(data as RawShareLinkRow);
+}
 
-  const { share_link_profiles, ...link } = data as RawShareLinkRow;
-  return { ...link, profiles: share_link_profiles.map((slp) => slp.profiles) };
+/**
+ * Marks a link as opened. Called when the client loads the share page, and is
+ * what the "has this client responded?" analytics read from.
+ */
+export async function recordShareLinkView(
+  linkId: string,
+  clientId: string | null,
+  currentViewCount: number,
+  firstViewedAt: string | null
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("share_links")
+    .update({
+      last_viewed_at: now,
+      first_viewed_at: firstViewedAt ?? now,
+      view_count: (currentViewCount ?? 0) + 1,
+    })
+    .eq("id", linkId);
+  if (error) throw error;
+
+  if (clientId) await touchClientActivity(clientId);
 }
 
 export async function revokeShareLink(id: string): Promise<void> {

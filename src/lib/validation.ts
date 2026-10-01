@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isUsablePhone } from "@/lib/phone";
 
 const emptyToUndefined = (val: unknown) =>
   typeof val === "string" && val.trim() === "" ? undefined : val;
@@ -65,6 +66,12 @@ export const shareLinkSchema = z.object({
   accessLevel: z.enum(["partial", "full"]),
   expiryDays: z.coerce.number().int().min(1).max(90),
   label: z.string().trim().optional(),
+  // Every link is shared on behalf of someone, so we can track who saw what.
+  clientName: z.string().trim().min(1, "Enter the client's name"),
+  clientPhone: z
+    .string()
+    .trim()
+    .refine(isUsablePhone, "Enter a valid phone number (at least 10 digits)"),
 });
 
 export type ShareLinkFormValues = z.infer<typeof shareLinkSchema>;

@@ -45,3 +45,17 @@ export function titleCase(value: string | null | undefined): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+/** Human-friendly "how long ago", used in client activity columns. */
+export function formatRelativeDays(value: string | null | undefined): string {
+  if (!value) return "Never";
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "Never";
+
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  if (days < 60) return "Last month";
+  return `${Math.floor(days / 30)} months ago`;
+}

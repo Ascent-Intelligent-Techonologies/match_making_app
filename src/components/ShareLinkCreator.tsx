@@ -7,15 +7,25 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { ACCESS_LEVEL_OPTIONS } from "@/lib/constants";
 import { createShareLinkAction, type ShareLinkFormState } from "@/lib/actions/share-links";
 
+export interface ClientOption {
+  id: string;
+  full_name: string;
+  phone_display: string | null;
+  phone: string;
+}
+
 export function ShareLinkCreator({
   allProfiles,
   preselectedIds = [],
   defaultExpiryDays,
   lockSelection = false,
+  existingClients = [],
 }: {
   allProfiles: { id: string; full_name: string; city: string | null }[];
   preselectedIds?: string[];
   defaultExpiryDays: number;
+  /** Lets the admin reuse a client instead of retyping their details. */
+  existingClients?: ClientOption[];
   /**
    * When true the profile picker is hidden and `preselectedIds` is the
    * definitive selection — used when profiles were already chosen elsewhere
@@ -29,6 +39,8 @@ export function ShareLinkCreator({
   );
   const [ownSelection, setOwnSelection] = useState<Set<string>>(new Set(preselectedIds));
   const [copied, setCopied] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
 
   // In locked mode the parent owns the selection, so read it straight from
   // props — otherwise it would go stale as the parent's selection changes.
@@ -45,10 +57,11 @@ export function ShareLinkCreator({
   const whatsappText = useMemo(() => {
     if (!state.createdUrl) return "";
     const names = selectedProfiles.map((p) => p.full_name).join(", ");
+    const greeting = state.clientName ? `Hi ${state.clientName}, ` : "";
     return encodeURIComponent(
-      `Sharing the profile${selectedProfiles.length > 1 ? "s" : ""} for ${names} from Aura: ${state.createdUrl}`
+      `${greeting}sharing the profile${selectedProfiles.length > 1 ? "s" : ""} for ${names} from Aura: ${state.createdUrl}`
     );
-  }, [state.createdUrl, selectedProfiles]);
+  }, [state.createdUrl, state.clientName, selectedProfiles]);
 
   if (state.createdUrl) {
     return (
@@ -133,6 +146,57 @@ export function ShareLinkCreator({
           </div>
         </div>
       )}
+
+      <div className="flex flex-col gap-3 rounded-lg border border-blush-200 bg-blush-100/40 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+          Sharing on behalf of
+        </p>
+        {existingClients.length > 0 && (
+          <Field label="Pick an existing client (optional)" htmlFor="existingClient">
+            <Select
+              id="existingClient"
+              value=""
+              onChange={(e) => {
+                const match = existingClients.find((c) => c.id === e.target.value);
+                if (match) {
+                  setClientName(match.full_name);
+                  setClientPhone(match.phone_display ?? match.phone);
+                }
+              }}
+            >
+              <option value="">New client…</option>
+              {existingClients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name} · {c.phone_display ?? c.phone}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Client name" htmlFor="clientName">
+            <Input
+              id="clientName"
+              name="clientName"
+              required
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. Sharma family"
+            />
+          </Field>
+          <Field label="Client phone" htmlFor="clientPhone">
+            <Input
+              id="clientPhone"
+              name="clientPhone"
+              required
+              inputMode="tel"
+              value={clientPhone}
+              onChange={(e) => setClientPhone(e.target.value)}
+              placeholder="e.g. +91 98765 43210"
+            />
+          </Field>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Access Level" htmlFor="accessLevel">

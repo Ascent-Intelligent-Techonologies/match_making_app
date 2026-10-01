@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
-import { Ban, CalendarPlus, Copy, MessageCircleMore } from "lucide-react";
+import { Ban, CalendarPlus, Copy, MessageCircleMore, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/format";
@@ -27,6 +28,16 @@ export function ShareLinkRow({ link, siteUrl }: { link: ShareLinkWithProfiles; s
           {link.label || link.profiles.map((p) => p.full_name).join(", ")}
         </p>
         <p className="text-xs text-ink-900/50">{link.profiles.map((p) => p.full_name).join(", ")}</p>
+        {link.client && (
+          <Link
+            href={`/admin/clients/${link.client.id}`}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-maroon-700 hover:underline"
+          >
+            <User size={11} />
+            {link.client.full_name}
+            {link.client.phone_display ? ` · ${link.client.phone_display}` : ""}
+          </Link>
+        )}
       </td>
       <td className="py-3 pr-4">
         <Badge tone={link.access_level === "full" ? "maroon" : "gold"}>{link.access_level}</Badge>

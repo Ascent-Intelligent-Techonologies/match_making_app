@@ -86,10 +86,45 @@ export interface ShareLink {
   expires_at: string;
   revoked: boolean;
   created_at: string;
+  client_id: string | null;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  view_count: number;
+}
+
+/** A person we are shortlisting for, identified by phone number. */
+export interface Client {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  full_name: string;
+  /** Normalised digits used as the identity key. */
+  phone: string;
+  /** Exactly what the admin typed. */
+  phone_display: string | null;
+  notes: string | null;
+  last_activity_at: string | null;
+}
+
+/** A client plus the engagement counts shown in admin lists. */
+export interface ClientSummary extends Client {
+  sharedProfileCount: number;
+  shortlistedCount: number;
+  linkCount: number;
+  lastSharedAt: string | null;
+}
+
+export interface ClientShortlist {
+  id: string;
+  client_id: string;
+  profile_id: string;
+  share_link_id: string | null;
+  created_at: string;
 }
 
 export interface ShareLinkWithProfiles extends ShareLink {
   profiles: Pick<Profile, "id" | "full_name" | "city">[];
+  client: Pick<Client, "id" | "full_name" | "phone_display"> | null;
 }
 
 export interface AppSettings {
