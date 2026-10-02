@@ -45,8 +45,9 @@ export default async function AdminDashboardPage({
     is_active: p.is_active,
     profession: p.profession,
     religion: p.religion,
+    caste: p.caste,
+    height_cm: p.height_cm,
     annual_income_inr: p.annual_income_inr,
-    marital_status: p.marital_status,
     coverUrl: coverUrls.get(p.id),
   }));
 

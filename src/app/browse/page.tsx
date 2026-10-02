@@ -11,7 +11,7 @@ import { BrowseSearchTracker } from "@/components/BrowseSearchTracker";
 import { BrowseShortlistButton } from "@/components/BrowseShortlistButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { calculateAge, titleCase } from "@/lib/format";
+import { calculateAge, formatHeight } from "@/lib/format";
 
 export default async function BrowseProfilesPage({
   searchParams,
@@ -114,8 +114,8 @@ export default async function BrowseProfilesPage({
                       <div className="flex flex-wrap gap-1.5">
                         {profile.profession && <Badge tone="olive">{profile.profession}</Badge>}
                         {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
-                        {profile.marital_status && (
-                          <Badge tone="neutral">{titleCase(profile.marital_status)}</Badge>
+                        {profile.height_cm && (
+                          <Badge tone="neutral">{formatHeight(profile.height_cm)}</Badge>
                         )}
                       </div>
                     </div>

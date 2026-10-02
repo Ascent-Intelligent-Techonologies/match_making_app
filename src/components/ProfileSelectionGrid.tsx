@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator, type ClientOption } from "@/components/ShareLinkCreator";
-import { calculateAge, formatInrCompact, titleCase } from "@/lib/format";
-import type { MaritalStatus } from "@/lib/types";
+import { calculateAge, formatHeight, formatInrCompact } from "@/lib/format";
 
 export interface SelectableProfile {
   id: string;
@@ -19,8 +18,9 @@ export interface SelectableProfile {
   is_active: boolean;
   profession: string | null;
   religion: string | null;
+  caste: string | null;
+  height_cm: number | null;
   annual_income_inr: number | null;
-  marital_status: MaritalStatus | null;
   coverUrl?: string;
 }
 
@@ -184,11 +184,12 @@ export function ProfileSelectionGrid({
                     <div className="flex flex-wrap gap-1.5">
                       {profile.profession && <Badge tone="olive">{profile.profession}</Badge>}
                       {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
+                      {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
+                      {profile.height_cm && (
+                        <Badge tone="neutral">{formatHeight(profile.height_cm)}</Badge>
+                      )}
                       {profile.annual_income_inr && (
                         <Badge tone="maroon">{formatInrCompact(profile.annual_income_inr)}</Badge>
-                      )}
-                      {profile.marital_status && (
-                        <Badge tone="neutral">{titleCase(profile.marital_status)}</Badge>
                       )}
                     </div>
                   </div>
