@@ -121,10 +121,22 @@ export function ShareLinkCreator({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Profiles to include
-          </p>
-          <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-blush-200 bg-white/60 p-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
+              Profiles to include
+            </p>
+            {/* The list scrolls, so ticks can sit off-screen. Without a running
+                count it is easy to send one profile believing you sent several. */}
+            <p className="text-xs font-medium text-maroon-700">
+              {selectedProfiles.length} selected
+            </p>
+          </div>
+          {selectedProfiles.length > 0 && (
+            <p className="rounded-lg bg-blush-100/70 px-3 py-2 text-xs text-ink-900/70">
+              {selectedProfiles.map((p) => p.full_name).join(", ")}
+            </p>
+          )}
+          <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded-lg border border-blush-200 bg-white/60 p-2">
             {allProfiles.map((p) => (
               <label key={p.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-blush-100">
                 <input
@@ -238,7 +250,11 @@ export function ShareLinkCreator({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={pending || selected.size === 0}>
-          {pending ? "Generating…" : "Generate share link"}
+          {pending
+            ? "Generating…"
+            : `Generate link for ${selectedProfiles.length} profile${
+                selectedProfiles.length === 1 ? "" : "s"
+              }`}
         </Button>
       </div>
     </form>
