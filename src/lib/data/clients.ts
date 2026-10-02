@@ -183,3 +183,25 @@ export async function getSharedProfileIdsForClient(clientId: string): Promise<st
   }
   return Array.from(ids);
 }
+
+/**
+ * Removes a client and everything recorded about them.
+ *
+ * Their shortlists, searches and follow-ups go by foreign-key cascade. Their
+ * share links do not: the column is `on delete set null`, which would leave
+ * live links pointing at nobody. A link was created to show profiles to this
+ * person, so removing the person closes the link too, and it is deleted first
+ * while the attribution still exists to find it by.
+ */
+export async function deleteClient(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  const { error: linksError } = await supabase
+    .from("share_links")
+    .delete()
+    .eq("client_id", id);
+  if (linksError) throw linksError;
+
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) throw error;
+}

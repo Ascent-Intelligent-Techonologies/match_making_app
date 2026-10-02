@@ -79,3 +79,19 @@ export async function toggleShortlist(input: {
   await touchClientActivity(input.clientId);
   return shortlisted;
 }
+
+/**
+ * Admin-side removal of a shortlist entry, for when a client says they are no
+ * longer interested. Unlike the client's own heart this does not touch
+ * last_activity_at: that column records when the client was last active, and
+ * our tidying up is not their activity.
+ */
+export async function removeShortlist(clientId: string, profileId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("client_shortlists")
+    .delete()
+    .eq("client_id", clientId)
+    .eq("profile_id", profileId);
+  if (error) throw error;
+}

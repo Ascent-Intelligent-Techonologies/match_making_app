@@ -7,6 +7,10 @@ import { listShortlistedProfiles } from "@/lib/data/shortlists";
 import { listClientSearches } from "@/lib/data/searches";
 import { listFollowupsForClient } from "@/lib/data/followups";
 import { FollowUpForm } from "@/components/FollowUpForm";
+import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
+import { deleteClientAction, removeClientShortlistAction } from "@/lib/actions/clients";
+import { deleteFollowUpAction } from "@/lib/actions/followups";
+import { deleteShareLinkAction } from "@/lib/actions/share-links";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatRelativeDays } from "@/lib/format";
@@ -40,12 +44,24 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
         <ArrowLeft size={15} /> Back to clients
       </Link>
 
-      <div>
-        <h1 className="font-serif text-3xl font-semibold text-maroon-700">{client.full_name}</h1>
-        <p className="flex items-center gap-1.5 text-sm text-ink-900/60">
-          <Phone size={14} />
-          {client.phone_display ?? client.phone}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-3xl font-semibold text-maroon-700">{client.full_name}</h1>
+          <p className="flex items-center gap-1.5 text-sm text-ink-900/60">
+            <Phone size={14} />
+            {client.phone_display ?? client.phone}
+          </p>
+        </div>
+        <ConfirmDeleteButton
+          action={deleteClientAction.bind(null, client.id)}
+          label="Delete client"
+          confirmLabel="Yes, delete client"
+          description={`Removes ${client.full_name}, their ${shortlisted.length} shortlist${
+            shortlisted.length === 1 ? "" : "s"
+          }, follow-ups, searches and ${links.length} share link${
+            links.length === 1 ? "" : "s"
+          }. Profiles are not affected.`}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -77,10 +93,18 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
           <div className="mt-5 flex flex-col gap-2 border-t border-blush-200 pt-4">
             {followups.map((f) => (
               <div key={f.id} className="rounded-lg border border-blush-200 bg-white/60 px-3 py-2">
-                <p className="flex items-center gap-1.5 text-xs text-ink-900/50">
-                  <PhoneCall size={11} /> {formatDate(f.created_at)} ·{" "}
-                  {formatRelativeDays(f.created_at)}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="flex items-center gap-1.5 text-xs text-ink-900/50">
+                    <PhoneCall size={11} /> {formatDate(f.created_at)} ·{" "}
+                    {formatRelativeDays(f.created_at)}
+                  </p>
+                  <ConfirmDeleteButton
+                    action={deleteFollowUpAction.bind(null, client.id, f.id)}
+                    label="Delete note"
+                    confirmLabel="Delete note"
+                    iconOnly
+                  />
+                </div>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-ink-900">{f.note}</p>
               </div>
             ))}
@@ -97,18 +121,28 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
         ) : (
           <div className="flex flex-col gap-2">
             {shortlisted.map((s) => (
-              <Link
+              <div
                 key={s.profile_id}
-                href={`/admin/profiles/${s.profile_id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm hover:bg-blush-100"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm"
               >
-                <span className="flex items-center gap-2 font-medium text-maroon-700">
+                <Link
+                  href={`/admin/profiles/${s.profile_id}`}
+                  className="flex items-center gap-2 font-medium text-maroon-700 hover:underline"
+                >
                   <Heart size={14} fill="currentColor" />
                   {s.full_name}
                   {s.city ? <span className="text-ink-900/50">· {s.city}</span> : null}
+                </Link>
+                <span className="flex items-center gap-2">
+                  <span className="text-xs text-ink-900/50">{formatDate(s.created_at)}</span>
+                  <ConfirmDeleteButton
+                    action={removeClientShortlistAction.bind(null, client.id, s.profile_id)}
+                    label="Remove from shortlist"
+                    confirmLabel="Remove"
+                    iconOnly
+                  />
                 </span>
-                <span className="text-xs text-ink-900/50">{formatDate(s.created_at)}</span>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -192,6 +226,12 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
                     ) : (
                       <Badge tone="olive">Active</Badge>
                     )}
+                    <ConfirmDeleteButton
+                      action={deleteShareLinkAction.bind(null, link.id)}
+                      label="Delete link"
+                      confirmLabel="Delete link"
+                      iconOnly
+                    />
                   </span>
                 </div>
               );

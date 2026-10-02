@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/format";
 import type { ShareLinkWithProfiles } from "@/lib/types";
-import { revokeShareLinkAction, extendShareLinkAction } from "@/lib/actions/share-links";
+import {
+  revokeShareLinkAction,
+  extendShareLinkAction,
+  deleteShareLinkAction,
+} from "@/lib/actions/share-links";
+import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
 
 export function ShareLinkRow({ link, siteUrl }: { link: ShareLinkWithProfiles; siteUrl: string }) {
   const [pending, startTransition] = useTransition();
@@ -90,6 +95,17 @@ export function ShareLinkRow({ link, siteUrl }: { link: ShareLinkWithProfiles; s
               <Ban size={13} /> Revoke
             </Button>
           )}
+          {/* Revoke keeps the row and turns the link off; delete removes the
+              record entirely, for links sent by mistake. */}
+          <ConfirmDeleteButton
+            action={deleteShareLinkAction.bind(null, link.id)}
+            confirmLabel="Delete link"
+            description={
+              isLive
+                ? "Deletes this link. Anyone holding it loses access immediately."
+                : "Deletes this link and its record."
+            }
+          />
         </div>
       </td>
     </tr>

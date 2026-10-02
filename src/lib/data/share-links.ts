@@ -156,3 +156,14 @@ export async function updateShareLinkAccessLevel(
     .eq("id", id);
   if (error) throw error;
 }
+
+/**
+ * Deletes a link outright. The rows joining it to profiles cascade away; any
+ * shortlist made through it survives with its share_link_id set to null,
+ * because the client's interest in a profile outlives the link that showed it.
+ */
+export async function deleteShareLink(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("share_links").delete().eq("id", id);
+  if (error) throw error;
+}

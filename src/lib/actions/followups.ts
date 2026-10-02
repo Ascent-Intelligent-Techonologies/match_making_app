@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addFollowup } from "@/lib/data/followups";
+import { addFollowup, deleteFollowup } from "@/lib/data/followups";
 
 export interface FollowupState {
   error?: string;
@@ -22,4 +22,11 @@ export async function addFollowUpAction(
   revalidatePath(`/admin/clients/${clientId}`);
   revalidatePath("/admin/analytics");
   return { savedAt: Date.now() };
+}
+
+/** Removes a logged note, for the ones typed into the wrong client. */
+export async function deleteFollowUpAction(clientId: string, followupId: string) {
+  await deleteFollowup(followupId);
+  revalidatePath(`/admin/clients/${clientId}`);
+  revalidatePath("/admin/analytics");
 }

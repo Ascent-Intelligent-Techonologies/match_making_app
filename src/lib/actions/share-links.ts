@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { shareLinkSchema } from "@/lib/validation";
 import {
   createShareLink,
+  deleteShareLink,
   revokeShareLink,
   extendShareLink,
   updateShareLinkAccessLevel,
@@ -63,6 +64,18 @@ export async function createShareLinkAction(
 export async function revokeShareLinkAction(id: string) {
   await revokeShareLink(id);
   revalidatePath("/admin/links");
+}
+
+/**
+ * Deletes a link rather than revoking it. Revoking keeps the row so the link
+ * stays visible as "revoked"; deleting is for links sent in error, which are
+ * better gone than listed forever.
+ */
+export async function deleteShareLinkAction(id: string) {
+  await deleteShareLink(id);
+  revalidatePath("/admin/links");
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin/analytics");
 }
 
 export async function extendShareLinkAction(id: string, additionalDays: number) {

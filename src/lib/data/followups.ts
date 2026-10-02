@@ -50,3 +50,9 @@ export async function listRecentFollowups(limit = 15): Promise<FollowupWithClien
   return ((data ?? []) as unknown as (ClientFollowup & { clients: FollowupWithClient["client"] })[])
     .map(({ clients, ...f }) => ({ ...f, client: clients }));
 }
+
+export async function deleteFollowup(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("client_followups").delete().eq("id", id);
+  if (error) throw error;
+}
