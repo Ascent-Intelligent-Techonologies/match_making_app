@@ -164,7 +164,11 @@ export function ShareLinkCreator({
       ) : (
         <div className="flex flex-col gap-3 rounded-lg border border-blush-200 bg-blush-100/40 p-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Sharing on behalf of
+            Sharing on behalf of (optional)
+          </p>
+          <p className="-mt-1 text-xs text-ink-900/50">
+            Leave blank and whoever opens the link is asked for their name and number
+            before they can shortlist.
           </p>
           {existingClients.length > 0 && (
             <Field label="Pick an existing client (optional)" htmlFor="existingClient">
@@ -193,7 +197,6 @@ export function ShareLinkCreator({
               <Input
                 id="clientName"
                 name="clientName"
-                required
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="e.g. Sharma family"
@@ -203,7 +206,6 @@ export function ShareLinkCreator({
               <Input
                 id="clientPhone"
                 name="clientPhone"
-                required
                 inputMode="tel"
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}

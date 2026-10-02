@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Phone, Users } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
+import { feetInchesToCm } from "@/lib/format";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getAppSettings } from "@/lib/data/settings";
 import {
@@ -45,8 +46,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
       tag: getStr(params.tag),
       minAge: num(params.minAge),
       maxAge: num(params.maxAge),
-      minHeight: num(params.minHeight),
-      maxHeight: num(params.maxHeight),
+      minHeight: feetInchesToCm(num(params.minHeightFt), num(params.minHeightIn)),
+      maxHeight: feetInchesToCm(num(params.maxHeightFt), num(params.maxHeightIn)),
       minFinances: num(params.minFinances),
       maxFinances: num(params.maxFinances),
     }),

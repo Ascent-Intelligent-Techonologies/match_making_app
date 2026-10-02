@@ -36,11 +36,11 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   const profiles = await getManyProfilesWithPhotos(link.profiles.map((p) => p.id));
   const publicProfiles = profiles.map((p) => toPublicProfile(p, link.access_level));
 
-  // Whoever is reading this link may not be who it was sent to, so hearts are
-  // keyed to the viewer once they identify themselves — not to link.client_id.
-  const viewerClientId = await getBrowsingClientId();
-  const shortlistedIds = viewerClientId
-    ? new Set(await getShortlistedProfileIds(viewerClientId))
+  // A link the admin attributed to a client belongs to that client. One sent
+  // without client details asks whoever opens it before they can shortlist.
+  const shortlistClientId = link.client_id ?? (await getBrowsingClientId());
+  const shortlistedIds = shortlistClientId
+    ? new Set(await getShortlistedProfileIds(shortlistClientId))
     : new Set<string>();
 
   return (
@@ -70,7 +70,7 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
             shortlist={{
               token,
               shortlisted: shortlistedIds.has(profile.id),
-              needsIdentity: !viewerClientId,
+              needsIdentity: !shortlistClientId,
             }}
           />
         ))}

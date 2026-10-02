@@ -4,15 +4,8 @@ import { useActionState, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import {
-  RELIGIONS,
-  DIET_OPTIONS,
-  MARITAL_STATUS_OPTIONS,
-  MANGLIK_OPTIONS,
-  GENDER_OPTIONS,
-  CASTE_OPTIONS,
-  TAG_OPTIONS,
-} from "@/lib/constants";
+import { RELIGIONS, GENDER_OPTIONS, CASTE_OPTIONS, TAG_OPTIONS } from "@/lib/constants";
+import { cmToFeetInches } from "@/lib/format";
 import type { Profile } from "@/lib/types";
 import type { ProfileFormState } from "@/lib/actions/profiles";
 
@@ -50,6 +43,7 @@ export function ProfileForm({
   const [isDragging, setIsDragging] = useState(false);
   const photosInputRef = useRef<HTMLInputElement>(null);
   const errors = state.fieldErrors ?? {};
+  const height = cmToFeetInches(profile?.height_cm);
 
   function applyFiles(files: FileList | File[]) {
     const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -205,13 +199,30 @@ export function ProfileForm({
         <Field label="Sub-Caste" htmlFor="sub_caste">
           <Input id="sub_caste" name="sub_caste" defaultValue={profile?.sub_caste ?? ""} />
         </Field>
-        <Field label="Height (cm)" htmlFor="height_cm">
-          <Input
-            id="height_cm"
-            name="height_cm"
-            type="number"
-            defaultValue={profile?.height_cm ?? ""}
-          />
+        <Field label="Height" htmlFor="height_feet">
+          <div className="flex items-center gap-2">
+            <Input
+              id="height_feet"
+              name="height_feet"
+              type="number"
+              min={0}
+              max={8}
+              placeholder="Feet"
+              defaultValue={height?.feet ?? ""}
+            />
+            <Input
+              id="height_inches"
+              name="height_inches"
+              type="number"
+              min={0}
+              max={11}
+              placeholder="Inches"
+              defaultValue={height?.inches ?? ""}
+            />
+          </div>
+        </Field>
+        <Field label="Native place" htmlFor="native_place" hint="Shared at every level, per the intake sheet.">
+          <Input id="native_place" name="native_place" defaultValue={profile?.native_place ?? ""} />
         </Field>
         <Field label="Religion" htmlFor="religion">
           <Select id="religion" name="religion" defaultValue={profile?.religion ?? ""}>
@@ -401,47 +412,6 @@ export function ProfileForm({
             id="partner_expectations"
             name="partner_expectations"
             defaultValue={profile?.partner_expectations ?? ""}
-          />
-        </Field>
-        <Field label="Marital Status" htmlFor="marital_status">
-          <Select
-            id="marital_status"
-            name="marital_status"
-            defaultValue={profile?.marital_status ?? ""}
-          >
-            <option value="">Select</option>
-            {MARITAL_STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Manglik Status" htmlFor="manglik">
-          <Select id="manglik" name="manglik" defaultValue={profile?.manglik ?? ""}>
-            <option value="">Select</option>
-            {MANGLIK_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Diet" htmlFor="diet">
-          <Select id="diet" name="diet" defaultValue={profile?.diet ?? ""}>
-            <option value="">Select</option>
-            {DIET_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Horoscope Notes" htmlFor="horoscope_notes">
-          <Textarea
-            id="horoscope_notes"
-            name="horoscope_notes"
-            defaultValue={profile?.horoscope_notes ?? ""}
           />
         </Field>
       </div>

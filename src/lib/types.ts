@@ -77,6 +77,7 @@ export interface Profile {
   nakshatram: string | null;
   gotram: string | null;
   sub_caste: string | null;
+  native_place: string | null;
   school: string | null;
   business: string | null;
   salary: string | null;
@@ -169,8 +170,7 @@ export const PARTIAL_VISIBLE_FIELDS = [
   "height_cm",
   "profession",
   "business",
-  "city",
-  "state",
+  "native_place",
   "photos",
 ] as const;
 
@@ -181,6 +181,8 @@ export const PARTIAL_VISIBLE_FIELDS = [
 export const FULL_ONLY_FIELDS = [
   "surname",
   "gender",
+  "city",
+  "state",
   "country",
   "religion",
   "caste",
@@ -190,8 +192,6 @@ export const FULL_ONLY_FIELDS = [
   "nakshatram",
   "gotram",
   "star_sign",
-  "manglik",
-  "horoscope_notes",
   "education_degree",
   "institution",
   "school",
@@ -210,7 +210,6 @@ export const FULL_ONLY_FIELDS = [
   "family_status_notes",
   "current_address",
   "hobbies",
-  "diet",
   "partner_expectations",
   "contact_phone",
   "contact_email",

@@ -18,12 +18,10 @@ export const profileSchema = z.object({
   city: optionalString,
   state: optionalString,
   country: optionalString,
-  marital_status: z
-    .enum(["never_married", "divorced", "widowed", "awaiting_divorce"])
-    .optional(),
   religion: optionalString,
   caste: optionalString,
   sub_caste: optionalString,
+  native_place: optionalString,
   mother_tongue: optionalString,
   surname: optionalString,
   rasi: optionalString,
@@ -55,13 +53,8 @@ export const profileSchema = z.object({
   birth_time: optionalString,
   birth_place: optionalString,
   star_sign: optionalString,
-  manglik: z.enum(["yes", "no", "anshik", "unknown"]).optional(),
-  horoscope_notes: optionalString,
 
   hobbies: z.array(z.string()).optional(),
-  diet: z
-    .enum(["vegetarian", "eggetarian", "non_vegetarian", "vegan", "jain"])
-    .optional(),
   partner_expectations: optionalString,
 
   net_worth_notes: optionalString,
@@ -84,12 +77,13 @@ export const shareLinkSchema = z.object({
   accessLevel: z.enum(["photos_only", "partial", "full"]),
   expiryDays: z.coerce.number().int().min(1).max(90),
   label: z.string().trim().optional(),
-  // Every link is shared on behalf of someone, so we can track who saw what.
-  clientName: z.string().trim().min(1, "Enter the client's name"),
-  clientPhone: z
-    .string()
-    .trim()
-    .refine(isUsablePhone, "Enter a valid phone number (at least 10 digits)"),
+  // Optional: name the client here and the link is attributed to them. Leave
+  // both blank and whoever opens the link is asked before they can shortlist.
+  clientName: optionalString,
+  clientPhone: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().refine(isUsablePhone, "Enter a valid phone number").optional()
+  ),
 });
 
 export type ShareLinkFormValues = z.infer<typeof shareLinkSchema>;

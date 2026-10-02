@@ -19,12 +19,29 @@ export function calculateAge(dob: string | null | undefined): number | null {
   return age;
 }
 
+/** Heights are entered and shown in feet and inches; cm is only the storage unit. */
+export function cmToFeetInches(
+  heightCm: number | null | undefined
+): { feet: number; inches: number } | null {
+  if (!heightCm) return null;
+  const total = Math.round(heightCm / 2.54);
+  // 11.5" rounds to 12", which should read as the next foot.
+  return { feet: Math.floor(total / 12), inches: total % 12 };
+}
+
+export function feetInchesToCm(
+  feet: number | null | undefined,
+  inches: number | null | undefined
+): number | undefined {
+  const f = Number(feet) || 0;
+  const i = Number(inches) || 0;
+  if (f === 0 && i === 0) return undefined;
+  return Math.round((f * 12 + i) * 2.54);
+}
+
 export function formatHeight(heightCm: number | null | undefined): string {
-  if (!heightCm) return "—";
-  const totalInches = heightCm / 2.54;
-  const feet = Math.floor(totalInches / 12);
-  const inches = Math.round(totalInches % 12);
-  return `${heightCm} cm (${feet}'${inches}")`;
+  const h = cmToFeetInches(heightCm);
+  return h ? `${h.feet}'${h.inches}"` : "—";
 }
 
 export function formatDate(value: string | null | undefined): string {

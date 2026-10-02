@@ -44,11 +44,13 @@ export async function toggleShortlistAction(
   const resolved = await resolveLink(token, profileId);
   if ("error" in resolved) return { error: resolved.error };
 
-  const viewerClientId = await getBrowsingClientId();
-  if (!viewerClientId) return { needsIdentity: true };
+  // When the admin named the client on the link, that is who the shortlist
+  // belongs to. Only an unattributed link falls back to asking the viewer.
+  const clientId = resolved.link.client_id ?? (await getBrowsingClientId());
+  if (!clientId) return { needsIdentity: true };
 
   const shortlisted = await toggleShortlist({
-    clientId: viewerClientId,
+    clientId,
     profileId,
     shareLinkId: resolved.link.id,
   });

@@ -1,12 +1,7 @@
 import { ProfilePhotoCarousel } from "@/components/ProfilePhotoCarousel";
 import { ShortlistButton } from "@/components/ShortlistButton";
 import { Badge } from "@/components/ui/Badge";
-import {
-  calculateAge,
-  formatHeight,
-  formatInrCompact,
-  titleCase,
-} from "@/lib/format";
+import { calculateAge, formatDate, formatHeight, formatInrCompact } from "@/lib/format";
 import type { PublicProfile } from "@/lib/types";
 
 function Detail({ label, value }: { label: string; value?: string | number | null }) {
@@ -59,19 +54,21 @@ export function ClientProfileCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {profile.marital_status && <Badge tone="neutral">{titleCase(profile.marital_status)}</Badge>}
             {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
             {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
-            {profile.diet && <Badge tone="olive">{titleCase(profile.diet)}</Badge>}
-            {profile.manglik && <Badge tone="neutral">{titleCase(profile.manglik)}</Badge>}
+            {profile.height_cm && <Badge tone="neutral">{formatHeight(profile.height_cm)}</Badge>}
           </div>
 
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Detail label="Date of Birth" value={profile.dob ? formatDate(profile.dob) : undefined} />
+            <Detail label="Time of Birth" value={profile.birth_time} />
             <Detail label="Height" value={profile.height_cm ? formatHeight(profile.height_cm) : undefined} />
+            <Detail label="Native" value={profile.native_place} />
             <Detail label="Mother Tongue" value={profile.mother_tongue} />
             <Detail label="Education" value={profile.education_degree} />
             <Detail label="Institution" value={profile.institution} />
             <Detail label="Profession" value={profile.profession} />
+            <Detail label="Business" value={profile.business} />
             <Detail label="Company" value={profile.company} />
             <Detail
               label="Annual Income"
@@ -94,9 +91,6 @@ export function ClientProfileCard({
           )}
           {profile.family_status_notes && (
             <Detail label="Family Background" value={profile.family_status_notes} />
-          )}
-          {profile.horoscope_notes && (
-            <Detail label="Horoscope Notes" value={profile.horoscope_notes} />
           )}
           {profile.partner_expectations && (
             <Detail label="Partner Expectations" value={profile.partner_expectations} />

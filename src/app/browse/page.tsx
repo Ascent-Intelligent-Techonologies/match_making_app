@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { listProfiles } from "@/lib/data/profiles";
+import { feetInchesToCm } from "@/lib/format";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getShortlistedProfileIds } from "@/lib/data/shortlists";
 import { getBrowsingClientId } from "@/lib/auth/client-session";
@@ -33,8 +34,8 @@ export default async function BrowseProfilesPage({
     caste: getStr(params.caste),
     minAge: num(params.minAge),
     maxAge: num(params.maxAge),
-    minHeight: num(params.minHeight),
-    maxHeight: num(params.maxHeight),
+    minHeight: feetInchesToCm(num(params.minHeightFt), num(params.minHeightIn)),
+    maxHeight: feetInchesToCm(num(params.maxHeightFt), num(params.maxHeightIn)),
     minFinances: num(params.minFinances),
     maxFinances: num(params.maxFinances),
   };

@@ -37,14 +37,18 @@ export async function createShareLinkAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  // Phone is the client's identity, so re-sharing to the same number attaches
-  // to the existing client instead of creating a duplicate.
-  const client = await upsertClientByPhone({
-    fullName: parsed.data.clientName,
-    phone: parsed.data.clientPhone,
-  });
+  // If the admin named the client, the link is attributed to them and the
+  // recipient is never asked. Otherwise client_id stays null and whoever opens
+  // the link identifies themselves before they can shortlist.
+  const client =
+    parsed.data.clientName && parsed.data.clientPhone
+      ? await upsertClientByPhone({
+          fullName: parsed.data.clientName,
+          phone: parsed.data.clientPhone,
+        })
+      : null;
 
-  const link = await createShareLink({ ...parsed.data, clientId: client.id });
+  const link = await createShareLink({ ...parsed.data, clientId: client?.id ?? null });
   revalidatePath("/admin/links");
   revalidatePath("/admin/clients");
   revalidatePath("/admin/analytics");
@@ -52,7 +56,7 @@ export async function createShareLinkAction(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   return {
     createdUrl: `${siteUrl}/share/${link.token}`,
-    clientName: client.full_name,
+    clientName: client?.full_name,
   };
 }
 

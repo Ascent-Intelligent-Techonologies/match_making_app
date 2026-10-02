@@ -21,6 +21,7 @@ export interface ProfileFilters {
   maxHeight?: number;
   minFinances?: number;
   maxFinances?: number;
+  birthYear?: number;
 }
 
 function dobFromAge(age: number): string {
@@ -60,6 +61,11 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
   if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
   if (filters.minFinances) query = query.gte("annual_income_inr", filters.minFinances);
   if (filters.maxFinances) query = query.lte("annual_income_inr", filters.maxFinances);
+  if (filters.birthYear) {
+    query = query
+      .gte("dob", `${filters.birthYear}-01-01`)
+      .lte("dob", `${filters.birthYear}-12-31`);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
@@ -182,4 +188,22 @@ export async function getDistinctCities(): Promise<string[]> {
     .not("city", "is", null);
   if (error) throw error;
   return Array.from(new Set((data ?? []).map((r) => r.city as string))).sort();
+}
+
+
+/** Birth years present in the book, newest first, for the All Profiles filter. */
+export async function listProfileBirthYears(gender?: string): Promise<number[]> {
+  const supabase = getSupabaseAdmin();
+  let query = supabase.from("profiles").select("dob").eq("is_active", true).not("dob", "is", null);
+  if (gender) query = query.eq("gender", gender);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const years = new Set<number>();
+  for (const row of data ?? []) {
+    const y = Number(String(row.dob).slice(0, 4));
+    if (Number.isFinite(y)) years.add(y);
+  }
+  return Array.from(years).sort((a, b) => b - a);
 }

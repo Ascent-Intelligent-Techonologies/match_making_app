@@ -26,7 +26,7 @@ export interface CreateShareLinkInput {
   accessLevel: AccessLevel;
   expiryDays: number;
   label?: string;
-  clientId: string;
+  clientId: string | null;
 }
 
 export async function createShareLink(input: CreateShareLinkInput): Promise<ShareLink> {

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Heart, MailX, Phone, Send, Users } from "lucide-react";
+import { Heart, MailX, Phone, PhoneCall, Send, Users } from "lucide-react";
 import {
   getClientAnalytics,
   RECENT_CONTACT_DAYS,
   STALE_CLIENT_DAYS,
 } from "@/lib/data/clients";
+import { listRecentFollowups } from "@/lib/data/followups";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatRelativeDays } from "@/lib/format";
@@ -55,7 +56,10 @@ function ClientList({
 }
 
 export default async function AnalyticsPage() {
-  const analytics = await getClientAnalytics();
+  const [analytics, followups] = await Promise.all([
+    getClientAnalytics(),
+    listRecentFollowups().catch(() => []),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,6 +98,40 @@ export default async function AnalyticsPage() {
           <p className="font-serif text-2xl text-maroon-700">{analytics.totalShortlists}</p>
         </Card>
       </div>
+
+      <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
+        <h2 className="font-serif text-xl font-semibold text-maroon-700">Recent follow-ups</h2>
+        <p className="mb-3 text-sm text-ink-900/50">
+          The latest conversations logged against a client.
+        </p>
+        {followups.length === 0 ? (
+          <p className="text-sm text-ink-900/50">
+            No follow-ups logged yet. Open a client and log one when they call.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {followups.map((f) => (
+              <Link
+                key={f.id}
+                href={`/admin/clients/${f.client_id}`}
+                className="rounded-lg border border-blush-200 bg-white/60 px-3 py-2.5 hover:bg-blush-100"
+              >
+                <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-maroon-700">
+                  <PhoneCall size={12} />
+                  {f.client?.full_name ?? "Unknown client"}
+                  <span className="text-xs font-normal text-ink-900/50">
+                    {f.client?.phone_display ?? f.client?.phone}
+                  </span>
+                  <span className="text-xs font-normal text-ink-900/40">
+                    · {formatRelativeDays(f.created_at)}
+                  </span>
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-ink-900/80">{f.note}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
         <h2 className="font-serif text-xl font-semibold text-maroon-700">

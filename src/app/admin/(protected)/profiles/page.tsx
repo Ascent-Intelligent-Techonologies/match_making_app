@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { listProfiles } from "@/lib/data/profiles";
+import { listProfiles, listProfileBirthYears } from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getAppSettings } from "@/lib/data/settings";
 import { listClientsForPicker } from "@/lib/data/clients";
-import { SearchFilterBar } from "@/components/SearchFilterBar";
+import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
 import { Button } from "@/components/ui/Button";
 
@@ -14,10 +14,11 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  const [profiles, settings, clients] = await Promise.all([
+  const gender = getStr(params.gender);
+  const [profiles, settings, clients, birthYears] = await Promise.all([
     listProfiles({
       search: getStr(params.search),
-      gender: getStr(params.gender),
+      gender,
       religion: getStr(params.religion),
       maritalStatus: getStr(params.maritalStatus),
       diet: getStr(params.diet),
@@ -30,9 +31,11 @@ export default async function AdminDashboardPage({
       maxHeight: params.maxHeight ? Number(getStr(params.maxHeight)) : undefined,
       minFinances: params.minFinances ? Number(getStr(params.minFinances)) : undefined,
       maxFinances: params.maxFinances ? Number(getStr(params.maxFinances)) : undefined,
+      birthYear: params.birthYear ? Number(getStr(params.birthYear)) : undefined,
     }),
     getAppSettings(),
     listClientsForPicker(),
+    listProfileBirthYears(gender),
   ]);
 
   const coverUrls = await getCoverPhotoUrls(profiles.map((p) => p.id));
@@ -67,7 +70,7 @@ export default async function AdminDashboardPage({
         </Link>
       </div>
 
-      <SearchFilterBar />
+      <ProfilesFilterBar birthYears={birthYears} />
 
       <ProfileSelectionGrid
         profiles={selectableProfiles}

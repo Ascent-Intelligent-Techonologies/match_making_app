@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { Search, X } from "lucide-react";
 import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { HeightRangeFilter } from "@/components/HeightRangeFilter";
 import { CASTE_OPTIONS, GENDER_OPTIONS, TAG_OPTIONS } from "@/lib/constants";
 
 function RangePair({
@@ -149,12 +150,13 @@ export function SearchFilterBar() {
           maxValue={searchParams.get("maxAge") ?? ""}
           onChange={onDebouncedChange}
         />
-        <RangePair
-          label="Height (cm)"
-          minKey="minHeight"
-          maxKey="maxHeight"
-          minValue={searchParams.get("minHeight") ?? ""}
-          maxValue={searchParams.get("maxHeight") ?? ""}
+        <HeightRangeFilter
+          values={{
+            minHeightFt: searchParams.get("minHeightFt") ?? "",
+            minHeightIn: searchParams.get("minHeightIn") ?? "",
+            maxHeightFt: searchParams.get("maxHeightFt") ?? "",
+            maxHeightIn: searchParams.get("maxHeightIn") ?? "",
+          }}
           onChange={onDebouncedChange}
         />
         <RangePair

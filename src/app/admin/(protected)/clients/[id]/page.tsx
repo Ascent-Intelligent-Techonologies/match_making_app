@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Heart, Phone } from "lucide-react";
+import { ArrowLeft, Heart, Phone, PhoneCall } from "lucide-react";
 import { getClientById } from "@/lib/data/clients";
 import { listShareLinksForClient } from "@/lib/data/share-links";
 import { listShortlistedProfiles } from "@/lib/data/shortlists";
 import { listClientSearches } from "@/lib/data/searches";
+import { listFollowupsForClient } from "@/lib/data/followups";
+import { FollowUpForm } from "@/components/FollowUpForm";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatRelativeDays } from "@/lib/format";
@@ -15,10 +17,11 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const [links, shortlisted, searches] = await Promise.all([
+  const [links, shortlisted, searches, followups] = await Promise.all([
     listShareLinksForClient(id),
     listShortlistedProfiles(id),
     listClientSearches(id).catch(() => []),
+    listFollowupsForClient(id).catch(() => []),
   ]);
 
   // The same profile can appear in several links; show each one once.
@@ -61,6 +64,29 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
           </p>
         </Card>
       </div>
+
+      <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
+        <h2 className="font-serif text-xl font-semibold text-maroon-700">Follow-ups</h2>
+        <p className="mb-3 text-sm text-ink-900/50">
+          Log what was said when this client calls, so the next conversation starts where the
+          last one ended.
+        </p>
+        <FollowUpForm clientId={client.id} />
+
+        {followups.length > 0 && (
+          <div className="mt-5 flex flex-col gap-2 border-t border-blush-200 pt-4">
+            {followups.map((f) => (
+              <div key={f.id} className="rounded-lg border border-blush-200 bg-white/60 px-3 py-2">
+                <p className="flex items-center gap-1.5 text-xs text-ink-900/50">
+                  <PhoneCall size={11} /> {formatDate(f.created_at)} ·{" "}
+                  {formatRelativeDays(f.created_at)}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-ink-900">{f.note}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
         <h2 className="mb-3 font-serif text-xl font-semibold text-maroon-700">

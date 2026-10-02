@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { profileSchema } from "@/lib/validation";
+import { feetInchesToCm } from "@/lib/format";
 import {
   createProfile,
   updateProfile,
@@ -22,9 +23,14 @@ function parseProfileFormData(formData: FormData) {
     .map((h) => h.trim())
     .filter(Boolean);
 
+  // The form collects height as feet + inches; cm is what we store.
+  const { height_feet, height_inches, ...rest } = raw;
+  const heightCm = feetInchesToCm(Number(height_feet), Number(height_inches));
+
   return {
-    ...raw,
+    ...rest,
     hobbies,
+    height_cm: heightCm,
     is_active: formData.get("is_active") === "on",
   };
 }
