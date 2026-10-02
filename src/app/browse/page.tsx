@@ -24,15 +24,19 @@ export default async function BrowseProfilesPage({
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  // Deliberately whitelisted: income/manglik filters are never exposed on the public route.
+  // Mirrors the search tab of the intake spreadsheet. The internal tag is
+  // deliberately not accepted here — it stays admin-only.
+  const num = (v: string | string[] | undefined) => (getStr(v) ? Number(getStr(v)) : undefined);
   const filters = {
     search: getStr(params.search),
     gender: getStr(params.gender),
-    religion: getStr(params.religion),
-    maritalStatus: getStr(params.maritalStatus),
-    diet: getStr(params.diet),
-    minAge: params.minAge ? Number(getStr(params.minAge)) : undefined,
-    maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
+    caste: getStr(params.caste),
+    minAge: num(params.minAge),
+    maxAge: num(params.maxAge),
+    minHeight: num(params.minHeight),
+    maxHeight: num(params.maxHeight),
+    minFinances: num(params.minFinances),
+    maxFinances: num(params.maxFinances),
   };
 
   const profiles = await listProfiles(filters);
