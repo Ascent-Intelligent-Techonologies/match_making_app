@@ -56,17 +56,21 @@ export default async function BrowseProfilesPage({
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       <BrowseSearchTracker filters={appliedFilters} resultCount={profiles.length} />
 
+      {/* The logo reads as a watermark behind the page rather than a small
+          mark competing with the filters. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 opacity-[0.12]">
+        <Image
+          src="/logo-anurupa.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+
       <header className="flex flex-col items-center gap-1 text-center">
-        <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm">
-          <Image
-            src="/logo-anurupa.jpg"
-            alt="AnuRupa Matrimony"
-            fill
-            sizes="120px"
-            className="object-cover"
-          />
-        </div>
-        <p className="mt-2 max-w-lg text-sm text-ink-900/60">
+        <p className="max-w-lg text-sm text-ink-900/70">
           Browse a curated selection of profiles and tap the heart on anyone you like.
           Your consultant will follow up with full details.
         </p>

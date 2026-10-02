@@ -26,8 +26,7 @@ export function ClientProfileCard({
   shortlist,
 }: {
   profile: PublicProfile;
-  /** Omitted when the link predates client tracking, which hides the heart. */
-  shortlist?: { token: string; shortlisted: boolean };
+  shortlist?: { token: string; shortlisted: boolean; needsIdentity: boolean };
 }) {
   const age = calculateAge(profile.dob);
 
@@ -54,6 +53,7 @@ export function ClientProfileCard({
                 token={shortlist.token}
                 profileId={profile.id}
                 initialShortlisted={shortlist.shortlisted}
+                needsIdentity={shortlist.needsIdentity}
               />
             )}
           </div>

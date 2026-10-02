@@ -36,3 +36,14 @@ footer.doc{margin-top:56px;padding-top:14px;border-top:2px solid var(--accent);f
 .toc a{color:var(--ink);text-decoration:none;font-size:13.5px;display:block;padding:3px 0}
 .toc a:hover{color:var(--accent)}
 @media print{.page{padding:0 14px}h2{page-break-after:avoid}.shot{page-break-inside:avoid}table{page-break-inside:avoid}}
+
+/* persona flow diagrams */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;margin:12px 0 20px}
+.flow .step{flex:1 1 142px;min-width:132px;background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.flow .step b{display:block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+.flow .step span{font-size:12.5px;display:block;color:var(--ink);line-height:1.4}
+.flow .arr{align-self:center;color:var(--accent);font-size:15px;flex:0 0 auto;font-weight:700}
+.persona{border-left:3px solid var(--maroon);padding-left:15px;margin:28px 0 0}
+.persona h3{margin:0 0 1px}
+.persona .who{font-size:12.5px;color:var(--muted);margin-bottom:4px}
+@media print{.flow{page-break-inside:avoid}.persona{page-break-inside:avoid}}
