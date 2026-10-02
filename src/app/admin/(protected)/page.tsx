@@ -8,24 +8,28 @@ const SECTIONS = [
     title: "New Profile",
     description: "Add a profile using the full intake form.",
     Icon: UserPlus,
+    accent: "bg-maroon-600",
   },
   {
     href: "/admin/search",
     title: "Search",
     description: "Search profiles for a client and share a shortlist with them.",
     Icon: Search,
+    accent: "bg-blue-600",
   },
   {
     href: "/admin/profiles",
     title: "All Profiles",
     description: "Browse, filter and edit every profile on the books.",
     Icon: LayoutGrid,
+    accent: "bg-olive-500",
   },
   {
     href: "/admin/analytics",
     title: "Dashboard",
     description: "Who was contacted recently, and who has gone quiet.",
     Icon: BarChart3,
+    accent: "bg-orange-500",
   },
 ];
 
@@ -43,10 +47,10 @@ export default function AdminHomePage() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        {SECTIONS.map(({ href, title, description, Icon }) => (
+        {SECTIONS.map(({ href, title, description, Icon, accent }) => (
           <Link key={href} href={href}>
             <Card className="flex h-full flex-col gap-3 p-6 transition-transform hover:-translate-y-0.5">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-maroon-600 text-blush-50">
+              <span className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${accent}`}>
                 <Icon size={22} />
               </span>
               <h2 className="font-serif text-2xl font-semibold text-maroon-700">{title}</h2>

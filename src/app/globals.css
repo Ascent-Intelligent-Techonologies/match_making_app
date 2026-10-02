@@ -1,20 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  /* Aura brand palette, drawn from the lotus logo */
-  --color-blush-50: #fff9f7;
-  --color-blush-100: #fdf0ec;
-  --color-blush-200: #fadfd8;
-  --color-blush-300: #f4c6ba;
-  --color-rose-400: #eca9b8;
-  --color-maroon-600: #7c3038;
-  --color-maroon-700: #5e232a;
-  --color-maroon-800: #401920;
-  --color-olive-500: #7d7a4c;
-  --color-olive-600: #625f3a;
-  --color-gold-400: #c9a668;
-  --color-gold-500: #b8905a;
-  --color-ink-900: #2c2320;
+  /* Tropical hibiscus palette. Same token names as before, saturated values —
+     every component reads these, so the theme changes in one place.
+     Text shades are picked to clear 4.5:1 on the light background. */
+  --color-blush-50: #fff7f9;
+  --color-blush-100: #ffe8ee;
+  --color-blush-200: #ffd0dc;
+  --color-blush-300: #faa8bc;
+  --color-rose-400: #e65a7f;
+  --color-maroon-600: #d62e5f;
+  --color-maroon-700: #a81c47;
+  --color-maroon-800: #7a1233;
+  --color-olive-500: #5c7724;
+  --color-olive-600: #4e6520;
+  /* gold-400 fills and borders; gold-500 is the darker shade used for text. */
+  --color-gold-400: #fbc056;
+  --color-gold-500: #9a6508;
+  --color-orange-500: #fb5d2e;
+  --color-blue-400: #0091e0;
+  --color-blue-600: #015e9d;
+  --color-ink-900: #2a2320;
 
   --background: var(--color-blush-50);
   --foreground: var(--color-ink-900);
@@ -36,6 +42,9 @@
   --color-olive-600: var(--color-olive-600);
   --color-gold-400: var(--color-gold-400);
   --color-gold-500: var(--color-gold-500);
+  --color-orange-500: var(--color-orange-500);
+  --color-blue-400: var(--color-blue-400);
+  --color-blue-600: var(--color-blue-600);
   --color-ink-900: var(--color-ink-900);
 
   --font-sans: var(--font-body);
