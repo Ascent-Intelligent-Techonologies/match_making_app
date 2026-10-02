@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  /* Tropical hibiscus palette. Same token names as before, saturated values —
-     every component reads these, so the theme changes in one place.
-     Text shades are picked to clear 4.5:1 on the light background. */
-  --color-blush-50: #fff7f9;
-  --color-blush-100: #ffe8ee;
-  --color-blush-200: #ffd0dc;
-  --color-blush-300: #faa8bc;
+  /* The six chosen theme colours, used exactly as given. */
   --color-rose-400: #e65a7f;
-  --color-maroon-600: #d62e5f;
-  --color-maroon-700: #a81c47;
-  --color-maroon-800: #7a1233;
-  --color-olive-500: #5c7724;
-  --color-olive-600: #4e6520;
-  /* gold-400 fills and borders; gold-500 is the darker shade used for text. */
-  --color-gold-400: #fbc056;
-  --color-gold-500: #9a6508;
   --color-orange-500: #fb5d2e;
-  --color-blue-400: #0091e0;
+  --color-gold-400: #fbc056;
+  --color-olive-500: #648127;
   --color-blue-600: #015e9d;
+  --color-blue-400: #0091e0;
+
+  /* Role aliases, so every existing component picks the palette up unchanged. */
+  --color-maroon-600: #e65a7f; /* primary buttons and fills */
+  --color-maroon-700: #e65a7f; /* headings, labels and links */
+  --color-maroon-800: #015e9d;
+  --color-olive-600: #648127;
+
+  /* Exception: #fbc056 as small text measures ~2:1 and cannot be read. The
+     gold FILL and BORDER stay exact above; this is the text-only shade. */
+  --color-gold-500: #9a6508;
+
+  /* Light tints of the rose, for page and surface backgrounds. */
+  --color-blush-50: #fff6f8;
+  --color-blush-100: #fde9ee;
+  --color-blush-200: #fbd3dd;
+  --color-blush-300: #f4a8bc;
+
+  /* Body copy stays a dark neutral; coloured body text would not be readable. */
   --color-ink-900: #2a2320;
 
   --background: var(--color-blush-50);
