@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
+import { getThemeColors } from "@/lib/data/settings";
+import { isDefaultTheme, themeCssVars } from "@/lib/theme";
 import "./globals.css";
 
 const fontHeading = Playfair_Display({
@@ -26,10 +29,17 @@ export const metadata: Metadata = {
     "A private, curated matchmaking experience for high networth families.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Colours saved in Admin -> Settings are re-declared inline on <html>, which
+  // outranks the `:root` rule in globals.css. While the palette is untouched we
+  // emit nothing at all, so the stylesheet stays the single source of truth.
+  const theme = await getThemeColors();
+  const style = isDefaultTheme(theme) ? undefined : (themeCssVars(theme) as CSSProperties);
+
   return (
     <html
       lang="en"
+      style={style}
       className={`${fontHeading.variable} ${fontScript.variable} ${fontBody.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-blush-50 text-ink-900">

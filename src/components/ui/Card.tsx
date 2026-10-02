@@ -10,7 +10,10 @@ export function Card({
   return (
     <div
       className={clsx(
-        "rounded-2xl border border-gold-400/25 bg-white/60 shadow-[0_2px_20px_-4px_rgba(124,48,56,0.12)] backdrop-blur-sm",
+        // The card shadow is a tint of the primary colour, so it follows the theme
+        // rather than staying the maroon it started life as.
+        "rounded-2xl border border-gold-400/25 bg-white/60 backdrop-blur-sm",
+        "shadow-[0_2px_20px_-4px_color-mix(in_srgb,var(--color-maroon-600)_14%,transparent)]",
         className
       )}
     >

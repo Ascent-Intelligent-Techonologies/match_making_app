@@ -97,6 +97,9 @@ create table if not exists share_link_profiles (
 create table if not exists app_settings (
   id smallint primary key default 1,
   default_expiry_days smallint not null default 3,
+  -- Theme palette set from Admin -> Settings. NULL = use the app defaults.
+  -- (see migrations/005_theme_colors.sql)
+  theme_colors jsonb,
   constraint app_settings_singleton check (id = 1)
 );
 

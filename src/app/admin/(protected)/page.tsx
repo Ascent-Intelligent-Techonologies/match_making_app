@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, LayoutGrid, Search, UserPlus, Users, Link2 } from "lucide-react";
+import { BarChart3, LayoutGrid, Search, UserPlus, Users, Link2, Palette } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 const SECTIONS = [
@@ -36,6 +36,7 @@ const SECTIONS = [
 const SECONDARY = [
   { href: "/admin/clients", title: "Clients", Icon: Users },
   { href: "/admin/links", title: "Share Links", Icon: Link2 },
+  { href: "/admin/settings", title: "Settings", Icon: Palette },
 ];
 
 export default function AdminHomePage() {

@@ -1,3 +1,5 @@
+import type { ThemeColors } from "@/lib/theme";
+
 export type Gender = "male" | "female";
 
 export type MaritalStatus =
@@ -152,6 +154,8 @@ export interface ShareLinkWithProfiles extends ShareLink {
 export interface AppSettings {
   id: number;
   default_expiry_days: number;
+  /** Palette saved from Admin -> Settings; null means use the app defaults. */
+  theme_colors?: ThemeColors | null;
 }
 
 /** Shared when access_level is "photos_only" — the gallery and nothing else. */
