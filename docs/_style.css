@@ -47,3 +47,27 @@ footer.doc{margin-top:56px;padding-top:14px;border-top:2px solid var(--accent);f
 .persona h3{margin:0 0 1px}
 .persona .who{font-size:12.5px;color:var(--muted);margin-bottom:4px}
 @media print{.flow{page-break-inside:avoid}.persona{page-break-inside:avoid}}
+
+/* user guide: screenshots are pre-cropped to fit one page; never let one exceed the page */
+.guide .shot img{max-height:150mm;width:auto;max-width:100%;margin:0 auto}
+.guide .two .shot{margin-top:0}
+.guide .phones{display:grid;grid-template-columns:1fr 1fr;gap:22px;justify-items:center}
+.guide .phones .shot{width:auto;max-width:100%}
+.guide .phones .shot img{max-height:135mm}
+.guide .steps{counter-reset:s;list-style:none;padding:0;margin:14px 0 18px}
+.guide .steps li{counter-increment:s;position:relative;padding:8px 0 8px 40px;margin:0;border-bottom:1px solid var(--line);font-size:14px}
+.guide .steps li:last-child{border-bottom:none}
+.guide .steps li::before{content:counter(s);position:absolute;left:0;top:7px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;text-align:center;line-height:26px}
+.guide .steps li b{color:var(--maroon)}
+.guide .who td:first-child{white-space:nowrap;font-weight:700}
+@page{size:A4;margin:16mm 14mm 18mm}
+@media print{
+  .guide .page{max-width:none;padding:0}
+  .guide h2{break-after:avoid;margin-top:30px}
+  .guide h3{break-after:avoid}
+  .guide .shot,.guide .two,.guide .phones,.guide .note,.guide table,.guide .steps{break-inside:avoid}
+  .guide .toc a{font-size:12.5px}
+  .guide .pb{break-before:page}
+  .guide .keep{break-inside:avoid}
+  footer.doc{margin-top:36px}
+}
