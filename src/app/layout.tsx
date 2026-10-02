@@ -21,7 +21,7 @@ const fontBody = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aura | Where Destiny Aligns",
+  title: "AnuRupa Matrimony | Where Destiny Aligns",
   description:
     "A private, curated matchmaking experience for high networth families.",
 };

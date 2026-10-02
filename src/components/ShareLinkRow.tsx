@@ -18,7 +18,7 @@ export function ShareLinkRow({ link, siteUrl }: { link: ShareLinkWithProfiles; s
   const whatsappText = encodeURIComponent(
     `Sharing the profile${link.profiles.length > 1 ? "s" : ""} for ${link.profiles
       .map((p) => p.full_name)
-      .join(", ")} from Aura: ${url}`
+      .join(", ")} from AnuRupa Matrimony: ${url}`
   );
 
   return (

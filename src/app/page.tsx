@@ -10,8 +10,8 @@ export default function Home() {
       <div className="relative flex flex-col items-center gap-6">
         <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-lg">
           <Image
-            src="/logo.png"
-            alt="Aura — Anupama Reddy — Where destiny aligns"
+            src="/logo-anurupa.jpg"
+            alt="AnuRupa Matrimony — Anupama Reddy — Where destiny aligns"
             fill
             sizes="(max-width: 640px) 100vw, 384px"
             className="object-cover"

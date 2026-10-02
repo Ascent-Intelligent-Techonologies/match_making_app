@@ -38,7 +38,7 @@ export default async function PublicProfileDetailPage({
       </div>
 
       <p className="text-center text-sm text-ink-900/50">
-        Interested in this profile? Contact your Aura matchmaking consultant for a full
+        Interested in this profile? Contact your AnuRupa matchmaking consultant for a full
         introduction.
       </p>
     </main>

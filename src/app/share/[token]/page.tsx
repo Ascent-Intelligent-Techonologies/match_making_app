@@ -10,10 +10,10 @@ import { getBrowsingClientId } from "@/lib/auth/client-session";
 function ExpiredNotice({ message }: { message: string }) {
   return (
     <main className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <p className="font-serif text-4xl font-semibold text-olive-500">AURA</p>
+      <p className="font-serif text-4xl font-semibold text-olive-500">AnuRupa Matrimony</p>
       <h1 className="font-serif text-2xl font-semibold text-maroon-700">{message}</h1>
       <p className="max-w-sm text-sm text-ink-900/60">
-        Please reach out to your Aura matchmaking consultant for a fresh link.
+        Please reach out to your AnuRupa matchmaking consultant for a fresh link.
       </p>
     </main>
   );
@@ -50,8 +50,8 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
       <header className="flex flex-col items-center gap-2 text-center">
         <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm sm:max-w-[180px]">
           <Image
-            src="/logo.png"
-            alt="Aura — Where destiny aligns"
+            src="/logo-anurupa.jpg"
+            alt="AnuRupa Matrimony — Where destiny aligns"
             fill
             sizes="(max-width: 640px) 120px, 180px"
             className="object-cover"

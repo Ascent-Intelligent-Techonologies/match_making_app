@@ -62,7 +62,7 @@ export function ShareLinkCreator({
     const names = selectedProfiles.map((p) => p.full_name).join(", ");
     const greeting = state.clientName ? `Hi ${state.clientName}, ` : "";
     return encodeURIComponent(
-      `${greeting}sharing the profile${selectedProfiles.length > 1 ? "s" : ""} for ${names} from Aura: ${state.createdUrl}`
+      `${greeting}sharing the profile${selectedProfiles.length > 1 ? "s" : ""} for ${names} from AnuRupa Matrimony: ${state.createdUrl}`
     );
   }, [state.createdUrl, state.clientName, selectedProfiles]);
 
