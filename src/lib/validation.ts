@@ -76,7 +76,7 @@ export const profileSchema = z.object({
   primary_contact_relation: optionalString,
   contact_phone: optionalString,
   middlemen_contact_name: optionalString,
-  middlemen_contact: optionalString,
+  middlemen_contact_number: optionalString,
   contact_email: z.preprocess(
     emptyToUndefined,
     z.string().trim().email().optional()

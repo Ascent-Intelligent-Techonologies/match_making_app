@@ -91,7 +91,7 @@ export interface Profile {
   siblings_name: string | null;
   siblings_details: string | null;
   current_address: string | null;
-  middlemen_contact: string | null;
+  middlemen_contact_number: string | null;
   /** Legacy single tag. Superseded by `tags`; kept for historical rows. */
   tag: string | null;
   /** Internal classification from the intake sheet; one or more of AM/AMP/AMO. */
@@ -280,7 +280,7 @@ export const FULL_ONLY_FIELDS = [
 export const ADMIN_ONLY_FIELDS = [
   "net_worth_notes",
   "owner_private_notes",
-  "middlemen_contact",
+  "middlemen_contact_number",
   "marital_status",
   "annual_income_inr",
   "tag",

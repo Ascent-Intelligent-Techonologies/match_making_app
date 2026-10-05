@@ -563,13 +563,13 @@ export function ProfileForm({
           </Field>
           <Field
             label="Middlemen contact number"
-            htmlFor="middlemen_contact"
+            htmlFor="middlemen_contact_number"
             hint="Admin-only. Never shown to clients."
           >
             <Input
-              id="middlemen_contact"
-              name="middlemen_contact"
-              defaultValue={profile?.middlemen_contact ?? ""}
+              id="middlemen_contact_number"
+              name="middlemen_contact_number"
+              defaultValue={profile?.middlemen_contact_number ?? ""}
             />
           </Field>
         </div>
