@@ -44,9 +44,6 @@ export const profileSchema = z.object({
   mother_name: optionalString,
   mother_profession: optionalString,
   mother_native_place: optionalString,
-  siblings_count: optionalNumber,
-  siblings_name: optionalString,
-  siblings_details: optionalString,
   family_status_notes: optionalString,
   current_address: optionalString,
 

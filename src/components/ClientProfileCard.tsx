@@ -76,10 +76,11 @@ export function ClientProfileCard({
             />
             <Detail label="Father's Profession" value={profile.father_profession} />
             <Detail label="Mother's Profession" value={profile.mother_profession} />
-            <Detail
-              label="Siblings"
-              value={profile.siblings_count !== undefined ? String(profile.siblings_count) : undefined}
-            />
+            {/* The siblings are two named people now, not a count. */}
+            <Detail label="Sibling 1" value={profile.sibling1_name} />
+            <Detail label="Sibling 1 details" value={profile.sibling1_details} />
+            <Detail label="Sibling 2" value={profile.sibling2_name} />
+            <Detail label="Sibling 2 details" value={profile.sibling2_details} />
             <Detail label="Birth Place" value={profile.birth_place} />
             <Detail label="Star Sign" value={profile.star_sign} />
             <Detail label="Primary Contact" value={profile.primary_contact_name} />

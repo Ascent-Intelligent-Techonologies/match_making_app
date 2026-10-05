@@ -9,28 +9,6 @@ export const RELIGIONS = [
   "Other",
 ] as const;
 
-export const DIET_OPTIONS: { value: string; label: string }[] = [
-  { value: "vegetarian", label: "Vegetarian" },
-  { value: "eggetarian", label: "Eggetarian" },
-  { value: "non_vegetarian", label: "Non-Vegetarian" },
-  { value: "vegan", label: "Vegan" },
-  { value: "jain", label: "Jain" },
-];
-
-export const MARITAL_STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "never_married", label: "Never Married" },
-  { value: "divorced", label: "Divorced" },
-  { value: "widowed", label: "Widowed" },
-  { value: "awaiting_divorce", label: "Awaiting Divorce" },
-];
-
-export const MANGLIK_OPTIONS: { value: string; label: string }[] = [
-  { value: "yes", label: "Manglik" },
-  { value: "no", label: "Not Manglik" },
-  { value: "anshik", label: "Anshik Manglik" },
-  { value: "unknown", label: "Unknown" },
-];
-
 export const GENDER_OPTIONS: { value: string; label: string }[] = [
   { value: "male", label: "Groom" },
   { value: "female", label: "Bride" },

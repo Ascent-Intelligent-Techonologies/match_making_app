@@ -2,21 +2,6 @@ import type { ThemeColors } from "@/lib/theme";
 
 export type Gender = "male" | "female";
 
-export type MaritalStatus =
-  | "never_married"
-  | "divorced"
-  | "widowed"
-  | "awaiting_divorce";
-
-export type Manglik = "yes" | "no" | "anshik" | "unknown";
-
-export type Diet =
-  | "vegetarian"
-  | "eggetarian"
-  | "non_vegetarian"
-  | "vegan"
-  | "jain";
-
 export type AccessLevel = "photos_only" | "partial" | "full";
 
 export interface ProfilePhoto {
@@ -42,7 +27,6 @@ export interface Profile {
   city: string | null;
   state: string | null;
   country: string | null;
-  marital_status: MaritalStatus | null;
   religion: string | null;
   caste: string | null;
   mother_tongue: string | null;
@@ -55,17 +39,13 @@ export interface Profile {
 
   father_profession: string | null;
   mother_profession: string | null;
-  siblings_count: number | null;
   family_status_notes: string | null;
 
   birth_time: string | null;
   birth_place: string | null;
   star_sign: string | null;
-  manglik: Manglik | null;
-  horoscope_notes: string | null;
 
   hobbies: string[] | null;
-  diet: Diet | null;
   partner_expectations: string | null;
 
   net_worth_notes: string | null;
@@ -88,12 +68,8 @@ export interface Profile {
   father_native_place: string | null;
   mother_name: string | null;
   mother_native_place: string | null;
-  siblings_name: string | null;
-  siblings_details: string | null;
   current_address: string | null;
   middlemen_contact_number: string | null;
-  /** Legacy single tag. Superseded by `tags`; kept for historical rows. */
-  tag: string | null;
   /** Internal classification from the intake sheet; one or more of AM/AMP/AMO. */
   tags: string[];
   /** Second internal flag, ticked on the Internal tab. */
@@ -256,9 +232,6 @@ export const FULL_ONLY_FIELDS = [
   "mother_name",
   "mother_profession",
   "mother_native_place",
-  "siblings_count",
-  "siblings_name",
-  "siblings_details",
   "sibling1_name",
   "sibling1_status",
   "sibling1_details",
@@ -281,9 +254,7 @@ export const ADMIN_ONLY_FIELDS = [
   "net_worth_notes",
   "owner_private_notes",
   "middlemen_contact_number",
-  "marital_status",
   "annual_income_inr",
-  "tag",
   "tags",
   "anurupa_aura",
   "middlemen_contact_name",

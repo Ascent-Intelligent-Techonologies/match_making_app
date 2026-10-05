@@ -1,5 +1,12 @@
--- Aura matchmaking app schema
--- Run this in the Supabase SQL editor for your project.
+-- AnuRupa Matrimony — schema history
+--
+-- This file is the original schema with each migration appended as it was
+-- written, so it records how an EXISTING database got to where it is. Bring
+-- one forward with the files in migrations/.
+--
+-- To set up a BRAND-NEW database, use setup.sql instead: it is the same
+-- schema in its final shape, without the columns that have since been
+-- retired. Do not run both.
 
 create extension if not exists pgcrypto;
 

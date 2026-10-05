@@ -9,12 +9,8 @@ export interface ProfileFilters {
   gender?: string;
   city?: string;
   religion?: string;
-  maritalStatus?: string;
-  diet?: string;
-  manglik?: string;
   minAge?: number;
   maxAge?: number;
-  minIncome?: number;
   caste?: string;
   /** Matches a profile carrying ANY of these tags. */
   tags?: string[];
@@ -58,13 +54,9 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
   if (filters.gender) query = query.eq("gender", filters.gender);
   if (filters.city) query = query.ilike("city", `%${filters.city}%`);
   if (filters.religion) query = query.eq("religion", filters.religion);
-  if (filters.maritalStatus) query = query.eq("marital_status", filters.maritalStatus);
-  if (filters.diet) query = query.eq("diet", filters.diet);
-  if (filters.manglik) query = query.eq("manglik", filters.manglik);
   // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge the latest.
   if (filters.minAge) query = query.lte("dob", dobFromAge(filters.minAge));
   if (filters.maxAge) query = query.gte("dob", dobFromAge(filters.maxAge));
-  if (filters.minIncome) query = query.gte("annual_income_inr", filters.minIncome);
   if (filters.caste) query = query.ilike("caste", `%${filters.caste}%`);
   if (filters.tags?.length) query = query.overlaps("tags", filters.tags);
   if (filters.anurupaAura) query = query.eq("anurupa_aura", true);
