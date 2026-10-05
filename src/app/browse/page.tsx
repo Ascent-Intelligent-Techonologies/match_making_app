@@ -10,6 +10,7 @@ import { PublicSearchFilterBar } from "@/components/PublicSearchFilterBar";
 import { BrowseGate } from "@/components/BrowseGate";
 import { BrowseSearchTracker } from "@/components/BrowseSearchTracker";
 import { BrowseShortlistButton } from "@/components/BrowseShortlistButton";
+import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { calculateAge, formatHeight } from "@/lib/format";
@@ -78,6 +79,28 @@ export default async function BrowseProfilesPage({
       </header>
 
       <PublicSearchFilterBar />
+
+      {profiles.length > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-ink-900/60">
+            {profiles.length} profile{profiles.length === 1 ? "" : "s"}
+          </p>
+          <SlideshowButton
+            profiles={profiles.map((p) => ({
+              id: p.id,
+              full_name: p.full_name,
+              subtitle: [
+                calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
+                p.city,
+                p.height_cm ? formatHeight(p.height_cm) : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              coverUrl: coverUrls.get(p.id),
+            }))}
+          />
+        </div>
+      )}
 
       {profiles.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gold-400/40 bg-white/40 p-10 text-center text-sm text-ink-900/50">

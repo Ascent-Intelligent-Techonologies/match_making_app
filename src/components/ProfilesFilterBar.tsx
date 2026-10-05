@@ -3,14 +3,27 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useRef } from "react";
 import { Search, X } from "lucide-react";
-import { Input, Select } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { GENDER_OPTIONS } from "@/lib/constants";
+import { HeightRangeFilter } from "@/components/HeightRangeFilter";
+import {
+  FilterSelect,
+  FilterToggle,
+  RangePair,
+} from "@/components/FilterControls";
+import {
+  CASTE_OPTIONS,
+  GENDER_OPTIONS,
+  PROFESSION_CATEGORIES,
+  TAG_OPTIONS,
+} from "@/lib/constants";
 
 /**
- * All Profiles filters: pick boy or girl first, then narrow by birth year.
- * The year list is built from the profiles actually on the books, so it only
- * ever offers years that will return something.
+ * All Profiles filters.
+ *
+ * Everything is on screen at once. Boy/girl used to gate the year list, which
+ * meant the only way to see a filter was to commit to a prior one; now the
+ * year list simply covers whatever is on the books and nothing is hidden.
  */
 export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
   const router = useRouter();
@@ -18,19 +31,18 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
   const searchParams = useSearchParams();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const gender = searchParams.get("gender") ?? "";
+  const get = (key: string) => searchParams.get(key) ?? "";
 
-  function setParam(key: string, value: string, clear: string[] = []) {
+  function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    clear.forEach((k) => params.delete(k));
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  function onSearchChange(value: string) {
+  function onDebouncedChange(key: string, value: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setParam("search", value), 350);
+    debounceRef.current = setTimeout(() => setParam(key, value), 350);
   }
 
   const hasFilters = Array.from(searchParams.keys()).length > 0;
@@ -44,50 +56,86 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
         />
         <Input
           placeholder="Search by name, city or profession…"
-          defaultValue={searchParams.get("search") ?? ""}
-          onChange={(e) => onSearchChange(e.target.value)}
+          defaultValue={get("search")}
+          onChange={(e) => onDebouncedChange("search", e.target.value)}
           className="pl-10"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Boy or girl
-          </span>
-          <Select
-            value={gender}
-            // Changing who we are looking at invalidates the year chosen for the
-            // previous list, so it is cleared rather than left stale.
-            onChange={(e) => setParam("gender", e.target.value, ["birthYear"])}
-          >
-            <option value="">All profiles</option>
-            {GENDER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
+        <FilterSelect
+          label="Boy or girl"
+          value={get("gender")}
+          placeholder="All profiles"
+          options={GENDER_OPTIONS}
+          onChange={(v) => setParam("gender", v)}
+        />
+        <FilterSelect
+          label="Year of birth"
+          value={get("birthYear")}
+          placeholder="Any year"
+          options={birthYears.map(String)}
+          onChange={(v) => setParam("birthYear", v)}
+        />
+        <FilterSelect
+          label="Caste"
+          value={get("caste")}
+          placeholder="All caste"
+          options={CASTE_OPTIONS}
+          onChange={(v) => setParam("caste", v)}
+        />
+        <FilterSelect
+          label="Job"
+          value={get("professionCategory")}
+          placeholder="Any job"
+          options={PROFESSION_CATEGORIES}
+          onChange={(v) => setParam("professionCategory", v)}
+        />
+        <FilterSelect
+          label="Tag"
+          value={get("tag")}
+          placeholder="Any tag"
+          options={TAG_OPTIONS}
+          onChange={(v) => setParam("tag", v)}
+        />
+        <RangePair
+          label="Age (years)"
+          minKey="minAge"
+          maxKey="maxAge"
+          minValue={get("minAge")}
+          maxValue={get("maxAge")}
+          onChange={onDebouncedChange}
+        />
+        <HeightRangeFilter
+          values={{
+            minHeightFt: get("minHeightFt"),
+            minHeightIn: get("minHeightIn"),
+            maxHeightFt: get("maxHeightFt"),
+            maxHeightIn: get("maxHeightIn"),
+          }}
+          onChange={onDebouncedChange}
+        />
+        <RangePair
+          label="Finances (INR)"
+          minKey="minFinances"
+          maxKey="maxFinances"
+          minValue={get("minFinances")}
+          maxValue={get("maxFinances")}
+          onChange={onDebouncedChange}
+        />
+        <div className="flex flex-col gap-2">
+          <FilterToggle
+            label="Urgent only"
+            checked={get("urgent") === "1"}
+            onChange={(on) => setParam("urgent", on ? "1" : "")}
+          />
+          <FilterToggle
+            label="Potential clients"
+            hint="Has a sibling we could take on"
+            checked={get("potentialClient") === "1"}
+            onChange={(on) => setParam("potentialClient", on ? "1" : "")}
+          />
         </div>
-
-        {gender && (
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-              Year of birth
-            </span>
-            <Select
-              value={searchParams.get("birthYear") ?? ""}
-              onChange={(e) => setParam("birthYear", e.target.value)}
-            >
-              <option value="">Any year</option>
-              {birthYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
       </div>
 
       {hasFilters && (

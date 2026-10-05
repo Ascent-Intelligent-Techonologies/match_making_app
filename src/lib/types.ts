@@ -95,7 +95,45 @@ export interface Profile {
   /** Internal classification from the intake sheet (AM / AMP / AMO). */
   tag: string | null;
 
+  // --- redesigned intake form (see supabase/migrations/006_*.sql) ---
+  /** Job category behind the search filter, separate from the free-text job. */
+  profession_category: string | null;
+  /** Internal flag: push this profile to the front of the queue. */
+  urgent: boolean;
+  sibling1_name: string | null;
+  sibling1_status: string | null;
+  sibling1_details: string | null;
+  /** An unmarried sibling we may end up matchmaking for next. */
+  sibling1_potential_client: boolean;
+  sibling2_name: string | null;
+  sibling2_status: string | null;
+  sibling2_details: string | null;
+  sibling2_potential_client: boolean;
+
+  /** Set when soft-deleted; the row is hidden everywhere but the Deleted page. */
+  deleted_at: string | null;
+
   is_active: boolean;
+}
+
+/** One consultant's running follow-up note. */
+export interface TeamNote {
+  slug: string;
+  body: string;
+  updated_at: string;
+}
+
+/** A photo or video on the Journey page. */
+export interface JourneyMedia {
+  id: string;
+  created_at: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string | null;
+  size_bytes: number | null;
+  caption: string | null;
+  /** Populated at render time, never stored. */
+  signedUrl?: string;
 }
 
 export interface ProfileWithPhotos extends Profile {
@@ -128,6 +166,8 @@ export interface Client {
   phone_display: string | null;
   notes: string | null;
   last_activity_at: string | null;
+  /** Set when soft-deleted; hidden everywhere but the Deleted page. */
+  deleted_at?: string | null;
 }
 
 /** A client plus the engagement counts shown in admin lists. */
@@ -211,6 +251,13 @@ export const FULL_ONLY_FIELDS = [
   "siblings_count",
   "siblings_name",
   "siblings_details",
+  "sibling1_name",
+  "sibling1_status",
+  "sibling1_details",
+  "sibling2_name",
+  "sibling2_status",
+  "sibling2_details",
+  "profession_category",
   "family_status_notes",
   "current_address",
   "hobbies",
@@ -227,6 +274,10 @@ export const ADMIN_ONLY_FIELDS = [
   "marital_status",
   "annual_income_inr",
   "tag",
+  "urgent",
+  "sibling1_potential_client",
+  "sibling2_potential_client",
+  "deleted_at",
 ] as const;
 
 export type PublicProfile = Partial<Profile> &

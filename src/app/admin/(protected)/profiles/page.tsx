@@ -32,6 +32,9 @@ export default async function AdminDashboardPage({
       minFinances: params.minFinances ? Number(getStr(params.minFinances)) : undefined,
       maxFinances: params.maxFinances ? Number(getStr(params.maxFinances)) : undefined,
       birthYear: params.birthYear ? Number(getStr(params.birthYear)) : undefined,
+      professionCategory: getStr(params.professionCategory),
+      urgent: getStr(params.urgent) === "1",
+      potentialClient: getStr(params.potentialClient) === "1",
     }),
     getAppSettings(),
     listClientsForPicker(),
@@ -42,6 +45,7 @@ export default async function AdminDashboardPage({
 
   const selectableProfiles = profiles.map((p) => ({
     id: p.id,
+    urgent: p.urgent,
     full_name: p.full_name,
     city: p.city,
     dob: p.dob,

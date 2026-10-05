@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getProfileWithPhotos } from "@/lib/data/profiles";
+import { getPublicProfileWithPhotos } from "@/lib/data/profiles";
 import { toPublicProfile } from "@/lib/types";
 import { ClientProfileCard } from "@/components/ClientProfileCard";
 import { BrowseGate } from "@/components/BrowseGate";
@@ -16,7 +16,7 @@ export default async function PublicProfileDetailPage({
   if (!clientId) return <BrowseGate />;
 
   const { id } = await params;
-  const profile = await getProfileWithPhotos(id);
+  const profile = await getPublicProfileWithPhotos(id);
 
   if (!profile || !profile.is_active) notFound();
 

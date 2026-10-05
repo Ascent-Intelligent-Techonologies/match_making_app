@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { BarChart3, LayoutGrid, Search, UserPlus, Users, Link2, Palette } from "lucide-react";
+import {
+  BarChart3,
+  Camera,
+  LayoutGrid,
+  Link2,
+  NotebookPen,
+  Palette,
+  Search,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 const SECTIONS = [
@@ -31,12 +42,27 @@ const SECTIONS = [
     Icon: BarChart3,
     accent: "bg-orange-500",
   },
+  {
+    href: "/admin/followups",
+    title: "Follow-up",
+    description: "A running list of bullet points for Anupama, Shaurya and Shreya.",
+    Icon: NotebookPen,
+    accent: "bg-blue-400",
+  },
+  {
+    href: "/admin/journey",
+    title: "Journey",
+    description: "Photos and videos from the matches we have made.",
+    Icon: Camera,
+    accent: "bg-gold-400",
+  },
 ];
 
 const SECONDARY = [
   { href: "/admin/clients", title: "Clients", Icon: Users },
   { href: "/admin/links", title: "Share Links", Icon: Link2 },
   { href: "/admin/settings", title: "Settings", Icon: Palette },
+  { href: "/admin/deleted", title: "Deleted", Icon: Trash2 },
 ];
 
 export default function AdminHomePage() {
@@ -47,7 +73,7 @@ export default function AdminHomePage() {
         <p className="text-sm text-ink-900/60">Where would you like to start?</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map(({ href, title, description, Icon, accent }) => (
           <Link key={href} href={href}>
             <Card className="flex h-full flex-col gap-3 p-6 transition-transform hover:-translate-y-0.5">

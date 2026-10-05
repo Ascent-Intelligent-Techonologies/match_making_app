@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
+import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { calculateAge, formatDate, formatHeight } from "@/lib/format";
 
 export interface SearchResult {
@@ -19,6 +20,8 @@ export interface SearchResult {
   caste: string | null;
   sub_caste: string | null;
   requirements: string | null;
+  /** Internal priority flag; shown as a badge to the admin only. */
+  urgent: boolean;
   coverUrl?: string;
   /** Already sent to this client in an earlier link — shown greyed out. */
   alreadyShared: boolean;
@@ -88,6 +91,22 @@ export function SearchResultsGrid({
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Runs through the results in the order they appear below, so the
+              slideshow shows exactly what was searched for. */}
+          <SlideshowButton
+            profiles={results.map((r) => ({
+              id: r.id,
+              full_name: [r.full_name, r.surname].filter(Boolean).join(" "),
+              subtitle: [
+                calculateAge(r.dob) ? `${calculateAge(r.dob)} yrs` : null,
+                r.height_cm ? formatHeight(r.height_cm) : null,
+                r.caste,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              coverUrl: r.coverUrl,
+            }))}
+          />
           <span className="text-sm text-ink-900/60">{selected.length} selected</span>
           {selected.length > 0 && (
             <Button
@@ -170,6 +189,7 @@ export function SearchResultsGrid({
                       <Heart size={11} fill="currentColor" /> Liked
                     </Badge>
                   )}
+                  {r.urgent && <Badge tone="danger">Urgent</Badge>}
                   {r.alreadyShared && <Badge tone="neutral">Already shared</Badge>}
                 </div>
 

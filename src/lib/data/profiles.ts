@@ -22,6 +22,10 @@ export interface ProfileFilters {
   minFinances?: number;
   maxFinances?: number;
   birthYear?: number;
+  professionCategory?: string;
+  urgent?: boolean;
+  /** Profiles with a sibling marked as a potential client of our own. */
+  potentialClient?: boolean;
 }
 
 function dobFromAge(age: number): string {
@@ -38,6 +42,10 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
     .select("*")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+
+  // Soft-deleted profiles are invisible to every list; the Deleted page has
+  // its own query rather than a flag threaded through this one.
+  query = query.is("deleted_at", null);
 
   if (filters.search) {
     const term = filters.search.trim();
@@ -61,6 +69,15 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
   if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
   if (filters.minFinances) query = query.gte("annual_income_inr", filters.minFinances);
   if (filters.maxFinances) query = query.lte("annual_income_inr", filters.maxFinances);
+  if (filters.professionCategory) {
+    query = query.eq("profession_category", filters.professionCategory);
+  }
+  if (filters.urgent) query = query.eq("urgent", true);
+  if (filters.potentialClient) {
+    query = query.or(
+      "sibling1_potential_client.eq.true,sibling2_potential_client.eq.true"
+    );
+  }
   if (filters.birthYear) {
     query = query
       .gte("dob", `${filters.birthYear}-01-01`)
@@ -89,6 +106,11 @@ async function attachSignedPhotoUrls(photos: ProfilePhoto[]): Promise<ProfilePho
   }));
 }
 
+/**
+ * One profile for the admin editor. Soft-deleted rows are included on purpose:
+ * the admin may still need to look at what they removed before restoring it.
+ * Anything client-facing goes through getPublicProfileWithPhotos instead.
+ */
 export async function getProfileWithPhotos(id: string): Promise<ProfileWithPhotos | null> {
   const supabase = getSupabaseAdmin();
   const { data: profile, error } = await supabase
@@ -109,6 +131,14 @@ export async function getProfileWithPhotos(id: string): Promise<ProfileWithPhoto
   return { ...profile, photos: await attachSignedPhotoUrls(photos ?? []) };
 }
 
+/** The same profile, but never a soft-deleted one — used by the public pages. */
+export async function getPublicProfileWithPhotos(
+  id: string
+): Promise<ProfileWithPhotos | null> {
+  const profile = await getProfileWithPhotos(id);
+  return profile && !profile.deleted_at ? profile : null;
+}
+
 export async function getManyProfilesWithPhotos(
   ids: string[]
 ): Promise<ProfileWithPhotos[]> {
@@ -117,6 +147,7 @@ export async function getManyProfilesWithPhotos(
   const { data: profiles, error } = await supabase
     .from("profiles")
     .select("*")
+    .is("deleted_at", null)
     .in("id", ids);
   if (error) throw error;
 
@@ -161,6 +192,41 @@ export async function updateProfile(
   return data;
 }
 
+/**
+ * Hides a profile without destroying it. Everything that references it -
+ * share links, shortlists, photos - is left intact, so restoring brings the
+ * whole record back exactly as it was.
+ */
+export async function softDeleteProfile(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function restoreProfile(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ deleted_at: null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function listDeletedProfiles(): Promise<Profile[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Permanent. Removes the photos from storage first, then the row. */
 export async function deleteProfile(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
@@ -194,7 +260,12 @@ export async function getDistinctCities(): Promise<string[]> {
 /** Birth years present in the book, newest first, for the All Profiles filter. */
 export async function listProfileBirthYears(gender?: string): Promise<number[]> {
   const supabase = getSupabaseAdmin();
-  let query = supabase.from("profiles").select("dob").eq("is_active", true).not("dob", "is", null);
+  let query = supabase
+    .from("profiles")
+    .select("dob")
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .not("dob", "is", null);
   if (gender) query = query.eq("gender", gender);
 
   const { data, error } = await query;

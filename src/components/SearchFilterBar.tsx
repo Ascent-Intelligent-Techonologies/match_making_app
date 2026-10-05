@@ -3,48 +3,16 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useRef } from "react";
 import { Search, X } from "lucide-react";
-import { Input, Select } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { HeightRangeFilter } from "@/components/HeightRangeFilter";
-import { CASTE_OPTIONS, GENDER_OPTIONS, TAG_OPTIONS } from "@/lib/constants";
-
-function RangePair({
-  label,
-  minKey,
-  maxKey,
-  minValue,
-  maxValue,
-  onChange,
-}: {
-  label: string;
-  minKey: string;
-  maxKey: string;
-  minValue: string;
-  maxValue: string;
-  onChange: (key: string, value: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-        {label}
-      </span>
-      <div className="flex items-center gap-2">
-        <Input
-          type="number"
-          placeholder="More than"
-          defaultValue={minValue}
-          onChange={(e) => onChange(minKey, e.target.value)}
-        />
-        <Input
-          type="number"
-          placeholder="Less than"
-          defaultValue={maxValue}
-          onChange={(e) => onChange(maxKey, e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
+import { FilterSelect, FilterToggle, RangePair } from "@/components/FilterControls";
+import {
+  CASTE_OPTIONS,
+  GENDER_OPTIONS,
+  PROFESSION_CATEGORIES,
+  TAG_OPTIONS,
+} from "@/lib/constants";
 
 /** Filters mirror the search tab of the intake spreadsheet. */
 export function SearchFilterBar() {
@@ -91,57 +59,34 @@ export function SearchFilterBar() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Looking for
-          </span>
-          <Select
-            defaultValue={searchParams.get("gender") ?? ""}
-            onChange={(e) => setParam("gender", e.target.value)}
-          >
-            <option value="">All</option>
-            {GENDER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Caste
-          </span>
-          <Select
-            defaultValue={searchParams.get("caste") ?? ""}
-            onChange={(e) => setParam("caste", e.target.value)}
-          >
-            <option value="">All caste</option>
-            {CASTE_OPTIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">
-            Tag
-          </span>
-          <Select
-            defaultValue={searchParams.get("tag") ?? ""}
-            onChange={(e) => setParam("tag", e.target.value)}
-          >
-            <option value="">Any tag</option>
-            {TAG_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </Select>
-        </div>
-
+        <FilterSelect
+          label="Looking for"
+          value={searchParams.get("gender") ?? ""}
+          placeholder="All"
+          options={GENDER_OPTIONS}
+          onChange={(v) => setParam("gender", v)}
+        />
+        <FilterSelect
+          label="Caste"
+          value={searchParams.get("caste") ?? ""}
+          placeholder="All caste"
+          options={CASTE_OPTIONS}
+          onChange={(v) => setParam("caste", v)}
+        />
+        <FilterSelect
+          label="Job"
+          value={searchParams.get("professionCategory") ?? ""}
+          placeholder="Any job"
+          options={PROFESSION_CATEGORIES}
+          onChange={(v) => setParam("professionCategory", v)}
+        />
+        <FilterSelect
+          label="Tag"
+          value={searchParams.get("tag") ?? ""}
+          placeholder="Any tag"
+          options={TAG_OPTIONS}
+          onChange={(v) => setParam("tag", v)}
+        />
         <RangePair
           label="Age (years)"
           minKey="minAge"
@@ -167,6 +112,19 @@ export function SearchFilterBar() {
           maxValue={searchParams.get("maxFinances") ?? ""}
           onChange={onDebouncedChange}
         />
+        <div className="flex flex-col gap-2">
+          <FilterToggle
+            label="Urgent only"
+            checked={searchParams.get("urgent") === "1"}
+            onChange={(on) => setParam("urgent", on ? "1" : "")}
+          />
+          <FilterToggle
+            label="Potential clients"
+            hint="Has a sibling we could take on"
+            checked={searchParams.get("potentialClient") === "1"}
+            onChange={(on) => setParam("potentialClient", on ? "1" : "")}
+          />
+        </div>
       </div>
 
       {hasFilters && (

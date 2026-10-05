@@ -57,6 +57,17 @@ export const profileSchema = z.object({
   hobbies: z.array(z.string()).optional(),
   partner_expectations: optionalString,
 
+  profession_category: optionalString,
+  urgent: z.boolean().optional(),
+  sibling1_name: optionalString,
+  sibling1_status: optionalString,
+  sibling1_details: optionalString,
+  sibling1_potential_client: z.boolean().optional(),
+  sibling2_name: optionalString,
+  sibling2_status: optionalString,
+  sibling2_details: optionalString,
+  sibling2_potential_client: z.boolean().optional(),
+
   net_worth_notes: optionalString,
   tag: optionalString,
   contact_phone: optionalString,

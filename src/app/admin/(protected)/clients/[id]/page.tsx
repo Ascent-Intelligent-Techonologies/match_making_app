@@ -8,7 +8,12 @@ import { listClientSearches } from "@/lib/data/searches";
 import { listFollowupsForClient } from "@/lib/data/followups";
 import { FollowUpForm } from "@/components/FollowUpForm";
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
-import { deleteClientAction, removeClientShortlistAction } from "@/lib/actions/clients";
+import { DeleteChoiceButton } from "@/components/DeleteChoiceButton";
+import {
+  deleteClientAction,
+  removeClientShortlistAction,
+  softDeleteClientAction,
+} from "@/lib/actions/clients";
 import { deleteFollowUpAction } from "@/lib/actions/followups";
 import { deleteShareLinkAction } from "@/lib/actions/share-links";
 import { Card } from "@/components/ui/Card";
@@ -52,11 +57,12 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
             {client.phone_display ?? client.phone}
           </p>
         </div>
-        <ConfirmDeleteButton
-          action={deleteClientAction.bind(null, client.id)}
+        <DeleteChoiceButton
           label="Delete client"
-          confirmLabel="Yes, delete client"
-          description={`Removes ${client.full_name}, their ${shortlisted.length} shortlist${
+          what={client.full_name}
+          softAction={softDeleteClientAction.bind(null, client.id)}
+          hardAction={deleteClientAction.bind(null, client.id)}
+          hardDescription={`Destroys their ${shortlisted.length} shortlist${
             shortlisted.length === 1 ? "" : "s"
           }, follow-ups, searches and ${links.length} share link${
             links.length === 1 ? "" : "s"

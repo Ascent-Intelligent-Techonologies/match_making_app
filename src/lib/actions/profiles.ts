@@ -8,6 +8,8 @@ import {
   createProfile,
   updateProfile,
   deleteProfile,
+  softDeleteProfile,
+  restoreProfile,
 } from "@/lib/data/profiles";
 import { uploadProfilePhoto } from "@/lib/data/photos";
 
@@ -31,7 +33,12 @@ function parseProfileFormData(formData: FormData) {
     ...rest,
     hobbies,
     height_cm: heightCm,
+    // Unchecked boxes post nothing at all, so each one is read explicitly
+    // rather than inferred from the spread above.
     is_active: formData.get("is_active") === "on",
+    urgent: formData.get("urgent") === "on",
+    sibling1_potential_client: formData.get("sibling1_potential_client") === "on",
+    sibling2_potential_client: formData.get("sibling2_potential_client") === "on",
   };
 }
 
@@ -81,8 +88,33 @@ export async function updateProfileAction(
   return { error: undefined };
 }
 
+function revalidateProfileLists() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/profiles");
+  revalidatePath("/admin/deleted");
+}
+
+/** Moves a profile to the Deleted page. Reversible, and nothing is destroyed. */
+export async function softDeleteProfileAction(profileId: string) {
+  await softDeleteProfile(profileId);
+  revalidateProfileLists();
+  redirect("/admin/profiles");
+}
+
+export async function restoreProfileAction(profileId: string) {
+  await restoreProfile(profileId);
+  revalidateProfileLists();
+}
+
+/** Permanent: the row, its photos and every link and shortlist row go. */
 export async function deleteProfileAction(profileId: string) {
   await deleteProfile(profileId);
-  revalidatePath("/admin");
-  redirect("/admin");
+  revalidateProfileLists();
+  redirect("/admin/profiles");
+}
+
+/** Same, but called from the Deleted page, which stays where it is. */
+export async function purgeProfileAction(profileId: string) {
+  await deleteProfile(profileId);
+  revalidateProfileLists();
 }

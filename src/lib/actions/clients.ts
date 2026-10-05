@@ -2,7 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { deleteClient, upsertClientByPhone } from "@/lib/data/clients";
+import {
+  deleteClient,
+  restoreClient,
+  softDeleteClient,
+  upsertClientByPhone,
+} from "@/lib/data/clients";
 import { removeShortlist } from "@/lib/data/shortlists";
 import { isUsablePhone } from "@/lib/phone";
 
@@ -27,16 +32,46 @@ export async function startSearchForClientAction(
   redirect(`/admin/search?client=${client.id}`);
 }
 
-/**
- * Removes a client, their shortlists, searches, follow-ups and the links we
- * sent them. There is no undo, so the button that calls this asks first.
- */
-export async function deleteClientAction(clientId: string) {
-  await deleteClient(clientId);
+function revalidateClientLists() {
   revalidatePath("/admin/clients");
   revalidatePath("/admin/links");
   revalidatePath("/admin/analytics");
+  revalidatePath("/admin/deleted");
+}
+
+/** Moves a client to the Deleted page. Their links keep working until purged. */
+export async function softDeleteClientAction(clientId: string) {
+  await softDeleteClient(clientId);
+  revalidateClientLists();
   redirect("/admin/clients");
+}
+
+/** Same, from a list that should stay put rather than redirect. */
+export async function softDeleteClientInPlaceAction(clientId: string) {
+  await softDeleteClient(clientId);
+  revalidateClientLists();
+}
+
+export async function restoreClientAction(clientId: string) {
+  await restoreClient(clientId);
+  revalidateClientLists();
+}
+
+/**
+ * Permanent. Removes the client, their shortlists, searches, follow-ups and
+ * the links we sent them. There is no undo, so the button that calls this
+ * asks first.
+ */
+export async function deleteClientAction(clientId: string) {
+  await deleteClient(clientId);
+  revalidateClientLists();
+  redirect("/admin/clients");
+}
+
+/** Same, but called from the Deleted page, which stays where it is. */
+export async function purgeClientAction(clientId: string) {
+  await deleteClient(clientId);
+  revalidateClientLists();
 }
 
 /** Takes a profile off a client's shortlist from the admin side. */

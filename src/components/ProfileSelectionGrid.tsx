@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator, type ClientOption } from "@/components/ShareLinkCreator";
+import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { calculateAge, formatHeight, formatInrCompact } from "@/lib/format";
 
 export interface SelectableProfile {
@@ -21,6 +22,7 @@ export interface SelectableProfile {
   caste: string | null;
   height_cm: number | null;
   annual_income_inr: number | null;
+  urgent: boolean;
   coverUrl?: string;
 }
 
@@ -100,6 +102,20 @@ export function ProfileSelectionGrid({
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
+          <SlideshowButton
+            profiles={profiles.map((p) => ({
+              id: p.id,
+              full_name: p.full_name,
+              subtitle: [
+                calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
+                p.city,
+                p.height_cm ? formatHeight(p.height_cm) : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              coverUrl: p.coverUrl,
+            }))}
+          />
           <span className="text-sm text-ink-900/60">
             {selectedVisible.length} selected
           </span>
@@ -176,6 +192,7 @@ export function ProfileSelectionGrid({
                       <h2 className="font-serif text-lg font-semibold text-maroon-700">
                         {profile.full_name}
                       </h2>
+                      {profile.urgent && <Badge tone="danger">Urgent</Badge>}
                       {!profile.is_active && <Badge tone="neutral">Inactive</Badge>}
                     </div>
                     <p className="text-sm text-ink-900/60">

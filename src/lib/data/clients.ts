@@ -59,6 +59,9 @@ export async function upsertClientByPhone(input: {
         phone_display: input.phone.trim(),
         full_name: input.fullName.trim(),
         updated_at: new Date().toISOString(),
+        // Re-entering someone's details brings them back rather than silently
+        // writing to a row that every list is filtering out.
+        deleted_at: null,
       },
       { onConflict: "phone" }
     )
@@ -70,7 +73,8 @@ export async function upsertClientByPhone(input: {
 
 export async function listClientSummaries(search?: string): Promise<ClientSummary[]> {
   const supabase = getSupabaseAdmin();
-  let query = supabase.from("clients").select(SUMMARY_SELECT);
+  // Soft-deleted clients are hidden from every list but the Deleted page.
+  let query = supabase.from("clients").select(SUMMARY_SELECT).is("deleted_at", null);
 
   const term = search?.trim();
   if (term) {
@@ -101,6 +105,7 @@ export async function listClientsForPicker(): Promise<
   const { data, error } = await supabase
     .from("clients")
     .select("id, full_name, phone_display, phone")
+    .is("deleted_at", null)
     .order("full_name");
   if (error) throw error;
   return data ?? [];
@@ -120,6 +125,8 @@ export interface ClientAnalytics {
   recentlyContacted: ClientSummary[];
   goneQuiet: ClientSummary[];
   neverOpened: ClientSummary[];
+  /** Details were taken but nothing was ever sent to them. */
+  neverContacted: ClientSummary[];
   totalClients: number;
   totalShortlists: number;
 }
@@ -159,10 +166,18 @@ export async function getClientAnalytics(): Promise<ClientAnalytics> {
     .filter((c) => c.last_activity_at === null && c.linkCount > 0)
     .sort((a, b) => contactedAt(a) - contactedAt(b));
 
+  // Distinct from "never opened": nothing was ever sent to these people at
+  // all. Usually details taken down on a call and then forgotten about, so
+  // the oldest are the ones most worth chasing.
+  const neverContacted = summaries
+    .filter((c) => c.linkCount === 0)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
   return {
     recentlyContacted,
     goneQuiet,
     neverOpened,
+    neverContacted,
     totalClients: summaries.length,
     totalShortlists: summaries.reduce((n, c) => n + c.shortlistedCount, 0),
   };
@@ -182,6 +197,36 @@ export async function getSharedProfileIdsForClient(clientId: string): Promise<st
     for (const slp of row.share_link_profiles ?? []) ids.add(slp.profile_id);
   }
   return Array.from(ids);
+}
+
+/** Hides a client without destroying anything. Reversible from the Deleted page. */
+export async function softDeleteClient(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function restoreClient(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function listDeletedClients(): Promise<Client[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 /**

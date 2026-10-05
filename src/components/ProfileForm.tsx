@@ -4,7 +4,16 @@ import { useActionState, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { RELIGIONS, GENDER_OPTIONS, CASTE_OPTIONS, TAG_OPTIONS } from "@/lib/constants";
+import {
+  CASTE_OPTIONS,
+  COUNTRY_OPTIONS,
+  GENDER_OPTIONS,
+  PROFESSION_CATEGORIES,
+  RELIGIONS,
+  SIBLING_STATUS_OPTIONS,
+  STATES_BY_COUNTRY,
+  TAG_OPTIONS,
+} from "@/lib/constants";
 import { cmToFeetInches } from "@/lib/format";
 import type { Profile } from "@/lib/types";
 import type { ProfileFormState } from "@/lib/actions/profiles";
@@ -42,8 +51,12 @@ export function ProfileForm({
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const photosInputRef = useRef<HTMLInputElement>(null);
+  // Only India and the USA have a state list; everywhere else the field stays
+  // free text, so the country has to be tracked rather than read on submit.
+  const [country, setCountry] = useState(profile?.country ?? "");
   const errors = state.fieldErrors ?? {};
   const height = cmToFeetInches(profile?.height_cm);
+  const states = STATES_BY_COUNTRY[country];
 
   function applyFiles(files: FileList | File[]) {
     const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -63,6 +76,10 @@ export function ProfileForm({
    *  their values still post with the form. */
   const show = (tab: (typeof TABS)[number]) =>
     activeTab === tab ? "grid gap-5 sm:grid-cols-2" : "hidden";
+
+  /** For sections that lay their own fields out rather than flowing in a grid. */
+  const panel = (tab: (typeof TABS)[number]) =>
+    activeTab === tab ? "flex flex-col gap-5" : "hidden";
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -143,110 +160,172 @@ export function ProfileForm({
       )}
 
       {/* --- Personal --- */}
-      <div className={show("Personal")}>
-        <Field label="Gender (Boy / Girl)" htmlFor="gender">
-          <Select id="gender" name="gender" defaultValue={profile?.gender ?? ""}>
-            <option value="">Select</option>
-            {GENDER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Name" htmlFor="full_name" error={errors.full_name}>
-          <Input id="full_name" name="full_name" defaultValue={profile?.full_name} required />
-        </Field>
-        <Field label="Surname" htmlFor="surname">
-          <Input id="surname" name="surname" defaultValue={profile?.surname ?? ""} />
-        </Field>
-        <Field label="Date of Birth" htmlFor="dob">
-          <Input id="dob" name="dob" type="date" defaultValue={profile?.dob ?? ""} />
-        </Field>
-        <Field label="Time of Birth" htmlFor="birth_time">
-          <Input
-            id="birth_time"
-            name="birth_time"
-            placeholder="e.g. 04:35 AM"
-            defaultValue={profile?.birth_time ?? ""}
-          />
-        </Field>
-        <Field label="Place of Birth" htmlFor="birth_place">
-          <Input id="birth_place" name="birth_place" defaultValue={profile?.birth_place ?? ""} />
-        </Field>
-        <Field label="Rasi" htmlFor="rasi">
-          <Input id="rasi" name="rasi" defaultValue={profile?.rasi ?? ""} />
-        </Field>
-        <Field label="Nakshatram" htmlFor="nakshatram">
-          <Input id="nakshatram" name="nakshatram" defaultValue={profile?.nakshatram ?? ""} />
-        </Field>
-        <Field label="Gotram" htmlFor="gotram">
-          <Input id="gotram" name="gotram" defaultValue={profile?.gotram ?? ""} />
-        </Field>
-        <Field label="Caste" htmlFor="caste">
-          <Input
-            id="caste"
-            name="caste"
-            list="caste-options"
-            defaultValue={profile?.caste ?? ""}
-          />
-        </Field>
-        <datalist id="caste-options">
-          {CASTE_OPTIONS.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        <Field label="Sub-Caste" htmlFor="sub_caste">
-          <Input id="sub_caste" name="sub_caste" defaultValue={profile?.sub_caste ?? ""} />
-        </Field>
-        <Field label="Height" htmlFor="height_feet">
-          <div className="flex items-center gap-2">
-            <Input
-              id="height_feet"
-              name="height_feet"
-              type="number"
-              min={0}
-              max={8}
-              placeholder="Feet"
-              defaultValue={height?.feet ?? ""}
-            />
-            <Input
-              id="height_inches"
-              name="height_inches"
-              type="number"
-              min={0}
-              max={11}
-              placeholder="Inches"
-              defaultValue={height?.inches ?? ""}
-            />
+      {/* Laid out in two fixed columns to match the paper form: the person on
+          the left, their lineage and birth details on the right. */}
+      <div className={panel("Personal")}>
+        <div className="sm:max-w-xs">
+          <Field label="Gender (Boy / Girl)" htmlFor="gender">
+            <Select id="gender" name="gender" defaultValue={profile?.gender ?? ""}>
+              <option value="">Select</option>
+              {GENDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-5">
+            <Field label="Name" htmlFor="full_name" error={errors.full_name}>
+              <Input id="full_name" name="full_name" defaultValue={profile?.full_name} required />
+            </Field>
+            <Field label="Date of Birth" htmlFor="dob">
+              <Input id="dob" name="dob" type="date" defaultValue={profile?.dob ?? ""} />
+            </Field>
+            <Field label="Time of Birth" htmlFor="birth_time">
+              <Input
+                id="birth_time"
+                name="birth_time"
+                placeholder="e.g. 04:35 AM"
+                defaultValue={profile?.birth_time ?? ""}
+              />
+            </Field>
+            <Field label="Place of Birth" htmlFor="birth_place">
+              <Input id="birth_place" name="birth_place" defaultValue={profile?.birth_place ?? ""} />
+            </Field>
+            <Field label="Height" htmlFor="height_feet">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="height_feet"
+                  name="height_feet"
+                  type="number"
+                  min={0}
+                  max={8}
+                  placeholder="Feet"
+                  defaultValue={height?.feet ?? ""}
+                />
+                <Input
+                  id="height_inches"
+                  name="height_inches"
+                  type="number"
+                  min={0}
+                  max={11}
+                  placeholder="Inches"
+                  defaultValue={height?.inches ?? ""}
+                />
+              </div>
+            </Field>
+            <Field
+              label="Native place"
+              htmlFor="native_place"
+              hint="Shared at every level, per the intake sheet."
+            >
+              <Input
+                id="native_place"
+                name="native_place"
+                defaultValue={profile?.native_place ?? ""}
+              />
+            </Field>
           </div>
-        </Field>
-        <Field label="Native place" htmlFor="native_place" hint="Shared at every level, per the intake sheet.">
-          <Input id="native_place" name="native_place" defaultValue={profile?.native_place ?? ""} />
-        </Field>
-        <Field label="Religion" htmlFor="religion">
-          <Select id="religion" name="religion" defaultValue={profile?.religion ?? ""}>
-            <option value="">Select</option>
-            {RELIGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Mother Tongue" htmlFor="mother_tongue">
-          <Input
-            id="mother_tongue"
-            name="mother_tongue"
-            defaultValue={profile?.mother_tongue ?? ""}
-          />
-        </Field>
-        <Field label="City" htmlFor="city">
-          <Input id="city" name="city" defaultValue={profile?.city ?? ""} />
-        </Field>
-        <Field label="State" htmlFor="state">
-          <Input id="state" name="state" defaultValue={profile?.state ?? ""} />
-        </Field>
+
+          <div className="flex flex-col gap-5">
+            <Field label="Surname" htmlFor="surname">
+              <Input id="surname" name="surname" defaultValue={profile?.surname ?? ""} />
+            </Field>
+            <Field label="Caste" htmlFor="caste">
+              <Input
+                id="caste"
+                name="caste"
+                list="caste-options"
+                defaultValue={profile?.caste ?? ""}
+              />
+            </Field>
+            <datalist id="caste-options">
+              {CASTE_OPTIONS.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <Field label="Sub-Caste" htmlFor="sub_caste">
+              <Input id="sub_caste" name="sub_caste" defaultValue={profile?.sub_caste ?? ""} />
+            </Field>
+            <Field label="Gotram" htmlFor="gotram">
+              <Input id="gotram" name="gotram" defaultValue={profile?.gotram ?? ""} />
+            </Field>
+            <Field label="Nakshatram" htmlFor="nakshatram">
+              <Input id="nakshatram" name="nakshatram" defaultValue={profile?.nakshatram ?? ""} />
+            </Field>
+            <Field label="Rasi" htmlFor="rasi">
+              <Input id="rasi" name="rasi" defaultValue={profile?.rasi ?? ""} />
+            </Field>
+            <Field label="Religion" htmlFor="religion">
+              <Select id="religion" name="religion" defaultValue={profile?.religion ?? ""}>
+                <option value="">Select</option>
+                {RELIGIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Mother Tongue" htmlFor="mother_tongue">
+              <Input
+                id="mother_tongue"
+                name="mother_tongue"
+                defaultValue={profile?.mother_tongue ?? ""}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-3">
+          <Field label="Current location" htmlFor="country">
+            <Select
+              id="country"
+              name="country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              <option value="">Select</option>
+              {COUNTRY_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
+            label="State"
+            htmlFor="state"
+            hint={states ? undefined : "Free text outside India and the USA."}
+          >
+            {states ? (
+              <Select
+                id="state"
+                name="state"
+                // Remounting on a country change drops a state that belonged to
+                // the previous country rather than posting a mismatched pair.
+                key={country}
+                defaultValue={profile?.country === country ? (profile?.state ?? "") : ""}
+              >
+                <option value="">Select</option>
+                {states.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Input id="state" name="state" defaultValue={profile?.state ?? ""} />
+            )}
+          </Field>
+
+          <Field label="City" htmlFor="city">
+            <Input id="city" name="city" defaultValue={profile?.city ?? ""} />
+          </Field>
+        </div>
       </div>
 
       {/* --- Education --- */}
@@ -268,6 +347,24 @@ export function ProfileForm({
 
       {/* --- Professional --- */}
       <div className={show("Professional")}>
+        <Field
+          label="Job category"
+          htmlFor="profession_category"
+          hint="Drives the job filter in search."
+        >
+          <Select
+            id="profession_category"
+            name="profession_category"
+            defaultValue={profile?.profession_category ?? ""}
+          >
+            <option value="">Select</option>
+            {PROFESSION_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <Field label="Job" htmlFor="profession">
           <Input id="profession" name="profession" defaultValue={profile?.profession ?? ""} />
         </Field>
@@ -298,81 +395,125 @@ export function ProfileForm({
       </div>
 
       {/* --- Family --- */}
-      <div className={show("Family")}>
-        <Field label="Father Name" htmlFor="father_name">
-          <Input id="father_name" name="father_name" defaultValue={profile?.father_name ?? ""} />
-        </Field>
-        <Field label="Father Details" htmlFor="father_profession">
-          <Input
-            id="father_profession"
-            name="father_profession"
-            defaultValue={profile?.father_profession ?? ""}
-          />
-        </Field>
-        <Field label="Father — Native place" htmlFor="father_native_place">
-          <Input
-            id="father_native_place"
-            name="father_native_place"
-            defaultValue={profile?.father_native_place ?? ""}
-          />
-        </Field>
-        <Field label="Mother Name" htmlFor="mother_name">
-          <Input id="mother_name" name="mother_name" defaultValue={profile?.mother_name ?? ""} />
-        </Field>
-        <Field label="Mother Details" htmlFor="mother_profession">
-          <Input
-            id="mother_profession"
-            name="mother_profession"
-            defaultValue={profile?.mother_profession ?? ""}
-          />
-        </Field>
-        <Field label="Mother — Native place" htmlFor="mother_native_place">
-          <Input
-            id="mother_native_place"
-            name="mother_native_place"
-            defaultValue={profile?.mother_native_place ?? ""}
-          />
-        </Field>
-        <Field label="Siblings Name" htmlFor="siblings_name">
-          <Input
-            id="siblings_name"
-            name="siblings_name"
-            defaultValue={profile?.siblings_name ?? ""}
-          />
-        </Field>
-        <Field label="Number of Siblings" htmlFor="siblings_count">
-          <Input
-            id="siblings_count"
-            name="siblings_count"
-            type="number"
-            defaultValue={profile?.siblings_count ?? ""}
-          />
-        </Field>
-        <Field label="Siblings Details" htmlFor="siblings_details" >
-          <Textarea
-            id="siblings_details"
-            name="siblings_details"
-            defaultValue={profile?.siblings_details ?? ""}
-          />
-        </Field>
-        <Field label="Current Address" htmlFor="current_address">
-          <Textarea
-            id="current_address"
-            name="current_address"
-            defaultValue={profile?.current_address ?? ""}
-          />
-        </Field>
-        <Field
-          label="Family Background & Status"
-          htmlFor="family_status_notes"
-          hint="Lineage, family reputation, notable relatives, etc."
-        >
-          <Textarea
-            id="family_status_notes"
-            name="family_status_notes"
-            defaultValue={profile?.family_status_notes ?? ""}
-          />
-        </Field>
+      <div className={panel("Family")}>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-5">
+            <Field label="Father" htmlFor="father_name">
+              <Input id="father_name" name="father_name" defaultValue={profile?.father_name ?? ""} />
+            </Field>
+            <Field label="Father details — occupation" htmlFor="father_profession">
+              <Input
+                id="father_profession"
+                name="father_profession"
+                defaultValue={profile?.father_profession ?? ""}
+              />
+            </Field>
+            <Field label="Father — native place" htmlFor="father_native_place">
+              <Input
+                id="father_native_place"
+                name="father_native_place"
+                defaultValue={profile?.father_native_place ?? ""}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-5">
+            <Field label="Mother" htmlFor="mother_name">
+              <Input id="mother_name" name="mother_name" defaultValue={profile?.mother_name ?? ""} />
+            </Field>
+            <Field label="Mother details — occupation" htmlFor="mother_profession">
+              <Input
+                id="mother_profession"
+                name="mother_profession"
+                defaultValue={profile?.mother_profession ?? ""}
+              />
+            </Field>
+            <Field label="Mother — native place" htmlFor="mother_native_place">
+              <Input
+                id="mother_native_place"
+                name="mother_native_place"
+                defaultValue={profile?.mother_native_place ?? ""}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* Each sibling gets their own block. An unmarried sibling is someone we
+            may end up matchmaking for, which is what "potential client" marks. */}
+        {([1, 2] as const).map((n) => {
+          const name = profile?.[`sibling${n}_name`] ?? "";
+          const status = profile?.[`sibling${n}_status`] ?? "";
+          const details = profile?.[`sibling${n}_details`] ?? "";
+          const potential = profile?.[`sibling${n}_potential_client`] ?? false;
+          return (
+            <div
+              key={n}
+              className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-2"
+            >
+              <div className="flex flex-col gap-5">
+                <Field label={`Sibling ${n}`} htmlFor={`sibling${n}_name`}>
+                  <Input
+                    id={`sibling${n}_name`}
+                    name={`sibling${n}_name`}
+                    defaultValue={name}
+                  />
+                </Field>
+                <Field label="Marital status" htmlFor={`sibling${n}_status`}>
+                  <Select
+                    id={`sibling${n}_status`}
+                    name={`sibling${n}_status`}
+                    defaultValue={status}
+                  >
+                    <option value="">Select</option>
+                    {SIBLING_STATUS_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <label className="flex items-center gap-2 text-sm text-ink-900/70">
+                  <input
+                    type="checkbox"
+                    name={`sibling${n}_potential_client`}
+                    defaultChecked={potential}
+                    className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+                  />
+                  Potential client
+                </label>
+              </div>
+
+              <Field label={`Sibling ${n} details`} htmlFor={`sibling${n}_details`}>
+                <Textarea
+                  id={`sibling${n}_details`}
+                  name={`sibling${n}_details`}
+                  defaultValue={details}
+                />
+              </Field>
+            </div>
+          );
+        })}
+
+        <div className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-2">
+          <Field label="Current Address" htmlFor="current_address">
+            <Textarea
+              id="current_address"
+              name="current_address"
+              defaultValue={profile?.current_address ?? ""}
+            />
+          </Field>
+          <Field
+            label="Family Background & Status"
+            htmlFor="family_status_notes"
+            hint="Lineage, family reputation, notable relatives, etc."
+          >
+            <Textarea
+              id="family_status_notes"
+              name="family_status_notes"
+              defaultValue={profile?.family_status_notes ?? ""}
+            />
+          </Field>
+        </div>
       </div>
 
       {/* --- Contact --- */}
@@ -414,6 +555,22 @@ export function ProfileForm({
             defaultValue={profile?.partner_expectations ?? ""}
           />
         </Field>
+
+        <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
+          <input
+            type="checkbox"
+            name="urgent"
+            defaultChecked={profile?.urgent ?? false}
+            className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+          />
+          <span>
+            <span className="font-semibold">Urgent</span>
+            <span className="block text-xs text-ink-900/60">
+              Marks this profile as a priority. Filterable in All Profiles and search;
+              never shown to clients.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* --- Internal --- */}
