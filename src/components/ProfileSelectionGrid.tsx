@@ -23,6 +23,7 @@ export interface SelectableProfile {
   height_cm: number | null;
   annual_income_inr: number | null;
   urgent: boolean;
+  anurupa_aura: boolean;
   coverUrl?: string;
 }
 
@@ -193,6 +194,7 @@ export function ProfileSelectionGrid({
                         {profile.full_name}
                       </h2>
                       {profile.urgent && <Badge tone="danger">Urgent</Badge>}
+                      {profile.anurupa_aura && <Badge tone="maroon">Aura</Badge>}
                       {!profile.is_active && <Badge tone="neutral">Inactive</Badge>}
                     </div>
                     <p className="text-sm text-ink-900/60">

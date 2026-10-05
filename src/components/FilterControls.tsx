@@ -108,3 +108,55 @@ export function FilterToggle({
     </label>
   );
 }
+
+/**
+ * A filter that can hold several values at once, kept in one URL parameter as
+ * a comma-joined list. Checkboxes rather than a multi-select, because there
+ * are only a handful of options and none of them should need opening a menu.
+ */
+export function FilterCheckboxGroup({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: readonly string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <FilterLabel>{label}</FilterLabel>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => {
+          const on = selected.includes(o);
+          return (
+            <label
+              key={o}
+              className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm ${
+                on
+                  ? "border-maroon-600 bg-blush-100 text-maroon-700"
+                  : "border-blush-200 bg-white/60 text-ink-900/70"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={on}
+                onChange={(e) =>
+                  onChange(
+                    e.target.checked
+                      ? [...selected, o]
+                      : selected.filter((s) => s !== o)
+                  )
+                }
+                className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+              />
+              {o}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

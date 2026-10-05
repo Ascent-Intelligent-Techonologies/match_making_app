@@ -20,8 +20,9 @@ export interface SearchResult {
   caste: string | null;
   sub_caste: string | null;
   requirements: string | null;
-  /** Internal priority flag; shown as a badge to the admin only. */
+  /** Internal flags; shown as badges to the admin only. */
   urgent: boolean;
+  anurupa_aura: boolean;
   coverUrl?: string;
   /** Already sent to this client in an earlier link — shown greyed out. */
   alreadyShared: boolean;
@@ -190,6 +191,7 @@ export function SearchResultsGrid({
                     </Badge>
                   )}
                   {r.urgent && <Badge tone="danger">Urgent</Badge>}
+                  {r.anurupa_aura && <Badge tone="maroon">Aura</Badge>}
                   {r.alreadyShared && <Badge tone="neutral">Already shared</Badge>}
                 </div>
 

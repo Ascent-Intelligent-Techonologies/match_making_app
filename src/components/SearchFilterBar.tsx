@@ -6,7 +6,12 @@ import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { HeightRangeFilter } from "@/components/HeightRangeFilter";
-import { FilterSelect, FilterToggle, RangePair } from "@/components/FilterControls";
+import {
+  FilterCheckboxGroup,
+  FilterSelect,
+  FilterToggle,
+  RangePair,
+} from "@/components/FilterControls";
 import {
   CASTE_OPTIONS,
   GENDER_OPTIONS,
@@ -80,12 +85,11 @@ export function SearchFilterBar() {
           options={PROFESSION_CATEGORIES}
           onChange={(v) => setParam("professionCategory", v)}
         />
-        <FilterSelect
-          label="Tag"
-          value={searchParams.get("tag") ?? ""}
-          placeholder="Any tag"
+        <FilterCheckboxGroup
+          label="Anurupa tag"
           options={TAG_OPTIONS}
-          onChange={(v) => setParam("tag", v)}
+          selected={(searchParams.get("tags") ?? "").split(",").filter(Boolean)}
+          onChange={(next) => setParam("tags", next.join(","))}
         />
         <RangePair
           label="Age (years)"
@@ -123,6 +127,11 @@ export function SearchFilterBar() {
             hint="Has a sibling we could take on"
             checked={searchParams.get("potentialClient") === "1"}
             onChange={(on) => setParam("potentialClient", on ? "1" : "")}
+          />
+          <FilterToggle
+            label="Anurupa Aura"
+            checked={searchParams.get("anurupaAura") === "1"}
+            onChange={(on) => setParam("anurupaAura", on ? "1" : "")}
           />
         </div>
       </div>

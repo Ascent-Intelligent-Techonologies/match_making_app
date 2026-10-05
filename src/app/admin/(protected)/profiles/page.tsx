@@ -24,7 +24,8 @@ export default async function AdminDashboardPage({
       diet: getStr(params.diet),
       manglik: getStr(params.manglik),
       caste: getStr(params.caste),
-      tag: getStr(params.tag),
+      tags: getStr(params.tags)?.split(",").filter(Boolean),
+      anurupaAura: getStr(params.anurupaAura) === "1",
       minAge: params.minAge ? Number(getStr(params.minAge)) : undefined,
       maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
       minHeight: params.minHeight ? Number(getStr(params.minHeight)) : undefined,
@@ -46,6 +47,7 @@ export default async function AdminDashboardPage({
   const selectableProfiles = profiles.map((p) => ({
     id: p.id,
     urgent: p.urgent,
+    anurupa_aura: p.anurupa_aura,
     full_name: p.full_name,
     city: p.city,
     dob: p.dob,

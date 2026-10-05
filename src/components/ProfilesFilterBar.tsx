@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { HeightRangeFilter } from "@/components/HeightRangeFilter";
 import {
+  FilterCheckboxGroup,
   FilterSelect,
   FilterToggle,
   RangePair,
@@ -91,12 +92,11 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
           options={PROFESSION_CATEGORIES}
           onChange={(v) => setParam("professionCategory", v)}
         />
-        <FilterSelect
-          label="Tag"
-          value={get("tag")}
-          placeholder="Any tag"
+        <FilterCheckboxGroup
+          label="Anurupa tag"
           options={TAG_OPTIONS}
-          onChange={(v) => setParam("tag", v)}
+          selected={get("tags").split(",").filter(Boolean)}
+          onChange={(next) => setParam("tags", next.join(","))}
         />
         <RangePair
           label="Age (years)"
@@ -134,6 +134,11 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
             hint="Has a sibling we could take on"
             checked={get("potentialClient") === "1"}
             onChange={(on) => setParam("potentialClient", on ? "1" : "")}
+          />
+          <FilterToggle
+            label="Anurupa Aura"
+            checked={get("anurupaAura") === "1"}
+            onChange={(on) => setParam("anurupaAura", on ? "1" : "")}
           />
         </div>
       </div>

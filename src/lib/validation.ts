@@ -69,8 +69,13 @@ export const profileSchema = z.object({
   sibling2_potential_client: z.boolean().optional(),
 
   net_worth_notes: optionalString,
-  tag: optionalString,
+  tags: z.array(z.string()).optional(),
+  anurupa_aura: z.boolean().optional(),
+
+  primary_contact_name: optionalString,
+  primary_contact_relation: optionalString,
   contact_phone: optionalString,
+  middlemen_contact_name: optionalString,
   middlemen_contact: optionalString,
   contact_email: z.preprocess(
     emptyToUndefined,

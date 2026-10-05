@@ -82,6 +82,8 @@ export function ClientProfileCard({
             />
             <Detail label="Birth Place" value={profile.birth_place} />
             <Detail label="Star Sign" value={profile.star_sign} />
+            <Detail label="Primary Contact" value={profile.primary_contact_name} />
+            <Detail label="Relation" value={profile.primary_contact_relation} />
             <Detail label="Contact Phone" value={profile.contact_phone} />
             <Detail label="Contact Email" value={profile.contact_email} />
           </dl>

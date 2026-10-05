@@ -517,29 +517,73 @@ export function ProfileForm({
       </div>
 
       {/* --- Contact --- */}
-      <div className={show("Contact")}>
-        <Field label="Primary contact" htmlFor="contact_phone">
-          <Input id="contact_phone" name="contact_phone" defaultValue={profile?.contact_phone ?? ""} />
-        </Field>
-        <Field
-          label="Middlemen contact"
-          htmlFor="middlemen_contact"
-          hint="Admin-only. Never shown to clients."
-        >
-          <Input
-            id="middlemen_contact"
-            name="middlemen_contact"
-            defaultValue={profile?.middlemen_contact ?? ""}
-          />
-        </Field>
-        <Field label="Contact Email" htmlFor="contact_email" error={errors.contact_email}>
-          <Input
-            id="contact_email"
-            name="contact_email"
-            type="email"
-            defaultValue={profile?.contact_email ?? ""}
-          />
-        </Field>
+      <div className={panel("Contact")}>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-5">
+            <Field label="Primary contact name" htmlFor="primary_contact_name">
+              <Input
+                id="primary_contact_name"
+                name="primary_contact_name"
+                defaultValue={profile?.primary_contact_name ?? ""}
+              />
+            </Field>
+            <Field
+              label="Relation"
+              htmlFor="primary_contact_relation"
+              hint="How they are related, e.g. father, uncle, sister."
+            >
+              <Input
+                id="primary_contact_relation"
+                name="primary_contact_relation"
+                defaultValue={profile?.primary_contact_relation ?? ""}
+              />
+            </Field>
+          </div>
+
+          <Field label="Primary contact number" htmlFor="contact_phone">
+            <Input
+              id="contact_phone"
+              name="contact_phone"
+              defaultValue={profile?.contact_phone ?? ""}
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-2">
+          <Field
+            label="Middlemen contact name"
+            htmlFor="middlemen_contact_name"
+            hint="Admin-only. Never shown to clients."
+          >
+            <Input
+              id="middlemen_contact_name"
+              name="middlemen_contact_name"
+              defaultValue={profile?.middlemen_contact_name ?? ""}
+            />
+          </Field>
+          <Field
+            label="Middlemen contact number"
+            htmlFor="middlemen_contact"
+            hint="Admin-only. Never shown to clients."
+          >
+            <Input
+              id="middlemen_contact"
+              name="middlemen_contact"
+              defaultValue={profile?.middlemen_contact ?? ""}
+            />
+          </Field>
+        </div>
+
+        <div className="sm:max-w-md">
+          <Field label="Contact Email" htmlFor="contact_email" error={errors.contact_email}>
+            <Input
+              id="contact_email"
+              name="contact_email"
+              type="email"
+              defaultValue={profile?.contact_email ?? ""}
+            />
+          </Field>
+        </div>
       </div>
 
       {/* --- Requirements --- */}
@@ -579,16 +623,44 @@ export function ProfileForm({
           These fields are always admin-only and are never shown to clients, even with an
           &ldquo;All details&rdquo; share link.
         </p>
-        <Field label="Tag" htmlFor="tag">
-          <Select id="tag" name="tag" defaultValue={profile?.tag ?? ""}>
-            <option value="">Select</option>
+        {/* Checkboxes rather than a multi-select list: there are only three,
+            and every one is visible without opening anything. */}
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <FieldLabel>Anurupa tag</FieldLabel>
+          <div className="flex flex-wrap gap-2">
             {TAG_OPTIONS.map((t) => (
-              <option key={t} value={t}>
+              <label
+                key={t}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm text-ink-900/80"
+              >
+                <input
+                  type="checkbox"
+                  name="tags"
+                  value={t}
+                  defaultChecked={(profile?.tags ?? []).includes(t)}
+                  className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+                />
                 {t}
-              </option>
+              </label>
             ))}
-          </Select>
-        </Field>
+          </div>
+          <p className="text-xs text-ink-900/50">Select one or more.</p>
+        </div>
+
+        <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
+          <input
+            type="checkbox"
+            name="anurupa_aura"
+            defaultChecked={profile?.anurupa_aura ?? false}
+            className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+          />
+          <span>
+            <span className="font-semibold">Anurupa Aura</span>
+            <span className="block text-xs text-ink-900/60">
+              Filterable in All Profiles and search. Never shown to clients.
+            </span>
+          </span>
+        </label>
         <Field label="Net Worth / Assets Notes" htmlFor="net_worth_notes">
           <Textarea
             id="net_worth_notes"

@@ -26,12 +26,17 @@ function parseProfileFormData(formData: FormData) {
     .filter(Boolean);
 
   // The form collects height as feet + inches; cm is what we store.
+  // Multi-value fields are lost by Object.fromEntries, which keeps only the
+  // last value, so each one is read with getAll instead.
+  const tags = formData.getAll("tags").map(String).filter(Boolean);
+
   const { height_feet, height_inches, ...rest } = raw;
   const heightCm = feetInchesToCm(Number(height_feet), Number(height_inches));
 
   return {
     ...rest,
     hobbies,
+    tags,
     height_cm: heightCm,
     // Unchecked boxes post nothing at all, so each one is read explicitly
     // rather than inferred from the spread above.
@@ -39,6 +44,7 @@ function parseProfileFormData(formData: FormData) {
     urgent: formData.get("urgent") === "on",
     sibling1_potential_client: formData.get("sibling1_potential_client") === "on",
     sibling2_potential_client: formData.get("sibling2_potential_client") === "on",
+    anurupa_aura: formData.get("anurupa_aura") === "on",
   };
 }
 

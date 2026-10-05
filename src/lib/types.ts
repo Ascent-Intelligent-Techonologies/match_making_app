@@ -92,8 +92,16 @@ export interface Profile {
   siblings_details: string | null;
   current_address: string | null;
   middlemen_contact: string | null;
-  /** Internal classification from the intake sheet (AM / AMP / AMO). */
+  /** Legacy single tag. Superseded by `tags`; kept for historical rows. */
   tag: string | null;
+  /** Internal classification from the intake sheet; one or more of AM/AMP/AMO. */
+  tags: string[];
+  /** Second internal flag, ticked on the Internal tab. */
+  anurupa_aura: boolean;
+
+  primary_contact_name: string | null;
+  primary_contact_relation: string | null;
+  middlemen_contact_name: string | null;
 
   // --- redesigned intake form (see supabase/migrations/006_*.sql) ---
   /** Job category behind the search filter, separate from the free-text job. */
@@ -264,6 +272,8 @@ export const FULL_ONLY_FIELDS = [
   "partner_expectations",
   "contact_phone",
   "contact_email",
+  "primary_contact_name",
+  "primary_contact_relation",
 ] as const;
 
 /** Never exposed to clients, whatever the access level. */
@@ -274,6 +284,9 @@ export const ADMIN_ONLY_FIELDS = [
   "marital_status",
   "annual_income_inr",
   "tag",
+  "tags",
+  "anurupa_aura",
+  "middlemen_contact_name",
   "urgent",
   "sibling1_potential_client",
   "sibling2_potential_client",

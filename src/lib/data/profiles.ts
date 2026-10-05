@@ -16,7 +16,9 @@ export interface ProfileFilters {
   maxAge?: number;
   minIncome?: number;
   caste?: string;
-  tag?: string;
+  /** Matches a profile carrying ANY of these tags. */
+  tags?: string[];
+  anurupaAura?: boolean;
   minHeight?: number;
   maxHeight?: number;
   minFinances?: number;
@@ -64,7 +66,8 @@ export async function listProfiles(filters: ProfileFilters = {}): Promise<Profil
   if (filters.maxAge) query = query.gte("dob", dobFromAge(filters.maxAge));
   if (filters.minIncome) query = query.gte("annual_income_inr", filters.minIncome);
   if (filters.caste) query = query.ilike("caste", `%${filters.caste}%`);
-  if (filters.tag) query = query.eq("tag", filters.tag);
+  if (filters.tags?.length) query = query.overlaps("tags", filters.tags);
+  if (filters.anurupaAura) query = query.eq("anurupa_aura", true);
   if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
   if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
   if (filters.minFinances) query = query.gte("annual_income_inr", filters.minFinances);
