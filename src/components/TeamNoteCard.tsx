@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Check, Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -28,7 +28,18 @@ export function TeamNoteCard({
     saveTeamNoteAction.bind(null, slug),
     {}
   );
-  const dirty = body !== initialBody;
+
+  // What is on the server. The prop only refreshes on a full page load, so a
+  // save has to move this itself or the card goes on claiming unsaved changes.
+  // It records the text as it was when submitted, not as it is now, so typing
+  // while a save is in flight correctly leaves the card dirty.
+  const [baseline, setBaseline] = useState(initialBody);
+  const submittedRef = useRef(initialBody);
+  useEffect(() => {
+    if (state.savedAt) setBaseline(submittedRef.current);
+  }, [state.savedAt]);
+
+  const dirty = body !== baseline;
 
   return (
     <Card className="flex flex-col gap-3 p-5">
@@ -41,7 +52,13 @@ export function TeamNoteCard({
         )}
       </div>
 
-      <form action={formAction} className="flex flex-col gap-3">
+      <form
+        action={formAction}
+        onSubmit={() => {
+          submittedRef.current = body;
+        }}
+        className="flex flex-col gap-3"
+      >
         <textarea
           name="body"
           value={body}

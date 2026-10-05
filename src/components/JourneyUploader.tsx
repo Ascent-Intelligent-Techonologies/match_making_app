@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
@@ -18,6 +18,15 @@ export function JourneyUploader() {
   const [chosen, setChosen] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Clear the queue once it has been uploaded. Leaving the files selected
+  // invites a second click that uploads the same thing again.
+  useEffect(() => {
+    if (!state.uploadedAt || state.error) return;
+    setChosen([]);
+    formRef.current?.reset();
+  }, [state.uploadedAt, state.error]);
 
   function applyFiles(files: FileList | File[]) {
     const list = Array.from(files).filter(
@@ -33,6 +42,7 @@ export function JourneyUploader() {
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       onDragOver={(e) => {
         e.preventDefault();

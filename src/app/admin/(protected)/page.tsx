@@ -19,42 +19,42 @@ const SECTIONS = [
     title: "New Profile",
     description: "Add a profile using the full intake form.",
     Icon: UserPlus,
-    accent: "bg-maroon-600",
+    accent: "bg-maroon-600 text-white",
   },
   {
     href: "/admin/search",
     title: "Search",
     description: "Search profiles for a client and share a shortlist with them.",
     Icon: Search,
-    accent: "bg-blue-600",
+    accent: "bg-blue-600 text-white",
   },
   {
     href: "/admin/profiles",
     title: "All Profiles",
     description: "Browse, filter and edit every profile on the books.",
     Icon: LayoutGrid,
-    accent: "bg-olive-500",
+    accent: "bg-olive-500 text-white",
   },
   {
     href: "/admin/analytics",
     title: "Dashboard",
     description: "Who was contacted recently, and who has gone quiet.",
     Icon: BarChart3,
-    accent: "bg-orange-500",
+    accent: "bg-orange-500 text-white",
   },
   {
     href: "/admin/followups",
     title: "Follow-up",
     description: "A running list of bullet points for Anupama, Shaurya and Shreya.",
     Icon: NotebookPen,
-    accent: "bg-blue-400",
+    accent: "bg-blue-400 text-white",
   },
   {
     href: "/admin/journey",
     title: "Journey",
     description: "Photos and videos from the matches we have made.",
     Icon: Camera,
-    accent: "bg-gold-400",
+    accent: "bg-gold-400 text-ink-900",
   },
 ];
 
@@ -77,7 +77,9 @@ export default function AdminHomePage() {
         {SECTIONS.map(({ href, title, description, Icon, accent }) => (
           <Link key={href} href={href}>
             <Card className="flex h-full flex-col gap-3 p-6 transition-transform hover:-translate-y-0.5">
-              <span className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${accent}`}>
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-full ${accent}`}
+              >
                 <Icon size={22} />
               </span>
               <h2 className="font-serif text-2xl font-semibold text-maroon-700">{title}</h2>
