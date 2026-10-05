@@ -25,7 +25,9 @@ export default function Home() {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/browse">
+          {/* /browse/start clears any remembered visitor first, so the
+              name-and-number gate is shown every time. */}
+          <Link href="/browse/start" prefetch={false}>
             <Button size="lg" variant="secondary">
               Browse Profiles
             </Button>
