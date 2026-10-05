@@ -93,34 +93,7 @@ export default async function BrowseProfilesPage({
             profiles={profiles.map((p) => ({
               id: p.id,
               full_name: p.full_name,
-              subtitle: [
-                calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
-                p.city,
-              ]
-                .filter(Boolean)
-                .join(" · "),
-              badges: [
-                p.caste,
-                p.religion,
-                p.height_cm ? formatHeight(p.height_cm) : null,
-              ].filter((v): v is string => Boolean(v)),
-              details: [
-                p.profession ? { label: "Job", value: p.profession } : null,
-                p.education_degree
-                  ? { label: "Education", value: p.education_degree }
-                  : null,
-                p.native_place
-                  ? { label: "Native place", value: p.native_place }
-                  : null,
-                p.mother_tongue
-                  ? { label: "Mother tongue", value: p.mother_tongue }
-                  : null,
-              ].filter((d): d is { label: string; value: string } => d !== null),
-              note: p.partner_expectations
-                ? { label: "Looking for", value: p.partner_expectations }
-                : undefined,
               coverUrl: coverUrls.get(p.id),
-              href: `/browse/${p.id}`,
               favorite: shortlisted.has(p.id),
             }))}
           />

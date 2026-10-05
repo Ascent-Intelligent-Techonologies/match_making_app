@@ -94,9 +94,7 @@ export function SearchResultsGrid({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Runs through the results in the order they appear below, so the
-              slideshow shows exactly what was searched for. The fields match
-              what search results show: anything more would put details on
-              screen that this view deliberately keeps back. */}
+              slideshow shows exactly what was searched for. */}
           <SlideshowButton
             onToggleFavorite={(profileId) =>
               toggleClientShortlistAction(client.id, profileId)
@@ -104,25 +102,6 @@ export function SearchResultsGrid({
             profiles={results.map((r) => ({
               id: r.id,
               full_name: [r.full_name, r.surname].filter(Boolean).join(" "),
-              subtitle: r.alreadyShared ? "Already shared with this client" : undefined,
-              badges: [
-                r.caste,
-                r.sub_caste,
-                r.height_cm ? formatHeight(r.height_cm) : null,
-              ].filter((v): v is string => Boolean(v)),
-              details: [
-                r.dob ? { label: "Date of birth", value: formatDate(r.dob) } : null,
-                calculateAge(r.dob)
-                  ? { label: "Age", value: `${calculateAge(r.dob)} years` }
-                  : null,
-                r.height_cm
-                  ? { label: "Height", value: formatHeight(r.height_cm) }
-                  : null,
-                r.caste ? { label: "Caste", value: r.caste } : null,
-              ].filter((d): d is { label: string; value: string } => d !== null),
-              note: r.requirements
-                ? { label: "Requirements", value: r.requirements }
-                : undefined,
               coverUrl: r.coverUrl,
               favorite: r.shortlisted,
             }))}
