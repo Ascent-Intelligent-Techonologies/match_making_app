@@ -12,7 +12,7 @@
     Survey No. 133, Gachibowli, Hyderabad – 500032</span>
   </div>
   <div class="doctitle"><h1>User Guide</h1>
-    <div class="meta">PRODUCT <b>AnuRupa Matrimony</b><br>VERSION <b>1.1</b><br>DATE <b>2 October 2026</b></div>
+    <div class="meta">PRODUCT <b>AnuRupa Matrimony</b><br>VERSION <b>2.0</b><br>DATE <b>5 October 2026</b></div>
   </div>
 </header>
 
@@ -30,17 +30,22 @@ finances or tags.</p>
   <a href="#s3">3 · Adding a profile</a>
   <a href="#s4">4 · Searching for a client</a>
   <a href="#s5">5 · Sharing a shortlist</a>
-  <a href="#s6">6 · What the client sees</a>
-  <a href="#s7">7 · Keeping track</a>
-  <a href="#s8">8 · Using it on a phone</a>
-  <a href="#s9">9 · Who sees what</a>
+  <a href="#s6">6 · Slideshow</a>
+  <a href="#s7">7 · What the client sees</a>
+  <a href="#s8">8 · Keeping track</a>
+  <a href="#s9">9 · Follow-up notes</a>
+  <a href="#s10">10 · Journey</a>
+  <a href="#s11">11 · Deleting &amp; restoring</a>
+  <a href="#s12">12 · Changing the colours</a>
+  <a href="#s13">13 · Using it on a phone</a>
+  <a href="#s14">14 · Who sees what</a>
 </div>
 
 <h2 id="s1"><span class="n">1</span>How it works</h2>
 <p>A typical day with the platform is five steps:</p>
 <ol class="steps">
   <li><b>Add profiles</b> as families come to you, using the intake form.</li>
-  <li><b>Search</b> the book on behalf of a client, filtering by caste, age, height and finances.</li>
+  <li><b>Search</b> the book on behalf of a client, filtering by caste, job, age, height and finances.</li>
   <li><b>Tick the matches</b> and choose how much to reveal — photos only, basic or all details.</li>
   <li><b>Send one link</b> on WhatsApp. The client opens it on their phone, no login needed.</li>
   <li><b>Watch what comes back</b> — which links were opened and which profiles were hearted.</li>
@@ -59,32 +64,62 @@ hearts a profile is asked for a name and mobile once; a walk-in gives it before 
 Someone who browses today and gets a WhatsApp link next week is one client with one history.</div>
 
 <h2 id="s2"><span class="n">2</span>Signing in &amp; the home screen</h2>
-<p>Go to <b>/admin</b> and enter the admin password. The session lasts 12 hours. You land on four
-sections — <b>New Profile</b>, <b>Search</b>, <b>All Profiles</b> and <b>Dashboard</b> — with
-<b>Clients</b> and <b>Share Links</b> underneath. Everything starts from here.</p>
+<p>Go to <b>/admin</b> and enter the admin password. The session lasts 12 hours. You land on six
+sections — <b>New Profile</b>, <b>Search</b>, <b>All Profiles</b>, <b>Dashboard</b>, <b>Follow-up</b>
+and <b>Journey</b> — with <b>Clients</b>, <b>Share Links</b>, <b>Settings</b> and <b>Deleted</b>
+underneath. Everything starts from here.</p>
 <div class="two">
 <div class="shot"><img src="screenshots/guide/01-login.png" alt="Login screen">
 <div class="cap">Sign in with the admin password.</div></div>
-<div class="shot"><img src="screenshots/guide/02-home.png" alt="Admin home with four sections">
+<div class="shot"><img src="screenshots/guide/02-home.png" alt="Admin home with six sections">
 <div class="cap">The home screen.</div></div>
 </div>
 
 <h2 id="s3"><span class="n">3</span>Adding a profile</h2>
-<p>The form follows your paper intake sheet, tab by tab: <b>Personal</b> (name, birth details, rasi,
-nakshatram, gotram, caste, height, city), <b>Education</b>, <b>Professional</b> (job, company, salary,
-finances), <b>Family</b>, <b>Contact</b>, <b>Requirements</b> and <b>Internal</b> (tag, net worth,
-private notes). Only <b>Name</b> is mandatory — create a profile from a phone call and fill in the rest
-when the family sends details.</p>
-<div class="shot"><img src="screenshots/guide/03-new-profile.png" alt="New profile intake form">
-<div class="cap">The intake form, in the same sections as your sheet.</div></div>
+<p>The form follows your paper intake sheet, tab by tab. Only <b>Name</b> is mandatory — create a
+profile from a phone call and fill in the rest when the family sends details.</p>
+
+<p><b>Personal</b> is laid out like the sheet: the person down the left (name, date and time of birth,
+place of birth, height in feet and inches, native place) and their lineage down the right (surname,
+caste, sub-caste, gotram, nakshatram, rasi, religion, mother tongue). <b>Current location</b> is a
+country list — India, Europe, Africa, USA, Australia — and picking India or the USA turns the state
+field into the proper list of states.</p>
+<div class="shot"><img src="screenshots/guide/03-new-profile.png" alt="New profile intake form, Personal tab">
+<div class="cap">Personal — the person on the left, lineage on the right.</div></div>
+
+<p><b>Professional</b> starts with a <b>job category</b> — Doctor, Engineer, Software Engineer,
+Business or Others. That is what the job filter searches on; the free-text job field stays for the
+detail, so you can record "Civil Engineer at L&amp;T" and still find them under Engineer.</p>
+<div class="shot"><img src="screenshots/guide/03b-profile-professional.png" alt="Professional tab with job category">
+<div class="cap">Job category drives the search filter.</div></div>
+
+<p><b>Family</b> puts the father on the left and the mother on the right, then gives each of two
+siblings a name, a marital status and a <b>Potential client</b> box. Tick that box for an unmarried
+sibling you might end up matchmaking for next — those profiles can then be pulled up as a list of
+their own.</p>
+<div class="shot"><img src="screenshots/guide/03c-profile-family.png" alt="Family tab with two siblings">
+<div class="cap">Two siblings, each with a status and a potential-client box.</div></div>
+
+<p><b>Contact</b> keeps the family and the middleman apart: primary contact name, their relation to
+the person, and their number on one side; the middleman's name and number on the other. Everything
+about the middleman is admin-only and is never shared, at any level.</p>
+<div class="shot"><img src="screenshots/guide/03d-profile-contact.png" alt="Contact tab">
+<div class="cap">The family's contact and the middleman's, kept separate.</div></div>
+
+<p><b>Requirements</b> holds what the family is looking for, plus an <b>Urgent</b> flag for profiles
+that need pushing. <b>Internal</b> holds the <b>Anurupa tag</b> — tick any of AM, AMP and AMO, not
+just one — an <b>Anurupa Aura</b> flag, net worth and your private notes. None of it ever reaches a
+client.</p>
+<div class="shot"><img src="screenshots/guide/03e-profile-internal.png" alt="Internal tab with tags and Aura">
+<div class="cap">Internal — tags, Aura, and notes only you see.</div></div>
 
 <p><b>Photos:</b> click <b>Choose photos</b>, drag images onto the dotted box, or copy an image and press
 <b>⌘V</b>. The first photo is the cover; after saving you can reorder, change the cover or delete.</p>
 
 <p><b>Editing later:</b> open <b>All Profiles</b> to see everything on the books, newest first. Click
-a card to edit any field or photo.</p>
-<div class="shot"><img src="screenshots/guide/06-all-profiles.png" alt="All profiles grid">
-<div class="cap">All Profiles — click a card to open and edit it.</div></div>
+a card to edit any field or photo. Urgent and Aura profiles are badged on the card.</p>
+<div class="shot"><img src="screenshots/guide/07-profile-edit.png" alt="Editing an existing profile">
+<div class="cap">Click a card to open and edit it.</div></div>
 
 <h2 id="s4"><span class="n">4</span>Searching for a client</h2>
 <p>Search always runs <b>on behalf of someone</b> — that is what makes the tracking work. Pick an
@@ -92,9 +127,14 @@ existing client or add a new one with a name and phone number.</p>
 <div class="shot"><img src="screenshots/guide/04-search-client.png" alt="Choosing a client before searching">
 <div class="cap">Choose the client first.</div></div>
 
-<p>Then filter: name, looking for, caste, tag, and <b>more-than / less-than</b> ranges for age, height
-and finances. Results show just what you need to judge a match at a glance — name, date of birth and
-age, height, caste, requirements — with <b>View / edit all details</b> for the full record.</p>
+<p>Every filter is on screen at once — nothing is hidden behind another choice. Boy or girl, year of
+birth, caste, job, the Anurupa tags, <b>more-than / less-than</b> ranges for age, height and finances,
+and tick-boxes for <b>Urgent only</b>, <b>Potential clients</b> and <b>Anurupa Aura</b>.</p>
+<div class="shot"><img src="screenshots/guide/06-all-profiles.png" alt="All profiles with every filter visible">
+<div class="cap">All Profiles — every filter visible together.</div></div>
+
+<p>Results show just what you need to judge a match at a glance — name, date of birth and age, height,
+caste, requirements — with <b>View / edit all details</b> for the full record.</p>
 <div class="note"><b>Already-shared profiles go grey</b> and are badged <i>Already shared</i>, so you never
 send the same profile to a client twice. Profiles they hearted are badged <i>Liked</i>.</div>
 <div class="shot"><img src="screenshots/guide/05-search-results.png" alt="Search results for a client">
@@ -107,24 +147,39 @@ selected, so the family gets a single WhatsApp message. Choose how much they see
 <tr><th>Level</th><th>What the client sees</th></tr>
 <tr><td><b>Photos only</b></td><td>Name and the photo gallery. Nothing else.</td></tr>
 <tr><td><b>Basic details</b></td><td>Name (no surname), birth details, height, job, business, native place, photos.</td></tr>
-<tr><td><b>All details</b></td><td>Everything above plus surname, caste, education, family, horoscope, requirements and contact.</td></tr>
+<tr><td><b>All details</b></td><td>Everything above plus surname, caste, education, family, siblings, requirements and the family's contact.</td></tr>
 </table>
 <p>Set how many days the link stays alive, add an optional label, and generate. You get a
 <b>Copy link</b> button and a <b>Share on WhatsApp</b> button that opens WhatsApp with the message
 already written and addressed to the client by name.</p>
-<div class="note"><b>Finances, marital status and the tag are never shared</b> — not even on
-"All details". They stay on your side only.</div>
+<div class="note"><b>Finances, the tags, the Aura and Urgent flags and the middleman's details are
+never shared</b> — not even on "All details". They stay on your side only.</div>
 
-<h2 id="s6"><span class="n">6</span>What the client sees</h2>
+<h2 id="s6"><span class="n">6</span>Slideshow</h2>
+<p>After any search, press <b>Slideshow</b> to run through the results full screen, in the order they
+are on the page. It is on <b>All Profiles</b>, on <b>Search</b>, and on the public browse page.</p>
+<p>Each slide is the photo, the name, and a <b>heart</b>. It starts playing on its own and moves on
+every few seconds; the arrows, the dots along the bottom or the left and right arrow keys move it by
+hand, which pauses it so it stops moving under you. <b>Escape</b> or <b>Close</b> ends it.</p>
+<div class="shot"><img src="screenshots/guide/21-slideshow.png" alt="Slideshow with name and shortlist button">
+<div class="cap">One profile at a time — photo, name, heart.</div></div>
+<div class="note">The heart is the <b>same shortlist</b> as the one on the cards. On Search it records
+against the client you are searching for; on browse it records against the family looking. All
+Profiles has no heart, because it is not scoped to a client, so there would be nobody to record it
+against.</div>
+
+<h2 id="s7"><span class="n">7</span>What the client sees</h2>
 <p><b>From a WhatsApp link:</b> the profiles you chose, at the level you chose, with a <b>heart</b> on
-each. No login, no app. The first heart asks for their name and mobile — links get forwarded within
-families, so this records who actually liked it. After that, hearts are one tap.</p>
+each. No login, no app. If you named the client when creating the link, their hearts are recorded
+straight away. If you did not, the first heart asks for a name and mobile — links get forwarded within
+families, so this records who actually liked it.</p>
 <div class="shot"><img src="screenshots/guide/12-share-page.png" alt="Client view of a shared link">
 <div class="cap">A shared link on the client's side.</div></div>
 
 <p><b>From the public browse page:</b> they must give a name and phone number <b>before anything is
-shown</b>. Then they can filter and heart profiles just like a shared link, and every search is
-recorded against them.</p>
+shown</b>, and they are asked <b>every time</b> they start browsing from the home page — so a shared
+phone or a family laptop never records one person's likes against another's. Then they can filter,
+heart and run the slideshow, and every search is recorded against them.</p>
 <div class="two">
 <div class="shot"><img src="screenshots/guide/13-browse-gate.png" alt="Browse gate asking for name and number">
 <div class="cap">Nothing is visible until they identify themselves.</div></div>
@@ -132,50 +187,102 @@ recorded against them.</p>
 <div class="cap">Then they browse and heart.</div></div>
 </div>
 
-<h2 id="s7"><span class="n">7</span>Keeping track</h2>
+<h2 id="s8"><span class="n">8</span>Keeping track</h2>
 <p><b>Clients</b> lists everyone you have shared with or who has browsed. Open one to see what they
-were sent, what they shortlisted, what they searched for, and whether each link was opened.</p>
+were sent, what they shortlisted, what they searched for, and whether each link was opened. You can
+log a follow-up against them, remove a shortlist, or delete a link from here.</p>
 <div class="shot"><img src="screenshots/guide/09-client-detail.png" alt="Client detail page">
-<div class="cap">One client — sent, liked, searched.</div></div>
+<div class="cap">One client — sent, liked, searched, called.</div></div>
 
-<p><b>Dashboard</b> answers three questions: who you contacted in the last 7 days, who has been silent
-for 30+ days (worth a call), and who never opened a link. "Responded" means they opened a link or
-hearted a profile.</p>
+<p><b>Dashboard</b> answers four questions: who you contacted in the last 7 days, who has been silent
+for 30+ days (worth a call), who never opened a link, and <b>who was never contacted at all</b> —
+people whose details you took and then never sent anything to, oldest first. Each of those rows has a
+delete control, so the dashboard doubles as the place to tidy up. "Responded" means they opened a link
+or hearted a profile; your own calls never count as their response.</p>
 <div class="shot"><img src="screenshots/guide/10-analytics.png" alt="Analytics dashboard">
 <div class="cap">The dashboard. Each name links to that client.</div></div>
 
 <p><b>Share Links</b> lists every link ever created, who it went to, how often it was opened and when
-it expires. You can <b>copy</b> it, re-send on <b>WhatsApp</b>, add <b>+3 days</b>, or <b>revoke</b> it
-immediately.</p>
+it expires. You can <b>copy</b> it, re-send on <b>WhatsApp</b>, add <b>+3 days</b>, <b>revoke</b> it
+immediately, or <b>delete</b> it outright. Revoking keeps the row so you can still see it was sent;
+deleting is for links sent by mistake.</p>
 <div class="shot"><img src="screenshots/guide/11-share-links.png" alt="Share links management">
-<div class="cap">Extend, re-share or revoke a link.</div></div>
+<div class="cap">Extend, re-share, revoke or delete a link.</div></div>
 
-<h2 id="s8"><span class="n">8</span>Using it on a phone</h2>
-<p>The whole admin side works on a phone — adding profiles, searching, sharing. Photo controls stay
-visible on touch screens.</p>
+<h2 id="s9"><span class="n">9</span>Follow-up notes</h2>
+<p><b>Follow-up</b> gives Anupama, Shaurya and Shreya a running list each. Type a bullet, press
+<b>Enter</b> for the next one, and press <b>Save</b>. The card tells you whether it is up to date or
+has unsaved changes, so nothing is lost by accident.</p>
+<p>These are your own working notes, kept apart from the per-client follow-ups on a client's page —
+use those to record what was said on a specific call, and these for everything else.</p>
+<div class="shot"><img src="screenshots/guide/17-followups.png" alt="Follow-up notes for the three consultants">
+<div class="cap">A running list for each of you.</div></div>
+
+<h2 id="s10"><span class="n">10</span>Journey</h2>
+<p><b>Journey</b> holds photos and videos from the matches you have made. Choose files or drag them
+onto the box, add an optional caption, and upload. Each item can be downloaded again or deleted.</p>
+<p>Like profile photos, these are held in private storage and served through links that expire after
+an hour — nothing is publicly reachable.</p>
+<div class="shot"><img src="screenshots/guide/18-journey.png" alt="Journey page">
+<div class="cap">Photos and videos from the matches made.</div></div>
+
+<h2 id="s11"><span class="n">11</span>Deleting &amp; restoring</h2>
+<p>Deleting a <b>profile</b> or a <b>client</b> asks you how:</p>
+<table>
+<tr><th>Choice</th><th>What happens</th></tr>
+<tr><td><b>Move to Deleted</b></td><td>Hidden from every screen, including live share links, but nothing is destroyed. Restore it at any time and it comes back exactly as it was.</td></tr>
+<tr><td><b>Delete permanently</b></td><td>Gone for good, along with its photos, shortlists and links. This cannot be undone, and the button tells you what it will take with it.</td></tr>
+</table>
+<p>The <b>Deleted</b> page lists everything you have moved there, with <b>Restore</b> and
+<b>Delete permanently</b> beside each. The Dashboard shows how many are waiting.</p>
+<div class="shot"><img src="screenshots/guide/19-deleted.png" alt="Deleted page">
+<div class="cap">Deleted — restore, or remove for good.</div></div>
+<div class="note">A soft-deleted profile <b>disappears from links you have already sent</b>, straight
+away. If a family asks you to pull a profile back, move it to Deleted and the links they are holding
+stop showing it.</div>
+<p>Smaller things — a follow-up note, a shortlist entry, a share link, a Journey file — are deleted in
+one step with a confirm, since there is nothing meaningful to restore for a one-line note.</p>
+
+<h2 id="s12"><span class="n">12</span>Changing the colours</h2>
+<p><b>Settings</b> holds the six colours the whole platform is built from. Change one and everything
+follows — the admin pages, the browse page and every link you have already sent — with no redeploy
+and nothing to reinstall.</p>
+<p>Backgrounds and hover shades are worked out from the primary colour, and the badge text shade is
+darkened from the gold until it can be read, so a palette can never end up half-applied. A preview
+beside the fields shows the effect before you save, and <b>Reset to defaults</b> puts the original
+palette back.</p>
+<div class="shot"><img src="screenshots/guide/20-settings.png" alt="Appearance settings">
+<div class="cap">Six colours; everything else is worked out from them.</div></div>
+
+<h2 id="s13"><span class="n">13</span>Using it on a phone</h2>
+<p>The whole admin side works on a phone — adding profiles, searching, sharing, the slideshow. Photo
+controls stay visible on touch screens, and the filters stack rather than scrolling sideways.</p>
 <div class="phones">
 <div class="shot"><img src="screenshots/guide/15-mobile-home.png" alt="Home on mobile">
 <div class="cap">Home on a phone.</div></div>
 <div class="shot"><img src="screenshots/guide/16-mobile-search.png" alt="Search on mobile">
 <div class="cap">Searching on a phone.</div></div>
+<div class="shot"><img src="screenshots/guide/22-mobile-slideshow.png" alt="Slideshow on mobile">
+<div class="cap">The slideshow on a phone.</div></div>
 </div>
 
-<h2 id="s9"><span class="n">9</span>Who sees what</h2>
+<h2 id="s14"><span class="n">14</span>Who sees what</h2>
 <div class="keep">
 <table>
 <tr><th>Information</th><th>Photos only</th><th>Basic</th><th>All details</th><th>Admin</th></tr>
 <tr><td>Photos, name</td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td></tr>
 <tr><td>Birth details, height, job, native place</td><td><span class="tag n">No</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td></tr>
-<tr><td>Surname, caste, family, horoscope, requirements, contact</td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td></tr>
-<tr><td>Finances, marital status, tag, middlemen contact, private notes</td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag y">Yes</span></td></tr>
+<tr><td>Surname, caste, education, family, siblings, requirements, family contact</td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag y">Yes</span></td><td><span class="tag y">Yes</span></td></tr>
+<tr><td>Finances, tags, Aura, Urgent, potential-client boxes, middleman's details, private notes</td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag n">No</span></td><td><span class="tag y">Yes</span></td></tr>
 </table>
 <ul>
-  <li>Photos are held in private storage and served through signed links that expire after an hour.</li>
-  <li>Share links expire on the date you set and can be revoked at any moment.</li>
+  <li>Photos and Journey files are held in private storage and served through signed links that expire after an hour.</li>
+  <li>Share links expire on the date you set and can be revoked or deleted at any moment.</li>
+  <li>A profile moved to Deleted vanishes from links already sent, immediately.</li>
   <li>The database refuses all direct access; everything goes through the application.</li>
 </ul>
 </div>
 
 <footer class="doc"><span>Ascent Intelligent Technologies Private Limited</span>
-<span>AnuRupa Matrimony · User Guide v1.1</span></footer>
+<span>AnuRupa Matrimony · User Guide v2.0</span></footer>
 </div></body></html>
