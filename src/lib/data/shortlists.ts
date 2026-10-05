@@ -95,3 +95,37 @@ export async function removeShortlist(clientId: string, profileId: string): Prom
     .eq("profile_id", profileId);
   if (error) throw error;
 }
+
+/**
+ * Admin-side toggle, for shortlisting on a client's behalf while searching.
+ *
+ * Unlike the client's own heart this leaves last_activity_at alone: that
+ * column records when the CLIENT was last active, and us ticking a box on
+ * their behalf would make a silent client look engaged in the dashboard.
+ */
+export async function toggleShortlistForAdmin(
+  clientId: string,
+  profileId: string
+): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: existing, error: findError } = await supabase
+    .from("client_shortlists")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (findError) throw findError;
+
+  if (existing) {
+    const { error } = await supabase.from("client_shortlists").delete().eq("id", existing.id);
+    if (error) throw error;
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("client_shortlists")
+    .insert({ client_id: clientId, profile_id: profileId, share_link_id: null });
+  if (error) throw error;
+  return true;
+}

@@ -103,6 +103,8 @@ export function ProfileSelectionGrid({
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* No favourite here: All Profiles is not scoped to a client, so a
+              shortlist would have nobody to belong to. */}
           <SlideshowButton
             profiles={profiles.map((p) => ({
               id: p.id,
@@ -110,11 +112,30 @@ export function ProfileSelectionGrid({
               subtitle: [
                 calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
                 p.city,
-                p.height_cm ? formatHeight(p.height_cm) : null,
               ]
                 .filter(Boolean)
                 .join(" · "),
+              badges: [
+                p.urgent ? "Urgent" : null,
+                p.anurupa_aura ? "Aura" : null,
+                p.caste,
+                p.religion,
+              ].filter((v): v is string => Boolean(v)),
+              details: [
+                p.profession ? { label: "Job", value: p.profession } : null,
+                p.height_cm
+                  ? { label: "Height", value: formatHeight(p.height_cm) }
+                  : null,
+                p.city ? { label: "City", value: p.city } : null,
+                p.annual_income_inr
+                  ? {
+                      label: "Finances",
+                      value: formatInrCompact(p.annual_income_inr),
+                    }
+                  : null,
+              ].filter((d): d is { label: string; value: string } => d !== null),
               coverUrl: p.coverUrl,
+              href: `/admin/profiles/${p.id}`,
             }))}
           />
           <span className="text-sm text-ink-900/60">

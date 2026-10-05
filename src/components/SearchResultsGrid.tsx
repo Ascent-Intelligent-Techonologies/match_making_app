@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
+import { toggleClientShortlistAction } from "@/lib/actions/clients";
 import { calculateAge, formatDate, formatHeight } from "@/lib/format";
 
 export interface SearchResult {
@@ -93,19 +94,37 @@ export function SearchResultsGrid({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Runs through the results in the order they appear below, so the
-              slideshow shows exactly what was searched for. */}
+              slideshow shows exactly what was searched for. The fields match
+              what search results show: anything more would put details on
+              screen that this view deliberately keeps back. */}
           <SlideshowButton
+            onToggleFavorite={(profileId) =>
+              toggleClientShortlistAction(client.id, profileId)
+            }
             profiles={results.map((r) => ({
               id: r.id,
               full_name: [r.full_name, r.surname].filter(Boolean).join(" "),
-              subtitle: [
-                calculateAge(r.dob) ? `${calculateAge(r.dob)} yrs` : null,
-                r.height_cm ? formatHeight(r.height_cm) : null,
+              subtitle: r.alreadyShared ? "Already shared with this client" : undefined,
+              badges: [
                 r.caste,
-              ]
-                .filter(Boolean)
-                .join(" · "),
+                r.sub_caste,
+                r.height_cm ? formatHeight(r.height_cm) : null,
+              ].filter((v): v is string => Boolean(v)),
+              details: [
+                r.dob ? { label: "Date of birth", value: formatDate(r.dob) } : null,
+                calculateAge(r.dob)
+                  ? { label: "Age", value: `${calculateAge(r.dob)} years` }
+                  : null,
+                r.height_cm
+                  ? { label: "Height", value: formatHeight(r.height_cm) }
+                  : null,
+                r.caste ? { label: "Caste", value: r.caste } : null,
+              ].filter((d): d is { label: string; value: string } => d !== null),
+              note: r.requirements
+                ? { label: "Requirements", value: r.requirements }
+                : undefined,
               coverUrl: r.coverUrl,
+              favorite: r.shortlisted,
             }))}
           />
           <span className="text-sm text-ink-900/60">{selected.length} selected</span>

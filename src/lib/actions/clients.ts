@@ -8,7 +8,7 @@ import {
   softDeleteClient,
   upsertClientByPhone,
 } from "@/lib/data/clients";
-import { removeShortlist } from "@/lib/data/shortlists";
+import { removeShortlist, toggleShortlistForAdmin } from "@/lib/data/shortlists";
 import { isUsablePhone } from "@/lib/phone";
 
 export interface ClientFormState {
@@ -72,6 +72,22 @@ export async function deleteClientAction(clientId: string) {
 export async function purgeClientAction(clientId: string) {
   await deleteClient(clientId);
   revalidateClientLists();
+}
+
+/** Shortlists or un-shortlists a profile for a client, from the admin side. */
+export async function toggleClientShortlistAction(
+  clientId: string,
+  profileId: string
+): Promise<{ shortlisted?: boolean; error?: string }> {
+  try {
+    const shortlisted = await toggleShortlistForAdmin(clientId, profileId);
+    revalidatePath("/admin/search");
+    revalidatePath(`/admin/clients/${clientId}`);
+    revalidatePath("/admin/analytics");
+    return { shortlisted };
+  } catch {
+    return { error: "Could not update the shortlist." };
+  }
 }
 
 /** Takes a profile off a client's shortlist from the admin side. */

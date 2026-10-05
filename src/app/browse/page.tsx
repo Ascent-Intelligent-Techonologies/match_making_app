@@ -11,6 +11,7 @@ import { BrowseGate } from "@/components/BrowseGate";
 import { BrowseSearchTracker } from "@/components/BrowseSearchTracker";
 import { BrowseShortlistButton } from "@/components/BrowseShortlistButton";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
+import { toggleBrowseShortlistAction } from "@/lib/actions/browse";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { calculateAge, formatHeight } from "@/lib/format";
@@ -85,18 +86,42 @@ export default async function BrowseProfilesPage({
           <p className="text-sm text-ink-900/60">
             {profiles.length} profile{profiles.length === 1 ? "" : "s"}
           </p>
+          {/* The heart here is the same shortlist as the one on each card, so
+              a profile can be taken forward without leaving the slideshow. */}
           <SlideshowButton
+            onToggleFavorite={toggleBrowseShortlistAction}
             profiles={profiles.map((p) => ({
               id: p.id,
               full_name: p.full_name,
               subtitle: [
                 calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
                 p.city,
-                p.height_cm ? formatHeight(p.height_cm) : null,
               ]
                 .filter(Boolean)
                 .join(" · "),
+              badges: [
+                p.caste,
+                p.religion,
+                p.height_cm ? formatHeight(p.height_cm) : null,
+              ].filter((v): v is string => Boolean(v)),
+              details: [
+                p.profession ? { label: "Job", value: p.profession } : null,
+                p.education_degree
+                  ? { label: "Education", value: p.education_degree }
+                  : null,
+                p.native_place
+                  ? { label: "Native place", value: p.native_place }
+                  : null,
+                p.mother_tongue
+                  ? { label: "Mother tongue", value: p.mother_tongue }
+                  : null,
+              ].filter((d): d is { label: string; value: string } => d !== null),
+              note: p.partner_expectations
+                ? { label: "Looking for", value: p.partner_expectations }
+                : undefined,
               coverUrl: coverUrls.get(p.id),
+              href: `/browse/${p.id}`,
+              favorite: shortlisted.has(p.id),
             }))}
           />
         </div>
