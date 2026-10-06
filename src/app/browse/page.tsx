@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
-import { listProfiles } from "@/lib/data/profiles";
+import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getShortlistedProfileIds } from "@/lib/data/shortlists";
@@ -11,6 +11,7 @@ import { BrowseGate } from "@/components/BrowseGate";
 import { BrowseSearchTracker } from "@/components/BrowseSearchTracker";
 import { BrowseShortlistButton } from "@/components/BrowseShortlistButton";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
+import { Pager, pageFromParams } from "@/components/Pager";
 import { toggleBrowseShortlistAction } from "@/lib/actions/browse";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -42,7 +43,8 @@ export default async function BrowseProfilesPage({
     maxFinances: num(params.maxFinances),
   };
 
-  const profiles = await listProfiles(filters);
+  const page = pageFromParams(params.page);
+  const { profiles, total } = await listProfilePage(filters, page);
   const [coverUrls, shortlistedIds] = await Promise.all([
     getCoverPhotoUrls(profiles.map((p) => p.id)),
     getShortlistedProfileIds(clientId),
@@ -84,7 +86,7 @@ export default async function BrowseProfilesPage({
       {profiles.length > 0 && (
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-ink-900/60">
-            {profiles.length} profile{profiles.length === 1 ? "" : "s"}
+            {total.toLocaleString()} profile{total === 1 ? "" : "s"}
           </p>
           {/* The heart here is the same shortlist as the one on each card, so
               a profile can be taken forward without leaving the slideshow. */}
@@ -163,6 +165,16 @@ export default async function BrowseProfilesPage({
             );
           })}
         </div>
+      )}
+
+      {profiles.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PROFILE_PAGE_SIZE}
+          total={total}
+          basePath="/browse"
+          params={params}
+        />
       )}
     </main>
   );

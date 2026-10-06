@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { listProfiles, listProfileBirthYears } from "@/lib/data/profiles";
+import {
+  listProfilePage,
+  listProfileBirthYears,
+  PROFILE_PAGE_SIZE,
+} from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getAppSettings } from "@/lib/data/settings";
 import { listClientsForPicker } from "@/lib/data/clients";
 import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
+import { Pager, pageFromParams } from "@/components/Pager";
 import { Button } from "@/components/ui/Button";
 
 export default async function AdminDashboardPage({
@@ -15,8 +20,9 @@ export default async function AdminDashboardPage({
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
   const gender = getStr(params.gender);
-  const [profiles, settings, clients, birthYears] = await Promise.all([
-    listProfiles({
+  const page = pageFromParams(params.page);
+  const [{ profiles, total }, settings, clients, birthYears] = await Promise.all([
+    listProfilePage({
       search: getStr(params.search),
       gender,
       religion: getStr(params.religion),
@@ -33,7 +39,7 @@ export default async function AdminDashboardPage({
       professionCategory: getStr(params.professionCategory),
       urgent: getStr(params.urgent) === "1",
       potentialClient: getStr(params.potentialClient) === "1",
-    }),
+    }, page),
     getAppSettings(),
     listClientsForPicker(),
     listProfileBirthYears(gender),
@@ -64,7 +70,7 @@ export default async function AdminDashboardPage({
         <div>
           <h1 className="font-serif text-3xl font-semibold text-maroon-700">All Profiles</h1>
           <p className="text-sm text-ink-900/60">
-            {profiles.length} profile{profiles.length === 1 ? "" : "s"}
+            {total.toLocaleString()} profile{total === 1 ? "" : "s"}
           </p>
         </div>
         <Link href="/admin/profiles/new">
@@ -76,10 +82,26 @@ export default async function AdminDashboardPage({
 
       <ProfilesFilterBar birthYears={birthYears} />
 
+      <Pager
+        page={page}
+        pageSize={PROFILE_PAGE_SIZE}
+        total={total}
+        basePath="/admin/profiles"
+        params={params}
+      />
+
       <ProfileSelectionGrid
         profiles={selectableProfiles}
         defaultExpiryDays={settings.default_expiry_days}
         existingClients={clients}
+      />
+
+      <Pager
+        page={page}
+        pageSize={PROFILE_PAGE_SIZE}
+        total={total}
+        basePath="/admin/profiles"
+        params={params}
       />
     </div>
   );

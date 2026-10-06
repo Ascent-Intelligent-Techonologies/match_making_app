@@ -136,7 +136,7 @@ export function ProfileSelectionGrid({
             className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
           />
           <span>
-            Select all {profiles.length} filtered profile{profiles.length === 1 ? "" : "s"}
+            Select all {profiles.length} on this page
           </span>
         </label>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Phone, Users } from "lucide-react";
-import { listProfiles } from "@/lib/data/profiles";
+import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
 import { getAppSettings } from "@/lib/data/settings";
@@ -13,6 +13,7 @@ import { getShortlistedProfileIds } from "@/lib/data/shortlists";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { SearchResultsGrid } from "@/components/SearchResultsGrid";
 import { ClientChooser } from "@/components/ClientChooser";
+import { Pager, pageFromParams } from "@/components/Pager";
 
 export default async function SearchPage({ searchParams }: PageProps<"/admin/search">) {
   const params = await searchParams;
@@ -38,8 +39,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
     );
   }
 
-  const [profiles, settings, sharedIds, shortlistedIds] = await Promise.all([
-    listProfiles({
+  const page = pageFromParams(params.page);
+  const [{ profiles, total }, settings, sharedIds, shortlistedIds] = await Promise.all([
+    listProfilePage({
       search: getStr(params.search),
       gender: getStr(params.gender),
       caste: getStr(params.caste),
@@ -54,7 +56,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
       professionCategory: getStr(params.professionCategory),
       urgent: getStr(params.urgent) === "1",
       potentialClient: getStr(params.potentialClient) === "1",
-    }),
+    }, page),
     getAppSettings(),
     getSharedProfileIdsForClient(client.id),
     getShortlistedProfileIds(client.id),
@@ -113,6 +115,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
 
       <SearchFilterBar />
 
+      <Pager
+        page={page}
+        pageSize={PROFILE_PAGE_SIZE}
+        total={total}
+        basePath="/admin/search"
+        params={params}
+      />
+
       <SearchResultsGrid
         results={results}
         client={{
@@ -121,6 +131,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
           phone: client.phone_display ?? client.phone,
         }}
         defaultExpiryDays={settings.default_expiry_days}
+      />
+
+      <Pager
+        page={page}
+        pageSize={PROFILE_PAGE_SIZE}
+        total={total}
+        basePath="/admin/search"
+        params={params}
       />
     </div>
   );

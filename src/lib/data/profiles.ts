@@ -33,55 +33,104 @@ function dobFromAge(age: number): string {
     .slice(0, 10);
 }
 
-export async function listProfiles(filters: ProfileFilters = {}): Promise<Profile[]> {
-  const supabase = getSupabaseAdmin();
-  let query = supabase
-    .from("profiles")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+/** The chainable filter builder the two profile queries share. */
+type ProfileQuery = ReturnType<
+  ReturnType<ReturnType<typeof getSupabaseAdmin>["from"]>["select"]
+>;
 
-  // Soft-deleted profiles are invisible to every list; the Deleted page has
-  // its own query rather than a flag threaded through this one.
-  query = query.is("deleted_at", null);
+/** How many profiles a list shows at once. */
+export const PROFILE_PAGE_SIZE = 60;
+
+export interface ProfilePage {
+  profiles: Profile[];
+  /** Matching the filters, not just on this page. */
+  total: number;
+}
+
+/**
+ * The filters, applied to any query over profiles.
+ *
+ * Shared by the list and the count so the two can never disagree about what
+ * "matching" means — a count that drifts from its list is worse than no count.
+ */
+function applyProfileFilters<Q extends ProfileQuery>(query: Q, filters: ProfileFilters): Q {
+  let q = query;
 
   if (filters.search) {
     const term = filters.search.trim();
-    query = query.or(
+    q = q.or(
       `full_name.ilike.%${term}%,city.ilike.%${term}%,profession.ilike.%${term}%,religion.ilike.%${term}%,caste.ilike.%${term}%`
-    );
+    ) as Q;
   }
-  if (filters.gender) query = query.eq("gender", filters.gender);
-  if (filters.city) query = query.ilike("city", `%${filters.city}%`);
-  if (filters.religion) query = query.eq("religion", filters.religion);
+  if (filters.gender) q = q.eq("gender", filters.gender) as Q;
+  if (filters.city) q = q.ilike("city", `%${filters.city}%`) as Q;
+  if (filters.religion) q = q.eq("religion", filters.religion) as Q;
   // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge the latest.
-  if (filters.minAge) query = query.lte("dob", dobFromAge(filters.minAge));
-  if (filters.maxAge) query = query.gte("dob", dobFromAge(filters.maxAge));
-  if (filters.caste) query = query.ilike("caste", `%${filters.caste}%`);
-  if (filters.tags?.length) query = query.overlaps("tags", filters.tags);
-  if (filters.anurupaAura) query = query.eq("anurupa_aura", true);
-  if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
-  if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
-  if (filters.minFinances) query = query.gte("annual_income_inr", filters.minFinances);
-  if (filters.maxFinances) query = query.lte("annual_income_inr", filters.maxFinances);
+  if (filters.minAge) q = q.lte("dob", dobFromAge(filters.minAge)) as Q;
+  if (filters.maxAge) q = q.gte("dob", dobFromAge(filters.maxAge)) as Q;
+  if (filters.caste) q = q.ilike("caste", `%${filters.caste}%`) as Q;
+  if (filters.tags?.length) q = q.overlaps("tags", filters.tags) as Q;
+  if (filters.anurupaAura) q = q.eq("anurupa_aura", true) as Q;
+  if (filters.minHeight) q = q.gte("height_cm", filters.minHeight) as Q;
+  if (filters.maxHeight) q = q.lte("height_cm", filters.maxHeight) as Q;
+  if (filters.minFinances) q = q.gte("annual_income_inr", filters.minFinances) as Q;
+  if (filters.maxFinances) q = q.lte("annual_income_inr", filters.maxFinances) as Q;
   if (filters.professionCategory) {
-    query = query.eq("profession_category", filters.professionCategory);
+    q = q.eq("profession_category", filters.professionCategory) as Q;
   }
-  if (filters.urgent) query = query.eq("urgent", true);
+  if (filters.urgent) q = q.eq("urgent", true) as Q;
   if (filters.potentialClient) {
-    query = query.or(
-      "sibling1_potential_client.eq.true,sibling2_potential_client.eq.true"
-    );
+    q = q.or("sibling1_potential_client.eq.true,sibling2_potential_client.eq.true") as Q;
   }
   if (filters.birthYear) {
-    query = query
+    q = q
       .gte("dob", `${filters.birthYear}-01-01`)
-      .lte("dob", `${filters.birthYear}-12-31`);
+      .lte("dob", `${filters.birthYear}-12-31`) as Q;
   }
+  return q;
+}
 
-  const { data, error } = await query;
+/**
+ * One page of profiles, plus how many match in total.
+ *
+ * Paged rather than unbounded: PostgREST stops at a thousand rows, so an
+ * unbounded list quietly showed part of the book and counted it as the whole
+ * thing. The total comes from the database, so the page can say how much more
+ * there is.
+ */
+export async function listProfilePage(
+  filters: ProfileFilters = {},
+  page = 1,
+  pageSize = PROFILE_PAGE_SIZE
+): Promise<ProfilePage> {
+  const supabase = getSupabaseAdmin();
+  const from = Math.max(0, page - 1) * pageSize;
+
+  const query = applyProfileFilters(
+    supabase
+      .from("profiles")
+      .select("*", { count: "exact" })
+      .eq("is_active", true)
+      // Soft-deleted profiles are invisible to every list; the Deleted page
+      // has its own query rather than a flag threaded through this one.
+      .is("deleted_at", null),
+    filters
+  )
+    .order("created_at", { ascending: false })
+    .range(from, from + pageSize - 1);
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  return data ?? [];
+  return { profiles: data ?? [], total: count ?? 0 };
+}
+
+/** Every match, for the places that genuinely need them all. Capped for safety. */
+export async function listProfiles(
+  filters: ProfileFilters = {},
+  limit = PROFILE_PAGE_SIZE
+): Promise<Profile[]> {
+  const { profiles } = await listProfilePage(filters, 1, limit);
+  return profiles;
 }
 
 async function attachSignedPhotoUrls(photos: ProfilePhoto[]): Promise<ProfilePhoto[]> {

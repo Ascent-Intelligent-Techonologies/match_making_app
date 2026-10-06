@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { AlertTriangle, Check, FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -48,8 +48,10 @@ function CountList({
  * so what gets written is always read fresh from the file itself.
  */
 export function BulkImportForm() {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  // The file is held here rather than read off the input at submit time:
+  // React clears an uncontrolled form once its action completes, so by the
+  // time Import is pressed the input the preview was run from is empty.
+  const [file, setFile] = useState<File | null>(null);
 
   const [preview, previewAction, previewing] = useActionState<ImportState, FormData>(
     previewImportAction,
@@ -63,42 +65,51 @@ export function BulkImportForm() {
   const p = preview.preview;
   const done = result.done;
 
+  /** Both passes send the same file, built here instead of by the browser. */
+  function submit(action: (data: FormData) => void) {
+    if (!file) return;
+    const data = new FormData();
+    data.set("file", file);
+    startTransition(() => action(data));
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      {/* One form posts to whichever action was pressed, so the chosen file is
-          not lost between looking and importing. */}
-      <form className="flex flex-col gap-4 rounded-2xl border border-dashed border-gold-400/50 bg-blush-100/60 p-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gold-400/50 bg-blush-100/60 p-5">
         <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
           <FileSpreadsheet size={18} />
           <span>Choose the CSV export</span>
           <input
-            ref={inputRef}
             type="file"
             name="file"
             accept=".csv,text/csv"
             className="sr-only"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </label>
 
-        {fileName && <p className="text-sm text-ink-900/70">{fileName}</p>}
+        {file && <p className="text-sm text-ink-900/70">{file.name}</p>}
 
         {preview.error && <p className="text-sm text-red-700">{preview.error}</p>}
         {result.error && <p className="text-sm text-red-700">{result.error}</p>}
 
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" formAction={previewAction} disabled={previewing || !fileName}>
+          <Button
+            type="button"
+            onClick={() => submit(previewAction)}
+            disabled={previewing || importing || !file}
+          >
             {previewing ? "Reading…" : "Check the file"}
           </Button>
           {p && (
             <Button
-              type="submit"
-              formAction={importAction}
+              type="button"
               variant="secondary"
-              disabled={importing}
+              onClick={() => submit(importAction)}
+              disabled={previewing || importing}
             >
               <Upload size={15} />
-              {importing ? "Importing…" : `Import ${p.usable} profiles`}
+              {importing ? `Importing ${p.usable} profiles…` : `Import ${p.usable} profiles`}
             </Button>
           )}
         </div>
@@ -106,7 +117,7 @@ export function BulkImportForm() {
           Nothing is written until you press Import. Running the same file twice updates
           the profiles it created the first time rather than adding them again.
         </p>
-      </form>
+      </div>
 
       {p && !done && (
         <div className="flex flex-col gap-4">

@@ -94,7 +94,7 @@ export function SearchResultsGrid({
             onChange={toggleAll}
             className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
           />
-          <span>Select all {results.length} result{results.length === 1 ? "" : "s"}</span>
+          <span>Select all {results.length} on this page</span>
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
