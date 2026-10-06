@@ -5,27 +5,25 @@
 <link rel="stylesheet" href="_style.css">
 <style>
   /* Built to print on a single A4 sheet, so every vertical measure is tightened. */
-  body{line-height:1.4}
-  .page{padding:0;max-width:none;font-size:10.5px}
+  body{line-height:1.45}
+  .page{padding:0;max-width:none;font-size:11.5px}
   header.doc{padding-bottom:9px;margin-bottom:9px;border-bottom-width:2px}
   .brand{font-size:14px} .brand small{font-size:9px;letter-spacing:.14em}
   .brand .addr{font-size:9px;margin-top:5px;line-height:1.4}
   .doctitle h1{font-size:18px;letter-spacing:.16em}
   .meta{margin-top:6px;font-size:9.5px;line-height:1.55}
-  h2{margin:8px 0 2px;font-size:11.5px;padding-bottom:2px}
+  h2{margin:11px 0 4px;font-size:13px;padding-bottom:3px}
   h2 .n{font-size:10px;margin-right:7px}
-  p{margin:3px 0}
-  table{font-size:9px;margin:2px 0 4px}
-  table th{padding:2.5px 5px;font-size:8px}
-  table td{padding:2px 5px}
-  .grp td{background:var(--soft);font-weight:700;color:var(--maroon);font-size:8px;
-          text-transform:uppercase;letter-spacing:.06em;padding:2px 5px}
-  .sku{color:var(--muted);font-size:8px;display:block;line-height:1.25}
-  .tot td{border-top:1.5px solid var(--ink);font-weight:700;font-size:11px;background:var(--soft)}
-  .note{margin:5px 0;padding:5px 9px;font-size:9px;line-height:1.45}
-  .fine{font-size:8.5px;color:var(--muted);line-height:1.45;margin:3px 0}
-  .win{color:var(--olive);font-weight:700}
-  .warn{color:var(--maroon);font-weight:700}
+  p{margin:6px 0}
+  table{font-size:10.5px;margin:4px 0 6px}
+  table th{padding:4px 7px;font-size:9px}
+  table td{padding:3px 6px}
+  .grp td{background:var(--soft);font-weight:700;color:var(--maroon);font-size:9px;
+          text-transform:uppercase;letter-spacing:.06em;padding:4px 7px}
+  .sku{color:var(--muted);font-size:9px;display:block;line-height:1.35}
+  .tot td{border-top:1.5px solid var(--ink);font-weight:700;font-size:12.5px;background:var(--soft)}
+  .note{margin:8px 0;padding:8px 12px;font-size:10.5px;line-height:1.5}
+  .fine{font-size:9px;color:var(--muted);line-height:1.5;margin:5px 0}
   footer.doc{margin-top:7px;padding-top:5px;font-size:8px}
 </style></head>
 <body><div class="page">
@@ -51,7 +49,7 @@ thing.</p>
 (ap-south-1)</b>, read from each provider's pricing API on 6 October 2026; no reserved-instance
 discounts applied, which would cut compute by roughly 30–40%. Converted at <b>₹96 / USD</b>.</p>
 
-<h2><span class="n">1</span>Monthly running cost</h2>
+<h2>Monthly running cost</h2>
 <table>
 <tr><th style="width:21%">Component</th><th style="width:30%">Microsoft Azure</th><th class="num" style="width:11%">₹ / month</th><th style="width:27%">Amazon Web Services</th><th class="num" style="width:11%">₹ / month</th></tr>
 
@@ -98,28 +96,12 @@ discounts applied, which would cut compute by roughly 30–40%. Converted at <b>
 <tr class="tot"><td>Total</td><td>Azure Central India</td><td class="num">₹ 3,470</td><td>AWS Mumbai</td><td class="num">₹ 3,173</td></tr>
 </table>
 
-<h2><span class="n">2</span>Optional: web application firewall at the edge</h2>
-<p>Neither total includes a WAF. It is not required — the platform enforces its access rules on the
-server, keeps the database off the public internet and serves photographs only through expiring
-signed links — but it is the usual next layer, and <b>it is where the two clouds part company.</b></p>
-<table>
-<tr><th style="width:52%">Option</th><th style="width:28%">What it gives you</th><th class="num">₹ / month</th></tr>
-<tr><td><b>AWS</b> — CloudFront + WAF Web ACL with 4 managed rule groups<span class="sku">$5 per Web ACL + $1 per rule group; CloudFront free to 1 TB/month</span></td>
-    <td>Managed OWASP rule sets, CDN, rate limiting</td><td class="num win">864</td></tr>
-<tr><td><b>Azure</b> — Front Door Standard + WAF policy<span class="sku">₹3,359.63 base + ₹479.95 policy</span></td>
-    <td>Custom rules only — <b>no managed OWASP rule sets</b></td><td class="num">3,840</td></tr>
-<tr><td><b>Azure</b> — Front Door Premium + WAF with managed rules<span class="sku">₹39,595.63 base + policy + default ruleset</span></td>
-    <td>Managed OWASP rule sets, CDN, bot protection</td><td class="num warn">41,995</td></tr>
-</table>
-<p class="fine">Azure's managed rule sets are a Front Door <b>Premium</b> feature — Microsoft's
-documentation states that "for Azure Front Door Standard, only custom rules are supported" — so
-matching AWS's protection on Azure costs roughly <b>48× more</b>, and over ten times the rest of the bill.</p>
-
-<div class="note"><b>Recommendation — AWS Mumbai.</b> On the running cost alone the two are within
-₹300 a month of each other and either would be a sound choice. The deciding factor is the firewall:
-a managed OWASP rule set costs <b>₹864/month on AWS</b> and <b>₹41,995/month on Azure</b>, because
-Azure only sells managed rules with its Premium edge tier. Budget <b>₹3,200/month without a WAF</b>,
-or <b>₹4,050/month with one</b>, on AWS.</p>
+<div class="note"><b>Recommendation — either, with AWS marginally ahead.</b> At this size the two
+clouds are within <b>₹300 a month</b> of each other — about 9% — and both run the platform on
+equivalent, production-grade managed services with the same security posture. AWS Mumbai is the
+slightly cheaper of the two and is the default recommendation; Azure Central India is an equally
+sound choice if the client already holds an Azure account or a Microsoft agreement. Budget
+<b>₹3,200–3,500 a month</b>, or roughly <b>₹40,000 a year</b>.</div>
 
 <p class="fine"><b>Not included —</b> domain registration (~₹1,000/year), any email or WhatsApp
 Business API charges, and the ₹2,000/hour maintenance rate quoted separately. <b>Scaling —</b> these
