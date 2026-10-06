@@ -59,22 +59,20 @@ export function ClientProfileCard({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
-            {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
-            {profile.height_cm && <Badge tone="neutral">{formatHeight(profile.height_cm)}</Badge>}
-          </div>
-
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {/* The basics first, in the order a family reads them. */}
+          {/* The three birth details belong together and read across as one
+              line, so they get their own row rather than wrapping into the
+              rest of the grid. */}
+          <dl className="grid grid-cols-3 gap-x-4 gap-y-4">
             <Detail label="Date of Birth" value={profile.dob ? formatDate(profile.dob) : undefined} />
             <Detail label="Time of Birth" value={profile.birth_time} />
+            <Detail label="Place of birth" value={profile.birth_place} />
+          </dl>
+
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Detail label="Height" value={profile.height_cm ? formatHeight(profile.height_cm) : undefined} />
             <Detail label="Occupation" value={profile.profession} />
             <Detail label="Native place" value={profile.native_place} />
             <Detail label="Current location" value={formatLocation(profile) ?? undefined} />
-            <Detail label="Place of birth" value={profile.birth_place} />
-
             <Detail label="Mother Tongue" value={profile.mother_tongue} />
             <Detail label="Education" value={profile.education_degree} />
             <Detail label="Institution" value={profile.institution} />
@@ -105,6 +103,15 @@ export function ClientProfileCard({
           )}
           {profile.partner_expectations && (
             <Detail label="Partner Expectations" value={profile.partner_expectations} />
+          )}
+
+          {/* Tags sit under everything, so the details are read first. */}
+          {(profile.religion || profile.caste) && (
+            <div className="flex flex-wrap gap-2">
+              {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
+              {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
+              {profile.sub_caste && <Badge tone="gold">{profile.sub_caste}</Badge>}
+            </div>
           )}
         </div>
       </div>
