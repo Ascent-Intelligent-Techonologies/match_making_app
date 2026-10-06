@@ -94,6 +94,9 @@ export interface Profile {
   sibling2_details: string | null;
   sibling2_potential_client: boolean;
 
+  /** The id this profile had in the system it was imported from. */
+  source_id: string | null;
+
   /** Set when soft-deleted; the row is hidden everywhere but the Deleted page. */
   deleted_at: string | null;
 
@@ -258,6 +261,7 @@ export const ADMIN_ONLY_FIELDS = [
   "tags",
   "anurupa_aura",
   "middlemen_contact_name",
+  "source_id",
   "urgent",
   "sibling1_potential_client",
   "sibling2_potential_client",

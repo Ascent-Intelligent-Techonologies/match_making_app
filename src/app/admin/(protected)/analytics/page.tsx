@@ -1,11 +1,22 @@
 import Link from "next/link";
-import { Heart, MailX, Phone, PhoneCall, Send, Trash2, UserX, Users } from "lucide-react";
+import {
+  Heart,
+  MailX,
+  Phone,
+  PhoneCall,
+  Send,
+  Trash2,
+  Upload,
+  UserX,
+  Users,
+} from "lucide-react";
 import {
   getClientAnalytics,
   RECENT_CONTACT_DAYS,
   STALE_CLIENT_DAYS,
 } from "@/lib/data/clients";
 import { listRecentFollowups } from "@/lib/data/followups";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DeleteChoiceButton } from "@/components/DeleteChoiceButton";
@@ -109,11 +120,18 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-serif text-3xl font-semibold text-maroon-700">Analytics</h1>
-        <p className="text-sm text-ink-900/60">
-          Who you have reached out to, and who has gone quiet.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-3xl font-semibold text-maroon-700">Analytics</h1>
+          <p className="text-sm text-ink-900/60">
+            Who you have reached out to, and who has gone quiet.
+          </p>
+        </div>
+        <Link href="/admin/import">
+          <Button variant="secondary">
+            <Upload size={15} /> Bulk upload
+          </Button>
+        </Link>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">

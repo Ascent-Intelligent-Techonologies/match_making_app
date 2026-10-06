@@ -112,6 +112,11 @@ create table if not exists profiles (
   net_worth_notes text,
   owner_private_notes text,
 
+  -- The id this profile had in the system it was imported from; null for
+  -- profiles added by hand. Its unique index is what makes re-running a bulk
+  -- import update rather than duplicate.
+  source_id text,
+
   -- Set when soft-deleted. Hidden from every query except the Deleted page,
   -- which is the only place it can be restored or removed for good.
   deleted_at timestamptz,
@@ -132,6 +137,7 @@ create index if not exists profiles_search_idx on profiles
 -- Supports the "has any of these tags" filter.
 create index if not exists profiles_tags_idx on profiles using gin (tags);
 create index if not exists profiles_deleted_at_idx on profiles (deleted_at);
+create unique index if not exists profiles_source_id_key on profiles (source_id);
 
 -- -----------------------------------------------------------------
 -- profile_photos — private; the app serves signed URLs

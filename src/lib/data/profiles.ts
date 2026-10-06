@@ -273,3 +273,61 @@ export async function listProfileBirthYears(gender?: string): Promise<number[]> 
   }
   return Array.from(years).sort((a, b) => b - a);
 }
+
+export interface BulkUpsertResult {
+  written: number;
+  failed: { sourceId: string; message: string }[];
+}
+
+/**
+ * Writes imported profiles, keyed on where they came from.
+ *
+ * Upserting on source_id makes re-running an import safe: the second run
+ * updates the rows the first one created rather than doubling the book.
+ *
+ * Sent in chunks because a single statement carrying thousands of rows is one
+ * thing that can time out and lose everything; a failed chunk is reported and
+ * the rest still land.
+ */
+export async function bulkUpsertProfilesBySourceId(
+  rows: (ProfileFormValues & { source_id: string })[],
+  chunkSize = 250
+): Promise<BulkUpsertResult> {
+  const supabase = getSupabaseAdmin();
+  const result: BulkUpsertResult = { written: 0, failed: [] };
+
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(chunk, { onConflict: "source_id" });
+
+    if (error) {
+      for (const row of chunk) {
+        result.failed.push({ sourceId: row.source_id, message: error.message });
+      }
+      continue;
+    }
+    result.written += chunk.length;
+  }
+
+  return result;
+}
+
+/** How many of these source ids are already on the books. */
+export async function countExistingSourceIds(sourceIds: string[]): Promise<number> {
+  if (sourceIds.length === 0) return 0;
+  const supabase = getSupabaseAdmin();
+
+  let found = 0;
+  // Chunked to keep the `in` list out of URL-length territory.
+  for (let i = 0; i < sourceIds.length; i += 200) {
+    const { count, error } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .in("source_id", sourceIds.slice(i, i + 200));
+    if (error) throw error;
+    found += count ?? 0;
+  }
+  return found;
+}

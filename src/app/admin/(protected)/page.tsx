@@ -54,7 +54,7 @@ const SECTIONS = [
     title: "Journey",
     description: "Photos and videos from the matches we have made.",
     Icon: Camera,
-    accent: "bg-gold-400 text-ink-900",
+    accent: "bg-gold-400 text-white",
   },
 ];
 
