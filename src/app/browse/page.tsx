@@ -14,7 +14,7 @@ import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { toggleBrowseShortlistAction } from "@/lib/actions/browse";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { calculateAge, formatHeight } from "@/lib/format";
+import { calculateAge, formatDate, formatHeight, formatLocation } from "@/lib/format";
 
 export default async function BrowseProfilesPage({
   searchParams,
@@ -93,6 +93,18 @@ export default async function BrowseProfilesPage({
             profiles={profiles.map((p) => ({
               id: p.id,
               full_name: p.full_name,
+              subtitle: [
+                p.dob ? formatDate(p.dob) : null,
+                calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              details: [
+                { label: "Height", value: p.height_cm ? formatHeight(p.height_cm) : null },
+                { label: "Occupation", value: p.profession },
+                { label: "Native place", value: p.native_place },
+                { label: "Current location", value: formatLocation(p) },
+              ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
               coverUrl: coverUrls.get(p.id),
               favorite: shortlisted.has(p.id),
             }))}

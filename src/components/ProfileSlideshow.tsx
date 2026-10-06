@@ -13,9 +13,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
+export interface SlideshowDetail {
+  label: string;
+  value: string;
+}
+
 export interface SlideshowProfile {
   id: string;
   full_name: string;
+  /** Date of birth and age, on the line under the name. */
+  subtitle?: string;
+  /** The basics: height, occupation, native place, current location. */
+  details?: SlideshowDetail[];
   coverUrl?: string;
   favorite?: boolean;
 }
@@ -25,10 +34,9 @@ const ADVANCE_MS = 6000;
 /**
  * Full-screen run through whatever the current filters returned.
  *
- * The photo is the whole slide: a name and the shortlist button sit on a scrim
- * across the bottom and nothing else competes with the picture. Details belong
- * on the profile page, which is where someone goes once a photo has made them
- * stop.
+ * The photo is the whole slide, with the name, the few details needed to judge
+ * a match and the shortlist button on a scrim across the bottom. The scrim is
+ * what keeps text legible over a photograph of any brightness.
  *
  * It walks the results in the order they are on screen, so what it shows is
  * exactly what was searched for. Autoplay starts on open, and any manual
@@ -194,32 +202,52 @@ export function ProfileSlideshow({
           </>
         )}
 
-        {/* The scrim keeps the name legible whatever the photo is behind it. */}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 bg-gradient-to-t from-ink-900/85 via-ink-900/55 to-transparent px-5 pb-5 pt-16 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:pb-7">
-          <h2 className="font-serif text-3xl font-semibold text-white drop-shadow sm:text-4xl">
-            {current.full_name}
-          </h2>
-
-          {onToggleFavorite && (
-            <div className="flex w-full flex-col items-start gap-1 sm:w-auto sm:items-end">
-              <Button
-                type="button"
-                onClick={toggleFavorite}
-                disabled={savingFavorite}
-                aria-pressed={isFavorite}
-                className={`w-full shrink-0 sm:w-auto ${
-                  isFavorite
-                    ? "bg-maroon-600 text-white hover:bg-maroon-600"
-                    : "bg-white text-maroon-700 hover:bg-blush-100"
-                }`}
-              >
-                <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
-                {isFavorite ? "Shortlisted" : "Add to shortlist"}
-              </Button>
-              {favoriteError && (
-                <span className="text-xs text-white drop-shadow">{favoriteError}</span>
+        {/* The scrim keeps the text legible whatever the photo is behind it. */}
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-ink-900/95 via-ink-900/75 to-transparent px-5 pb-5 pt-20 sm:px-7 sm:pb-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif text-3xl font-semibold text-white drop-shadow sm:text-4xl">
+                {current.full_name}
+              </h2>
+              {current.subtitle && (
+                <p className="text-sm text-white/75 drop-shadow">{current.subtitle}</p>
               )}
             </div>
+
+            {onToggleFavorite && (
+              <div className="flex w-full flex-col items-start gap-1 sm:w-auto sm:items-end">
+                <Button
+                  type="button"
+                  onClick={toggleFavorite}
+                  disabled={savingFavorite}
+                  aria-pressed={isFavorite}
+                  className={`w-full shrink-0 sm:w-auto ${
+                    isFavorite
+                      ? "bg-maroon-600 text-white hover:bg-maroon-600"
+                      : "bg-white text-maroon-700 hover:bg-blush-100"
+                  }`}
+                >
+                  <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
+                  {isFavorite ? "Shortlisted" : "Add to shortlist"}
+                </Button>
+                {favoriteError && (
+                  <span className="text-xs text-white drop-shadow">{favoriteError}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {current.details && current.details.length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-5 gap-y-2 border-t border-white/20 pt-3 sm:grid-cols-4">
+              {current.details.map((d) => (
+                <div key={d.label} className="flex flex-col gap-0.5">
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-white/55">
+                    {d.label}
+                  </dt>
+                  <dd className="text-sm leading-snug text-white drop-shadow">{d.value}</dd>
+                </div>
+              ))}
+            </dl>
           )}
         </div>
 

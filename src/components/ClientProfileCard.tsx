@@ -1,7 +1,13 @@
 import { ProfilePhotoCarousel } from "@/components/ProfilePhotoCarousel";
 import { ShortlistButton } from "@/components/ShortlistButton";
 import { Badge } from "@/components/ui/Badge";
-import { calculateAge, formatDate, formatHeight, formatInrCompact } from "@/lib/format";
+import {
+  calculateAge,
+  formatDate,
+  formatHeight,
+  formatInrCompact,
+  formatLocation,
+} from "@/lib/format";
 import type { PublicProfile } from "@/lib/types";
 
 function Detail({ label, value }: { label: string; value?: string | number | null }) {
@@ -60,14 +66,18 @@ export function ClientProfileCard({
           </div>
 
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {/* The basics first, in the order a family reads them. */}
             <Detail label="Date of Birth" value={profile.dob ? formatDate(profile.dob) : undefined} />
             <Detail label="Time of Birth" value={profile.birth_time} />
             <Detail label="Height" value={profile.height_cm ? formatHeight(profile.height_cm) : undefined} />
-            <Detail label="Native" value={profile.native_place} />
+            <Detail label="Occupation" value={profile.profession} />
+            <Detail label="Native place" value={profile.native_place} />
+            <Detail label="Current location" value={formatLocation(profile) ?? undefined} />
+            <Detail label="Place of birth" value={profile.birth_place} />
+
             <Detail label="Mother Tongue" value={profile.mother_tongue} />
             <Detail label="Education" value={profile.education_degree} />
             <Detail label="Institution" value={profile.institution} />
-            <Detail label="Profession" value={profile.profession} />
             <Detail label="Business" value={profile.business} />
             <Detail label="Company" value={profile.company} />
             <Detail
@@ -76,12 +86,10 @@ export function ClientProfileCard({
             />
             <Detail label="Father's Profession" value={profile.father_profession} />
             <Detail label="Mother's Profession" value={profile.mother_profession} />
-            {/* The siblings are two named people now, not a count. */}
             <Detail label="Sibling 1" value={profile.sibling1_name} />
             <Detail label="Sibling 1 details" value={profile.sibling1_details} />
             <Detail label="Sibling 2" value={profile.sibling2_name} />
             <Detail label="Sibling 2 details" value={profile.sibling2_details} />
-            <Detail label="Birth Place" value={profile.birth_place} />
             <Detail label="Star Sign" value={profile.star_sign} />
             <Detail label="Primary Contact" value={profile.primary_contact_name} />
             <Detail label="Relation" value={profile.primary_contact_relation} />

@@ -43,13 +43,14 @@ export default async function AdminDashboardPage({
 
   const selectableProfiles = profiles.map((p) => ({
     id: p.id,
-    urgent: p.urgent,
-    anurupa_aura: p.anurupa_aura,
     full_name: p.full_name,
-    city: p.city,
     dob: p.dob,
     is_active: p.is_active,
     profession: p.profession,
+    native_place: p.native_place,
+    city: p.city,
+    state: p.state,
+    country: p.country,
     religion: p.religion,
     caste: p.caste,
     height_cm: p.height_cm,

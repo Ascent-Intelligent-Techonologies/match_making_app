@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { toggleClientShortlistAction } from "@/lib/actions/clients";
-import { calculateAge, formatDate, formatHeight } from "@/lib/format";
+import { calculateAge, formatDate, formatHeight, formatLocation } from "@/lib/format";
 
 export interface SearchResult {
   id: string;
@@ -24,6 +24,11 @@ export interface SearchResult {
   /** Internal flags; shown as badges to the admin only. */
   urgent: boolean;
   anurupa_aura: boolean;
+  profession: string | null;
+  native_place: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   coverUrl?: string;
   /** Already sent to this client in an earlier link — shown greyed out. */
   alreadyShared: boolean;
@@ -102,6 +107,18 @@ export function SearchResultsGrid({
             profiles={results.map((r) => ({
               id: r.id,
               full_name: [r.full_name, r.surname].filter(Boolean).join(" "),
+              subtitle: [
+                r.dob ? formatDate(r.dob) : null,
+                calculateAge(r.dob) ? `${calculateAge(r.dob)} yrs` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              details: [
+                { label: "Height", value: r.height_cm ? formatHeight(r.height_cm) : null },
+                { label: "Occupation", value: r.profession },
+                { label: "Native place", value: r.native_place },
+                { label: "Current location", value: formatLocation(r) },
+              ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
               coverUrl: r.coverUrl,
               favorite: r.shortlisted,
             }))}

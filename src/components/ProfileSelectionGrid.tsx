@@ -9,22 +9,60 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ShareLinkCreator, type ClientOption } from "@/components/ShareLinkCreator";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
-import { calculateAge, formatHeight, formatInrCompact } from "@/lib/format";
+import {
+  calculateAge,
+  formatDate,
+  formatHeight,
+  formatInrCompact,
+  formatLocation,
+} from "@/lib/format";
 
 export interface SelectableProfile {
   id: string;
   full_name: string;
-  city: string | null;
   dob: string | null;
   is_active: boolean;
   profession: string | null;
+  native_place: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   religion: string | null;
   caste: string | null;
   height_cm: number | null;
   annual_income_inr: number | null;
-  urgent: boolean;
-  anurupa_aura: boolean;
   coverUrl?: string;
+}
+
+
+/** The basics a slide shows, in one place so every view agrees on them. */
+function slideDetails(p: {
+  height_cm?: number | null;
+  profession?: string | null;
+  native_place?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}) {
+  return [
+    { label: "Height", value: p.height_cm ? formatHeight(p.height_cm) : null },
+    { label: "Occupation", value: p.profession ?? null },
+    { label: "Native place", value: p.native_place ?? null },
+    { label: "Current location", value: formatLocation(p) },
+  ].filter((d): d is { label: string; value: string } => Boolean(d.value));
+}
+
+/** A labelled line on a card. Renders nothing when there is no value. */
+function CardDetail({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-maroon-700/55">
+        {label}
+      </dt>
+      <dd className="text-sm leading-snug text-ink-900">{value}</dd>
+    </div>
+  );
 }
 
 export function ProfileSelectionGrid({
@@ -109,6 +147,13 @@ export function ProfileSelectionGrid({
             profiles={profiles.map((p) => ({
               id: p.id,
               full_name: p.full_name,
+              subtitle: [
+                p.dob ? formatDate(p.dob) : null,
+                calculateAge(p.dob) ? `${calculateAge(p.dob)} yrs` : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              details: slideDetails(p),
               coverUrl: p.coverUrl,
             }))}
           />
@@ -183,25 +228,36 @@ export function ProfileSelectionGrid({
                       />
                     )}
                   </div>
-                  <div className="flex flex-col gap-2 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <h2 className="font-serif text-lg font-semibold text-maroon-700">
-                        {profile.full_name}
-                      </h2>
-                      {profile.urgent && <Badge tone="danger">Urgent</Badge>}
-                      {profile.anurupa_aura && <Badge tone="maroon">Aura</Badge>}
-                      {!profile.is_active && <Badge tone="neutral">Inactive</Badge>}
+                  <div className="flex flex-col gap-3 p-4">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <h2 className="font-serif text-lg font-semibold text-maroon-700">
+                          {profile.full_name}
+                        </h2>
+                        {!profile.is_active && <Badge tone="neutral">Inactive</Badge>}
+                      </div>
+                      <p className="text-sm text-ink-900/60">
+                        {profile.dob ? formatDate(profile.dob) : "DOB —"}
+                        {age ? ` · ${age} yrs` : ""}
+                      </p>
                     </div>
-                    <p className="text-sm text-ink-900/60">
-                      {age ? `${age} yrs` : "Age —"} · {profile.city ?? "City —"}
-                    </p>
+
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      <CardDetail
+                        label="Height"
+                        value={profile.height_cm ? formatHeight(profile.height_cm) : null}
+                      />
+                      <CardDetail label="Occupation" value={profile.profession} />
+                      <CardDetail label="Native place" value={profile.native_place} />
+                      <CardDetail
+                        label="Current location"
+                        value={formatLocation(profile)}
+                      />
+                    </dl>
+
                     <div className="flex flex-wrap gap-1.5">
-                      {profile.profession && <Badge tone="olive">{profile.profession}</Badge>}
-                      {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
                       {profile.caste && <Badge tone="gold">{profile.caste}</Badge>}
-                      {profile.height_cm && (
-                        <Badge tone="neutral">{formatHeight(profile.height_cm)}</Badge>
-                      )}
+                      {profile.religion && <Badge tone="gold">{profile.religion}</Badge>}
                       {profile.annual_income_inr && (
                         <Badge tone="maroon">{formatInrCompact(profile.annual_income_inr)}</Badge>
                       )}

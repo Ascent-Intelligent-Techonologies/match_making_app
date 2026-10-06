@@ -76,3 +76,22 @@ export function formatRelativeDays(value: string | null | undefined): string {
   if (days < 60) return "Last month";
   return `${Math.floor(days / 30)} months ago`;
 }
+
+/**
+ * "Hyderabad, Telangana, India" from the three location columns.
+ *
+ * Duplicates are dropped, because a city and state are often typed the same
+ * ("Delhi, Delhi") and reading it twice looks like a mistake.
+ */
+export function formatLocation(parts: {
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}): string | null {
+  const seen = new Set<string>();
+  for (const part of [parts.city, parts.state, parts.country]) {
+    const value = part?.trim();
+    if (value) seen.add(value);
+  }
+  return seen.size > 0 ? Array.from(seen).join(", ") : null;
+}

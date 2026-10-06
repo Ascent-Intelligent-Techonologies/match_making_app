@@ -199,6 +199,9 @@ export const PARTIAL_VISIBLE_FIELDS = [
   "profession",
   "business",
   "native_place",
+  "city",
+  "state",
+  "country",
   "photos",
 ] as const;
 
@@ -209,9 +212,6 @@ export const PARTIAL_VISIBLE_FIELDS = [
 export const FULL_ONLY_FIELDS = [
   "surname",
   "gender",
-  "city",
-  "state",
-  "country",
   "religion",
   "caste",
   "sub_caste",

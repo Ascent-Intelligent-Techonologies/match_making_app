@@ -56,7 +56,11 @@ export const PROFESSION_CATEGORIES = [
   "Doctor",
   "Engineer",
   "Software Engineer",
+  "Lawyer",
   "Business",
+  "Start-up",
+  "Govt / Civil service",
+  "Political",
   "Others",
 ] as const;
 
