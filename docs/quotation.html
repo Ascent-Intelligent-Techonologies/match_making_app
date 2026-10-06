@@ -50,21 +50,21 @@
 <p>Ascent Intelligent Technologies will design, build, deploy and hand over a private matchmaking
 platform for AnuRupa Matrimony. It holds the profile book, lets the consultant search it on behalf of
 a named client, and share a curated shortlist over WhatsApp at three levels of detail — then reports
-which links were opened and which profiles each family shortlisted. Section 6 lists the full scope.
+which links were opened and which profiles each family shortlisted. Section 10 lists the full scope.
 Sections 2 to 5 set out the price, payment schedule, hosting and post go-live support.</p>
 
 <div class="note"><b>Revision 2 — 6 October 2026.</b> This revision supersedes the quotation issued on
-2 October 2026. Section 6 has been expanded to describe work carried out since that date — the
+2 October 2026. Section 10 has been expanded to describe work carried out since that date — the
 redesigned intake form, the full filter set, the slideshow, consultant follow-up notes, the Journey
 gallery, bulk import of an existing profile database, deletion with recovery, and admin-controlled
-branding (sections 6.3, 6.5, 6.10 and 6.12 to 6.15). <b>The price is unchanged at ₹90,000</b>; the
+branding (sections 10.3, 10.5, 10.10 and 10.12 to 10.15). <b>The price is unchanged at ₹90,000</b>; the
 additional scope is included at no extra cost.</div>
 
 <h2><span class="n">2</span>Commercial summary</h2>
 <table>
 <tr><th>#</th><th>Description</th><th class="num">Amount (₹)</th></tr>
 <tr><td>1</td><td><b>One-time setup — AnuRupa Matrimony platform</b><br>
-<span style="color:var(--muted);font-size:12.5px">Design, development and cloud deployment of the full scope described in Section 6, with the deliverables listed in Section 7.</span></td>
+<span style="color:var(--muted);font-size:12.5px">Design, development and cloud deployment of the full scope described in Section 10, with the deliverables listed in Section 6.</span></td>
 <td class="num">75,000</td></tr>
 <tr><td>2</td><td><b>Bug-fix support — 3 months from go-live</b><br>
 <span style="color:var(--muted);font-size:12.5px">Support as described in Section 4, for three months from the go-live date.</span></td>
@@ -84,14 +84,14 @@ additional scope is included at no extra cost.</div>
 </table>
 <ul>
 <li>An invoice is raised for each instalment as it falls due.</li>
-<li>Payment is due within 30 days of the invoice date, by bank transfer (NEFT / RTGS / IMPS) to the account in Section 9, or by cheque payable to Ascent Intelligent Technologies.</li>
+<li>Payment is due within 30 days of the invoice date, by bank transfer (NEFT / RTGS / IMPS) to the account in Section 8, or by cheque payable to Ascent Intelligent Technologies.</li>
 </ul>
 
 <h2><span class="n">4</span>Post go-live support</h2>
 <p>Bug-fix support runs for <b>3 months from go-live</b> and is quoted as a separate line item of <b>₹15,000</b> in Section 2. It covers the delivered scope only.</p>
 <div class="boxes" style="margin-top:6px">
   <div><b style="font-size:13.5px">Covered</b><ul style="font-size:13.5px">
-    <li>Fixing defects in delivered functionality: errors, crashes, incorrect results, or behaviour that does not match the scope in Section 6.</li>
+    <li>Fixing defects in delivered functionality: errors, crashes, incorrect results, or behaviour that does not match the scope in Section 10.</li>
     <li>Faults in the delivered integrations caused by the application code.</li>
     <li>Deploying those fixes to the production environment.</li>
   </ul></div>
@@ -120,138 +120,7 @@ expected to exceed two hours is estimated for approval before work begins.</p>
 <li>The client provides the brand assets, the profile data to be loaded, and timely review of work submitted for acceptance.</li>
 </ul>
 
-<h2><span class="n">6</span>Scope of work</h2>
-
-<div class="scope"><div class="lbl"><span class="nn">6.1</span><b>Platform foundation</b></div><ul>
-<li>Web application built on Next.js 16 and TypeScript with a managed PostgreSQL database and private object storage for photographs and media.</li>
-<li>Responsive interface in the AnuRupa brand design for desktop, tablet and mobile; the full admin workflow is usable from a phone.</li>
-<li>Server-rendered pages with validated server actions, so no business rule depends on the browser.</li>
-<li>Profile lists paged and counted at the database, so the platform stays responsive with several thousand profiles on the books.</li>
-<li>Configuration held in environment settings, so credentials and endpoints change without code changes.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.2</span><b>Access &amp; security</b></div><ul>
-<li>Password-protected administrator area with a signed, HTTP-only session cookie and a 12-hour session.</li>
-<li>Database locked down at row level; all access is through the application's service credentials, never from the browser.</li>
-<li>Photographs and gallery media held in private buckets and served only through short-lived signed URLs that expire after one hour.</li>
-<li>Field-level visibility rules enforced on the server, so admin-only data cannot leak through a share link.</li>
-<li>A profile withdrawn from the book disappears from links already sent, immediately.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.3</span><b>Profile intake &amp; management</b></div><ul>
-<li>Intake form laid out in the same sections as the client's own forms: Personal, Education, Professional, Family, Contact, Requirements and Internal.</li>
-<li>Approximately 60 fields. <b>Personal</b> is set out in two columns exactly as the paper form — the person on the left (name, date, time and place of birth, height, native place), their lineage on the right (surname, caste, sub-caste, gotram, nakshatram, rasi, religion, mother tongue).</li>
-<li>Height entered and displayed in feet and inches throughout, including the search filters.</li>
-<li><b>Current location</b> chosen from India, Europe, Africa, USA or Australia, with the full list of Indian states or US states offered once the country is set.</li>
-<li><b>Job category</b> — Doctor, Engineer, Software Engineer, Lawyer, Business, Start-up, Govt / Civil service, Political or Others — driving the search filter, alongside the free-text job title, company, business, salary and finances.</li>
-<li><b>Family</b> with the father's and mother's details side by side, and two siblings each with a name, marital status, details and a <b>potential client</b> marker for an unmarried sibling the consultancy may take on next.</li>
-<li><b>Contact</b> separating the family — primary contact name, their relation and number — from the middleman's name and number, which is never shared at any level.</li>
-<li><b>Requirements</b> with partner expectations and an <b>Urgent</b> flag for profiles to be prioritised.</li>
-<li><b>Internal</b> with the Anurupa tag as a multiple selection (any of AM, AMP and AMO), an <b>Anurupa Aura</b> marker, net-worth notes and private notes — none of which are ever shared with a client.</li>
-<li>Full edit of every field after creation, and an active/inactive toggle that removes a profile from search without deleting it.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.4</span><b>Photographs</b></div><ul>
-<li>Upload by file picker, by dragging images onto the page, or by pasting an image from the clipboard.</li>
-<li>Multiple photographs per profile with reordering, cover-photo selection and deletion; controls remain visible on touch screens.</li>
-<li>Swipeable photo carousel on the pages that clients see.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.5</span><b>Search &amp; filters</b></div><ul>
-<li>Every filter visible at once, with no filter hidden behind a prior choice: bride/groom, year of birth, caste, job category, the Anurupa tags, and more-than / less-than ranges for age, height (in feet and inches) and finances.</li>
-<li>Tick-box filters for <b>Urgent only</b>, <b>Potential clients</b> and <b>Anurupa Aura</b>.</li>
-<li>Free-text search across name, city and profession.</li>
-<li>Full-profile browse with the same filters, newest first, direct access to edit any record, and paging with a live count of everything matching.</li>
-<li>Profile cards showing date of birth, height, occupation, native place and current location at a glance.</li>
-<li>Search results show only name, date of birth, height, caste and requirements, with one click through to the complete record.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.6</span><b>Client-led search</b></div><ul>
-<li>Every search runs on behalf of a named client, chosen or created at the start of the search.</li>
-<li>Profiles already sent to that client are greyed out and badged, preventing duplicate sends.</li>
-<li>Profiles that client has shortlisted are badged, so interest is visible while searching.</li>
-<li>Select individual results, or select all on the page, and share them as a single link.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.7</span><b>Sharing &amp; access levels</b></div><ul>
-<li>Three levels of disclosure, enforced field by field on the server: <b>Photos only</b>, <b>Basic details</b> and <b>All details</b>.</li>
-<li>Finances, the internal tags, the Aura and Urgent markers, the potential-client markers, the middleman's details and private notes are withheld at every level.</li>
-<li>Expiring links with a configurable default, per-link expiry, extension, immediate revocation and permanent deletion.</li>
-<li>One-tap WhatsApp sharing with the message pre-composed and addressed to the client by name; copy-link alternative.</li>
-<li>Share-link register showing recipient, profiles included, access level, open count and expiry.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.8</span><b>Client tracking &amp; shortlisting</b></div><ul>
-<li>Clients identified by name and phone number, with numbers normalised so "+91 98765 43210" and "9876543210" resolve to one record.</li>
-<li>Heart control on every shared profile; selections recorded against the client immediately.</li>
-<li>Link-open tracking recorded from the client's browser, with first-opened, last-opened and open count.</li>
-<li>Client directory searchable by name or phone, showing profiles shared, profiles shortlisted and last activity.</li>
-<li>Client detail page showing everything sent, everything liked, every search they ran and every link with its open status.</li>
-<li>Per-client follow-up log for recording what was said on a call, kept distinct from the client's own activity so a call never makes a silent client look engaged.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.9</span><b>Public browsing with identity capture</b></div><ul>
-<li>Public browse page that shows no profile until the visitor provides a name and phone number, asked afresh each time browsing begins so a shared phone never records one family's choices against another's.</li>
-<li>Visitors matched to the existing client book by phone, so a walk-in and a later WhatsApp recipient remain one client.</li>
-<li>Browsing visitors can shortlist profiles, and the filters they apply are recorded against them.</li>
-<li>Identity held in a signed, HTTP-only cookie so it cannot be altered to impersonate another client.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.10</span><b>Slideshow</b></div><ul>
-<li>Full-screen presentation of the current search results, in the order shown on screen, on All Profiles, on client search and on the public browse page.</li>
-<li>Photograph, name, date of birth, height, occupation, native place and current location on each slide.</li>
-<li>Advances on its own, with arrows, keyboard and position dots; any manual move pauses it.</li>
-<li>Shortlisting directly from a slide, recorded against the client being searched for or the family browsing.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.11</span><b>Dashboard &amp; analytics</b></div><ul>
-<li>Clients contacted in the last 7 days.</li>
-<li>Clients with no response in 30 or more days — contacted over a month ago and silent since, as a follow-up worklist.</li>
-<li>Clients who have never opened a link despite being sent profiles.</li>
-<li>Clients never contacted at all — details taken and nothing ever sent — oldest first, with removal available from the list.</li>
-<li>The latest follow-up conversations logged across all clients.</li>
-<li>Totals for clients, shortlists and withdrawn records, with every name linking through to that client.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.12</span><b>Consultant follow-up notes &amp; Journey gallery</b></div><ul>
-<li><b>Follow-up</b> — a running list of working notes for each of the three consultants, with bullet points added as you type and an explicit saved / unsaved state.</li>
-<li><b>Journey</b> — a gallery of photographs and videos from completed matches, uploaded by picker or by dragging onto the page, with captions, download and deletion.</li>
-<li>Gallery media held in private storage and served through expiring signed links, on the same terms as profile photographs.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.13</span><b>Bulk import of an existing profile database</b></div><ul>
-<li>Upload of a CSV export from an existing matrimony system, creating profiles automatically.</li>
-<li>A check pass that reads the whole file and reports exactly what would happen — how many profiles will be created, how many updated, how many arrive inactive, which rows cannot be used and why — before anything is written.</li>
-<li>Field mapping covering name, gender, birth date, time and place, height, caste and sub-caste, gotram, star and raasi, education, school, occupation and job category, employer, location, preferences and referrals.</li>
-<li>Source details that have no field in the platform — marital status, visa, complexion, build, permanent address and the previous system's rejection reasons — preserved verbatim in the private notes rather than discarded.</li>
-<li>Profiles rejected in the source system imported inactive: on the books, absent from every search.</li>
-<li>Each profile keeps the identifier it held in the source system, so re-running the same export updates the records it created rather than duplicating them.</li>
-<li>Delivered and proven against the client's live export of 2,778 profiles.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.14</span><b>Deletion, withdrawal &amp; recovery</b></div><ul>
-<li>Deleting a profile or a client asks how: <b>move to Deleted</b>, which hides the record everywhere and keeps it recoverable, or <b>delete permanently</b>, which states exactly what will be destroyed before it does it.</li>
-<li>A <b>Deleted</b> area listing withdrawn profiles and clients, each restorable in one step to exactly its previous state, with shortlists, follow-ups and history intact.</li>
-<li>Removal of individual follow-up notes, shortlist entries, share links and gallery files, each behind a confirmation.</li>
-<li>Deleting a client also closes the links sent to them, so a withdrawn client's links stop working.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.15</span><b>Appearance &amp; branding control</b></div><ul>
-<li>A settings area where the six colours the platform is built from can be changed by the administrator.</li>
-<li>Backgrounds, hover shades and readable text shades derived automatically from those colours, so a palette can never be left half-applied.</li>
-<li>Live preview before saving, legibility warnings where a combination would be hard to read, and a one-click return to the supplied palette.</li>
-<li>Changes apply immediately across the admin pages, the public browse page and every link already shared — with no redeployment.</li>
-</ul></div>
-
-<div class="scope"><div class="lbl"><span class="nn">6.16</span><b>Cloud deployment &amp; operations</b></div><ul>
-<li>Deployment to <b>Microsoft Azure</b> or <b>Amazon Web Services</b>, on the client's own cloud account, as the client prefers.</li>
-<li>Application, managed PostgreSQL database and private object storage provisioned and configured, with environment configuration and secrets handled outside the codebase.</li>
-<li>Custom domain and HTTPS certificate configured.</li>
-<li>Database schema with versioned, re-runnable migration scripts, plus a single set-up script that builds the whole database on a new environment in one run.</li>
-<li>Deployment runbook covering build, release, configuration and rollback.</li>
-</ul></div>
-
-<h2><span class="n">7</span>Deliverables</h2>
+<h2><span class="n">6</span>Deliverables</h2>
 <ul>
 <li>The platform deployed to production on the client's Azure or AWS account, with the custom domain live.</li>
 <li>Complete application source code, database schema, versioned migration scripts and a single set-up script for a fresh environment.</li>
@@ -262,9 +131,9 @@ expected to exceed two hours is estimated for approval before work begins.</p>
 <li>Administrator account set up and a handover walkthrough of the platform.</li>
 </ul>
 
-<h2><span class="n">8</span>Terms &amp; conditions</h2>
+<h2><span class="n">7</span>Terms &amp; conditions</h2>
 <ol class="ol">
-<li><b>Scope.</b> The work is limited to the scope in Section 6. Anything not listed there is excluded and requires a separate quotation.</li>
+<li><b>Scope.</b> The work is limited to the scope in Section 10. Anything not listed there is excluded and requires a separate quotation.</li>
 <li><b>Intellectual property.</b> Ascent Intelligent Technologies and the client jointly own the application source code, and each may use it without the other's consent. The client may use, copy, modify, adapt and extend the source code delivered to it in any way, whether through its own staff or other developers. These rights take effect once all amounts due are paid. The client's data belongs to the client alone. Open-source components remain under their own licences.</li>
 <li><b>Data protection.</b> Both parties comply with the Digital Personal Data Protection Act, 2023. The client is the data fiduciary. Ascent Intelligent Technologies processes personal data only on the client's instructions and for this engagement.</li>
 <li><b>Confidentiality.</b> Each party keeps the other's business and technical information confidential during the engagement and for three years after it ends.</li>
@@ -277,7 +146,7 @@ expected to exceed two hours is estimated for approval before work begins.</p>
 <li><b>Validity.</b> This quotation is valid for 30 days from the date shown above.</li>
 </ol>
 
-<h2><span class="n">9</span>Payment details</h2>
+<h2><span class="n">8</span>Payment details</h2>
 <table>
 <tr><td style="width:25%;color:var(--muted)">Account holder</td><td><b>Ascent Intelligent Technologies</b></td>
 <td style="width:20%;color:var(--muted)">IFSC code</td><td><b>HDFC0000545</b></td></tr>
@@ -288,7 +157,7 @@ expected to exceed two hours is estimated for approval before work begins.</p>
 <tr><td style="color:var(--muted)">Cheques payable to</td><td colspan="3"><b>Ascent Intelligent Technologies</b></td></tr>
 </table>
 
-<h2><span class="n">10</span>Acceptance</h2>
+<h2><span class="n">9</span>Acceptance</h2>
 <p>To accept this quotation, sign below and return a copy, or confirm acceptance by email.</p>
 <div class="sign">
   <div class="box"><h4>For Ascent Intelligent Technologies Private Limited</h4>
@@ -297,6 +166,137 @@ expected to exceed two hours is estimated for approval before work begins.</p>
     <div style="font-size:13px;color:var(--muted);line-height:2.1">Name:<br>Designation:<br>Date:</div>
     <div class="line">Authorised Signatory &amp; Seal</div></div>
 </div>
+
+<h2><span class="n">10</span>Scope of work</h2>
+
+<div class="scope"><div class="lbl"><span class="nn">10.1</span><b>Platform foundation</b></div><ul>
+<li>Web application built on Next.js 16 and TypeScript with a managed PostgreSQL database and private object storage for photographs and media.</li>
+<li>Responsive interface in the AnuRupa brand design for desktop, tablet and mobile; the full admin workflow is usable from a phone.</li>
+<li>Server-rendered pages with validated server actions, so no business rule depends on the browser.</li>
+<li>Profile lists paged and counted at the database, so the platform stays responsive with several thousand profiles on the books.</li>
+<li>Configuration held in environment settings, so credentials and endpoints change without code changes.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.2</span><b>Access &amp; security</b></div><ul>
+<li>Password-protected administrator area with a signed, HTTP-only session cookie and a 12-hour session.</li>
+<li>Database locked down at row level; all access is through the application's service credentials, never from the browser.</li>
+<li>Photographs and gallery media held in private buckets and served only through short-lived signed URLs that expire after one hour.</li>
+<li>Field-level visibility rules enforced on the server, so admin-only data cannot leak through a share link.</li>
+<li>A profile withdrawn from the book disappears from links already sent, immediately.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.3</span><b>Profile intake &amp; management</b></div><ul>
+<li>Intake form laid out in the same sections as the client's own forms: Personal, Education, Professional, Family, Contact, Requirements and Internal.</li>
+<li>Approximately 60 fields. <b>Personal</b> is set out in two columns exactly as the paper form — the person on the left (name, date, time and place of birth, height, native place), their lineage on the right (surname, caste, sub-caste, gotram, nakshatram, rasi, religion, mother tongue).</li>
+<li>Height entered and displayed in feet and inches throughout, including the search filters.</li>
+<li><b>Current location</b> chosen from India, Europe, Africa, USA or Australia, with the full list of Indian states or US states offered once the country is set.</li>
+<li><b>Job category</b> — Doctor, Engineer, Software Engineer, Lawyer, Business, Start-up, Govt / Civil service, Political or Others — driving the search filter, alongside the free-text job title, company, business, salary and finances.</li>
+<li><b>Family</b> with the father's and mother's details side by side, and two siblings each with a name, marital status, details and a <b>potential client</b> marker for an unmarried sibling the consultancy may take on next.</li>
+<li><b>Contact</b> separating the family — primary contact name, their relation and number — from the middleman's name and number, which is never shared at any level.</li>
+<li><b>Requirements</b> with partner expectations and an <b>Urgent</b> flag for profiles to be prioritised.</li>
+<li><b>Internal</b> with the Anurupa tag as a multiple selection (any of AM, AMP and AMO), an <b>Anurupa Aura</b> marker, net-worth notes and private notes — none of which are ever shared with a client.</li>
+<li>Full edit of every field after creation, and an active/inactive toggle that removes a profile from search without deleting it.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.4</span><b>Photographs</b></div><ul>
+<li>Upload by file picker, by dragging images onto the page, or by pasting an image from the clipboard.</li>
+<li>Multiple photographs per profile with reordering, cover-photo selection and deletion; controls remain visible on touch screens.</li>
+<li>Swipeable photo carousel on the pages that clients see.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.5</span><b>Search &amp; filters</b></div><ul>
+<li>Every filter visible at once, with no filter hidden behind a prior choice: bride/groom, year of birth, caste, job category, the Anurupa tags, and more-than / less-than ranges for age, height (in feet and inches) and finances.</li>
+<li>Tick-box filters for <b>Urgent only</b>, <b>Potential clients</b> and <b>Anurupa Aura</b>.</li>
+<li>Free-text search across name, city and profession.</li>
+<li>Full-profile browse with the same filters, newest first, direct access to edit any record, and paging with a live count of everything matching.</li>
+<li>Profile cards showing date of birth, height, occupation, native place and current location at a glance.</li>
+<li>Search results show only name, date of birth, height, caste and requirements, with one click through to the complete record.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.6</span><b>Client-led search</b></div><ul>
+<li>Every search runs on behalf of a named client, chosen or created at the start of the search.</li>
+<li>Profiles already sent to that client are greyed out and badged, preventing duplicate sends.</li>
+<li>Profiles that client has shortlisted are badged, so interest is visible while searching.</li>
+<li>Select individual results, or select all on the page, and share them as a single link.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.7</span><b>Sharing &amp; access levels</b></div><ul>
+<li>Three levels of disclosure, enforced field by field on the server: <b>Photos only</b>, <b>Basic details</b> and <b>All details</b>.</li>
+<li>Finances, the internal tags, the Aura and Urgent markers, the potential-client markers, the middleman's details and private notes are withheld at every level.</li>
+<li>Expiring links with a configurable default, per-link expiry, extension, immediate revocation and permanent deletion.</li>
+<li>One-tap WhatsApp sharing with the message pre-composed and addressed to the client by name; copy-link alternative.</li>
+<li>Share-link register showing recipient, profiles included, access level, open count and expiry.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.8</span><b>Client tracking &amp; shortlisting</b></div><ul>
+<li>Clients identified by name and phone number, with numbers normalised so "+91 98765 43210" and "9876543210" resolve to one record.</li>
+<li>Heart control on every shared profile; selections recorded against the client immediately.</li>
+<li>Link-open tracking recorded from the client's browser, with first-opened, last-opened and open count.</li>
+<li>Client directory searchable by name or phone, showing profiles shared, profiles shortlisted and last activity.</li>
+<li>Client detail page showing everything sent, everything liked, every search they ran and every link with its open status.</li>
+<li>Per-client follow-up log for recording what was said on a call, kept distinct from the client's own activity so a call never makes a silent client look engaged.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.9</span><b>Public browsing with identity capture</b></div><ul>
+<li>Public browse page that shows no profile until the visitor provides a name and phone number, asked afresh each time browsing begins so a shared phone never records one family's choices against another's.</li>
+<li>Visitors matched to the existing client book by phone, so a walk-in and a later WhatsApp recipient remain one client.</li>
+<li>Browsing visitors can shortlist profiles, and the filters they apply are recorded against them.</li>
+<li>Identity held in a signed, HTTP-only cookie so it cannot be altered to impersonate another client.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.10</span><b>Slideshow</b></div><ul>
+<li>Full-screen presentation of the current search results, in the order shown on screen, on All Profiles, on client search and on the public browse page.</li>
+<li>Photograph, name, date of birth, height, occupation, native place and current location on each slide.</li>
+<li>Advances on its own, with arrows, keyboard and position dots; any manual move pauses it.</li>
+<li>Shortlisting directly from a slide, recorded against the client being searched for or the family browsing.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.11</span><b>Dashboard &amp; analytics</b></div><ul>
+<li>Clients contacted in the last 7 days.</li>
+<li>Clients with no response in 30 or more days — contacted over a month ago and silent since, as a follow-up worklist.</li>
+<li>Clients who have never opened a link despite being sent profiles.</li>
+<li>Clients never contacted at all — details taken and nothing ever sent — oldest first, with removal available from the list.</li>
+<li>The latest follow-up conversations logged across all clients.</li>
+<li>Totals for clients, shortlists and withdrawn records, with every name linking through to that client.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.12</span><b>Consultant follow-up notes &amp; Journey gallery</b></div><ul>
+<li><b>Follow-up</b> — a running list of working notes for each of the three consultants, with bullet points added as you type and an explicit saved / unsaved state.</li>
+<li><b>Journey</b> — a gallery of photographs and videos from completed matches, uploaded by picker or by dragging onto the page, with captions, download and deletion.</li>
+<li>Gallery media held in private storage and served through expiring signed links, on the same terms as profile photographs.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.13</span><b>Bulk import of an existing profile database</b></div><ul>
+<li>Upload of a CSV export from an existing matrimony system, creating profiles automatically.</li>
+<li>A check pass that reads the whole file and reports exactly what would happen — how many profiles will be created, how many updated, how many arrive inactive, which rows cannot be used and why — before anything is written.</li>
+<li>Field mapping covering name, gender, birth date, time and place, height, caste and sub-caste, gotram, star and raasi, education, school, occupation and job category, employer, location, preferences and referrals.</li>
+<li>Source details that have no field in the platform — marital status, visa, complexion, build, permanent address and the previous system's rejection reasons — preserved verbatim in the private notes rather than discarded.</li>
+<li>Profiles rejected in the source system imported inactive: on the books, absent from every search.</li>
+<li>Each profile keeps the identifier it held in the source system, so re-running the same export updates the records it created rather than duplicating them.</li>
+<li>Delivered and proven against the client's live export of 2,778 profiles.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.14</span><b>Deletion, withdrawal &amp; recovery</b></div><ul>
+<li>Deleting a profile or a client asks how: <b>move to Deleted</b>, which hides the record everywhere and keeps it recoverable, or <b>delete permanently</b>, which states exactly what will be destroyed before it does it.</li>
+<li>A <b>Deleted</b> area listing withdrawn profiles and clients, each restorable in one step to exactly its previous state, with shortlists, follow-ups and history intact.</li>
+<li>Removal of individual follow-up notes, shortlist entries, share links and gallery files, each behind a confirmation.</li>
+<li>Deleting a client also closes the links sent to them, so a withdrawn client's links stop working.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.15</span><b>Appearance &amp; branding control</b></div><ul>
+<li>A settings area where the six colours the platform is built from can be changed by the administrator.</li>
+<li>Backgrounds, hover shades and readable text shades derived automatically from those colours, so a palette can never be left half-applied.</li>
+<li>Live preview before saving, legibility warnings where a combination would be hard to read, and a one-click return to the supplied palette.</li>
+<li>Changes apply immediately across the admin pages, the public browse page and every link already shared — with no redeployment.</li>
+</ul></div>
+
+<div class="scope"><div class="lbl"><span class="nn">10.16</span><b>Cloud deployment &amp; operations</b></div><ul>
+<li>Deployment to <b>Microsoft Azure</b> or <b>Amazon Web Services</b>, on the client's own cloud account, as the client prefers.</li>
+<li>Application, managed PostgreSQL database and private object storage provisioned and configured, with environment configuration and secrets handled outside the codebase.</li>
+<li>Custom domain and HTTPS certificate configured.</li>
+<li>Database schema with versioned, re-runnable migration scripts, plus a single set-up script that builds the whole database on a new environment in one run.</li>
+<li>Deployment runbook covering build, release, configuration and rollback.</li>
+</ul></div>
 
 <footer class="doc"><span>Ascent Intelligent Technologies Private Limited</span>
 <span>Quotation AIT/QT/2026-27/002 (Rev. 2) · AnuRupa Matrimony</span></footer>
