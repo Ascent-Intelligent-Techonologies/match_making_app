@@ -15,6 +15,11 @@
 .sign .box{border:1px solid var(--line);border-radius:10px;padding:18px;min-height:150px}
 .sign h4{color:var(--accent);font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 30px}
 .sign .line{border-top:1px solid var(--ink);margin-top:40px;padding-top:6px;font-size:12px;color:var(--muted)}
+/* The signature sits on the rule rather than above the gap, so the box keeps
+   the same height as the unsigned one beside it. */
+.sign .signed{margin-top:8px}
+.sign .signed img{display:block;height:58px;margin:0 0 -10px}
+.sign .signed .line{margin-top:0}
 .ol li{margin:9px 0;font-size:13.5px}
 @media screen and (max-width:620px){.boxes,.sign,.scope{grid-template-columns:1fr}}
 </style></head>
@@ -57,14 +62,6 @@ platform for AnuRupa Matrimony. It holds the profile book, lets the consultant s
 a named client, and share a curated shortlist over WhatsApp at three levels of detail — then reports
 which links were opened and which profiles each family shortlisted. Section 10 lists the full scope.
 Sections 2 to 5 set out the price, payment schedule, hosting and post go-live support.</p>
-
-<div class="note"><b>Revision 3 — 7 October 2026.</b> This revision supersedes the quotation issued on
-2 October 2026. Section 10 has been expanded to describe work carried out since that date — the
-redesigned intake form, the full filter set, the slideshow, consultant follow-up notes, the Journey
-gallery, bulk import of an existing profile database, deletion with recovery, and admin-controlled
-branding (sections 10.3, 10.5, 10.10 and 10.12 to 10.15), all included at no extra cost. Bug-fix
-support has since been <b>extended from three months to six and is no longer charged for</b>, taking
-the total from ₹90,000 down to <b>₹75,000</b>.</div>
 
 <h2><span class="n">2</span>Commercial summary</h2>
 <table>
@@ -166,7 +163,10 @@ expected to exceed two hours is estimated for approval before work begins.</p>
 <p>To accept this quotation, sign below and return a copy, or confirm acceptance by email.</p>
 <div class="sign">
   <div class="box"><h4>For Ascent Intelligent Technologies Private Limited</h4>
-    <div class="line">Authorised Signatory</div></div>
+    <div class="signed">
+      <img src="assets/signature.png" alt="Authorised signatory">
+      <div class="line">Authorised Signatory</div>
+    </div></div>
   <div class="box"><h4>Accepted for AnuRupa Matrimony</h4>
     <div style="font-size:13px;color:var(--muted);line-height:2.1">Name:<br>Designation:<br>Date:</div>
     <div class="line">Authorised Signatory &amp; Seal</div></div>
