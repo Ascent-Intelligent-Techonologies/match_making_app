@@ -13,6 +13,8 @@
   .from{border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:16px}
   .from .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
              font-weight:700;margin-bottom:5px}
+  .from .row{display:flex;align-items:flex-start;gap:14px}
+  .from .logo{height:52px;width:auto;flex:none;margin-top:1px}
   .from b{font-size:14px;letter-spacing:.01em}
   .from .addr{color:var(--muted);font-size:11.5px;margin-top:4px;line-height:1.55}
   h1{margin:0 0 14px;font-size:28px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;
@@ -54,11 +56,16 @@
 
 <div class="from">
   <div class="lbl">From</div>
-  <b>ASCENT INTELLIGENT TECHNOLOGIES PRIVATE LIMITED</b>
-  <div class="addr">08th Floor, SLN Terminus T, Regus Grandeur Offices<br>
-  Survey No. 133, Beside Botanical Gardens, Gachibowli<br>
-  Hyderabad, Telangana – 500032<br>
-  GSTIN: NA</div>
+  <div class="row">
+    <img class="logo" src="assets/ascent-logo.png" alt="">
+    <div>
+      <b>ASCENT INTELLIGENT TECHNOLOGIES PRIVATE LIMITED</b>
+      <div class="addr">08th Floor, SLN Terminus T, Regus Grandeur Offices<br>
+      Survey No. 133, Beside Botanical Gardens, Gachibowli<br>
+      Hyderabad, Telangana – 500032<br>
+      GSTIN: NA</div>
+    </div>
+  </div>
 </div>
 
 <h1>Invoice</h1>

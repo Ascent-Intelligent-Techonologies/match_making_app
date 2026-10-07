@@ -11,6 +11,9 @@
 .scope .lbl b{font-weight:700}
 .scope ul{margin:0;padding-left:18px}
 .scope li{margin:5px 0;font-size:13.5px}
+/* Logo sits beside the wordmark, sharing its baseline block. */
+.brandrow{display:flex;align-items:flex-start;gap:14px}
+.brandrow .logo{height:46px;width:auto;flex:none;margin-top:1px}
 .sign{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px}
 .sign .box{border:1px solid var(--line);border-radius:10px;padding:18px;min-height:150px}
 .sign h4{color:var(--accent);font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 30px}
@@ -26,7 +29,11 @@
 <body><div class="page">
 
 <header class="doc">
-  <div class="brand">ASCENT INTELLIGENT<small>Technologies</small>
+  <div class="brand">
+    <div class="brandrow">
+      <img class="logo" src="assets/ascent-logo.png" alt="">
+      <div>ASCENT INTELLIGENT<small>Technologies</small></div>
+    </div>
     <span class="addr">Ascent Intelligent Technologies Private Limited<br>
     08th Floor, SLN Terminus T, Regus Grandeur Offices<br>
     Survey No. 133, Beside Botanical Gardens, Gachibowli<br>
