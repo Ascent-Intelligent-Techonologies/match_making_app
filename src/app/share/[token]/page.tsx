@@ -7,7 +7,7 @@ import { ClientProfileCard } from "@/components/ClientProfileCard";
 import { ShareViewTracker } from "@/components/ShareViewTracker";
 import { getBrowsingClientId } from "@/lib/auth/client-session";
 
-function ExpiredNotice({ message }: { message: string }) {
+function LinkNotice({ message }: { message: string }) {
   return (
     <main className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <p className="font-serif text-4xl font-semibold text-olive-500">AnuRupa Matrimony</p>
@@ -24,13 +24,10 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   const link = await getShareLinkByToken(token);
 
   if (!link) {
-    return <ExpiredNotice message="This link could not be found." />;
+    return <LinkNotice message="This link could not be found." />;
   }
   if (link.revoked) {
-    return <ExpiredNotice message="This link has been revoked." />;
-  }
-  if (new Date(link.expires_at) < new Date()) {
-    return <ExpiredNotice message="This link has expired." />;
+    return <LinkNotice message="This link has been revoked." />;
   }
 
   const profiles = await getManyProfilesWithPhotos(link.profiles.map((p) => p.id));
@@ -61,6 +58,18 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
           Tap the heart on any profile you would like to take forward.
         </p>
       </header>
+
+      {/* The consultant's note to this family, written when the link was made. */}
+      {link.notes && (
+        <section className="rounded-2xl border border-gold-400/40 bg-blush-100/60 px-5 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-maroon-700/70">
+            A note from AnuRupa
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-900/80">
+            {link.notes}
+          </p>
+        </section>
+      )}
 
       <div className="flex flex-col gap-6">
         {publicProfiles.map((profile) => (

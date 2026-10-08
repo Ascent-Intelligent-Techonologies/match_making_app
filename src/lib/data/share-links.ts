@@ -24,24 +24,27 @@ function toLinkWithProfiles(row: RawShareLinkRow): ShareLinkWithProfiles {
 export interface CreateShareLinkInput {
   profileIds: string[];
   accessLevel: AccessLevel;
-  expiryDays: number;
   label?: string;
+  /** Shown to the family on the share page itself, not just to the admin. */
+  notes?: string;
   clientId: string | null;
 }
 
+/**
+ * Creates a link that stays live until it is revoked or deleted. Links used
+ * to expire after a few days, which mostly meant families losing access to
+ * profiles they were still considering.
+ */
 export async function createShareLink(input: CreateShareLinkInput): Promise<ShareLink> {
   const supabase = getSupabaseAdmin();
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + input.expiryDays);
 
   const { data: link, error } = await supabase
     .from("share_links")
     .insert({
       token: generateShareToken(),
       label: input.label || null,
+      notes: input.notes || null,
       access_level: input.accessLevel,
-      expires_at: expiresAt.toISOString(),
       client_id: input.clientId,
     })
     .select("*")
@@ -126,21 +129,19 @@ export async function revokeShareLink(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function extendShareLink(id: string, additionalDays: number): Promise<void> {
+/** Turns a revoked link back on. Nothing else about it changes. */
+export async function restoreShareLink(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
-  const { data: link, error: fetchError } = await supabase
-    .from("share_links")
-    .select("expires_at")
-    .eq("id", id)
-    .single();
-  if (fetchError) throw fetchError;
+  const { error } = await supabase.from("share_links").update({ revoked: false }).eq("id", id);
+  if (error) throw error;
+}
 
-  const base = new Date(link.expires_at) > new Date() ? new Date(link.expires_at) : new Date();
-  base.setDate(base.getDate() + additionalDays);
-
+/** Edits the note the family sees; the link itself is untouched. */
+export async function updateShareLinkNotes(id: string, notes: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("share_links")
-    .update({ expires_at: base.toISOString(), revoked: false })
+    .update({ notes: notes.trim() || null })
     .eq("id", id);
   if (error) throw error;
 }

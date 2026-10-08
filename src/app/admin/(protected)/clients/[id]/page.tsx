@@ -207,13 +207,12 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
           <p className="text-sm text-ink-900/50">No links yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {links.map((link) => {
-              const expired = new Date(link.expires_at) < new Date();
-              return (
-                <div
-                  key={link.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm"
-                >
+            {links.map((link) => (
+              <div
+                key={link.id}
+                className="rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-ink-900/70">
                     {link.label || `${link.profiles.length} profile${link.profiles.length === 1 ? "" : "s"}`}
                   </span>
@@ -227,8 +226,6 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
                     </span>
                     {link.revoked ? (
                       <Badge tone="danger">Revoked</Badge>
-                    ) : expired ? (
-                      <Badge tone="neutral">Expired</Badge>
                     ) : (
                       <Badge tone="olive">Active</Badge>
                     )}
@@ -240,8 +237,14 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
                     />
                   </span>
                 </div>
-              );
-            })}
+                {link.notes && (
+                  <p className="mt-1.5 whitespace-pre-wrap border-t border-blush-200 pt-1.5 text-xs text-ink-900/60">
+                    <span className="font-semibold text-maroon-700/70">Note to family: </span>
+                    {link.notes}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </section>

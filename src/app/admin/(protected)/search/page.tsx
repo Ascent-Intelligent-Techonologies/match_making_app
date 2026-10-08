@@ -3,7 +3,6 @@ import { Phone, Users } from "lucide-react";
 import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
-import { getAppSettings } from "@/lib/data/settings";
 import {
   getClientById,
   getSharedProfileIdsForClient,
@@ -40,7 +39,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
   }
 
   const page = pageFromParams(params.page);
-  const [{ profiles, total }, settings, sharedIds, shortlistedIds] = await Promise.all([
+  const [{ profiles, total }, sharedIds, shortlistedIds] = await Promise.all([
     listProfilePage({
       search: getStr(params.search),
       gender: getStr(params.gender),
@@ -57,7 +56,6 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
       urgent: getStr(params.urgent) === "1",
       potentialClient: getStr(params.potentialClient) === "1",
     }, page),
-    getAppSettings(),
     getSharedProfileIdsForClient(client.id),
     getShortlistedProfileIds(client.id),
   ]);
@@ -130,7 +128,6 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
           full_name: client.full_name,
           phone: client.phone_display ?? client.phone,
         }}
-        defaultExpiryDays={settings.default_expiry_days}
       />
 
       <Pager

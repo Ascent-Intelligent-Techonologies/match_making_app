@@ -131,8 +131,9 @@ export interface ShareLink {
   id: string;
   token: string;
   label: string | null;
+  /** A message from the consultant, shown to the family above the profiles. */
+  notes: string | null;
   access_level: AccessLevel;
-  expires_at: string;
   revoked: boolean;
   created_at: string;
   client_id: string | null;
@@ -180,7 +181,6 @@ export interface ShareLinkWithProfiles extends ShareLink {
 
 export interface AppSettings {
   id: number;
-  default_expiry_days: number;
   /** Palette saved from Admin -> Settings; null means use the app defaults. */
   theme_colors?: ThemeColors | null;
 }

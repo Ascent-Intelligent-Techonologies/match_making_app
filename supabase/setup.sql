@@ -178,15 +178,19 @@ create table if not exists clients (
 create index if not exists clients_deleted_at_idx on clients (deleted_at);
 
 -- -----------------------------------------------------------------
--- share_links — expiring links sent to a client
+-- share_links — links sent to a client
 -- -----------------------------------------------------------------
+-- A link stays live until the admin revokes or deletes it; expires_at is a
+-- retired column kept only so old rows restored from a backup still load.
 create table if not exists share_links (
   id uuid primary key default gen_random_uuid(),
   token text unique not null,
   label text,
+  -- Shown to the family at the top of the share page, above the profiles.
+  notes text,
   access_level text not null default 'partial'
     check (access_level in ('photos_only', 'partial', 'full')),
-  expires_at timestamptz not null,
+  expires_at timestamptz,
   revoked boolean not null default false,
   created_at timestamptz not null default now(),
 
@@ -282,6 +286,8 @@ create table if not exists journey_media (
 -- -----------------------------------------------------------------
 create table if not exists app_settings (
   id smallint primary key default 1,
+  -- Retired: share links no longer expire. Kept with its default so a row
+  -- inserted by an older deploy still satisfies the not-null constraint.
   default_expiry_days smallint not null default 3,
   -- Palette saved from Admin -> Settings. Null means use the app defaults.
   theme_colors jsonb,

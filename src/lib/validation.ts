@@ -88,8 +88,9 @@ export type ProfileFormValues = z.infer<typeof profileSchema>;
 export const shareLinkSchema = z.object({
   profileIds: z.array(z.string().uuid()).min(1, "Select at least one profile"),
   accessLevel: z.enum(["photos_only", "partial", "full"]),
-  expiryDays: z.coerce.number().int().min(1).max(90),
   label: z.string().trim().optional(),
+  // Shown to the family at the top of the share page.
+  notes: z.string().trim().max(2000).optional(),
   // Optional: name the client here and the link is attributed to them. Leave
   // both blank and whoever opens the link is asked before they can shortlist.
   clientName: optionalString,

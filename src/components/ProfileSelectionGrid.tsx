@@ -67,11 +67,9 @@ function CardDetail({ label, value }: { label: string; value?: string | null }) 
 
 export function ProfileSelectionGrid({
   profiles,
-  defaultExpiryDays,
   existingClients = [],
 }: {
   profiles: SelectableProfile[];
-  defaultExpiryDays: number;
   existingClients?: ClientOption[];
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -185,7 +183,6 @@ export function ProfileSelectionGrid({
             city: p.city,
           }))}
           preselectedIds={selectedVisibleIds}
-          defaultExpiryDays={defaultExpiryDays}
           existingClients={existingClients}
           lockSelection
         />

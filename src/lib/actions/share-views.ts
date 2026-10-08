@@ -12,7 +12,7 @@ import { getShareLinkByToken, recordShareLinkView } from "@/lib/data/share-links
  */
 export async function recordShareViewAction(token: string): Promise<void> {
   const link = await getShareLinkByToken(token);
-  if (!link || link.revoked || new Date(link.expires_at) < new Date()) return;
+  if (!link || link.revoked) return;
 
   await recordShareLinkView(link.id, link.client_id, link.view_count, link.first_viewed_at);
 }

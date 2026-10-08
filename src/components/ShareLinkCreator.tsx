@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { Check, Copy, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Field, Input, Select } from "@/components/ui/Field";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { ACCESS_LEVEL_OPTIONS } from "@/lib/constants";
 import { createShareLinkAction, type ShareLinkFormState } from "@/lib/actions/share-links";
 
@@ -17,14 +17,12 @@ export interface ClientOption {
 export function ShareLinkCreator({
   allProfiles,
   preselectedIds = [],
-  defaultExpiryDays,
   lockSelection = false,
   existingClients = [],
   fixedClient,
 }: {
   allProfiles: { id: string; full_name: string; city: string | null }[];
   preselectedIds?: string[];
-  defaultExpiryDays: number;
   /** Lets the admin reuse a client instead of retyping their details. */
   existingClients?: ClientOption[];
   /** When the client is already decided (e.g. searching on their behalf). */
@@ -228,7 +226,7 @@ export function ShareLinkCreator({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Access Level" htmlFor="accessLevel">
           <Select id="accessLevel" name="accessLevel" defaultValue="partial">
             {ACCESS_LEVEL_OPTIONS.map((o) => (
@@ -238,13 +236,24 @@ export function ShareLinkCreator({
             ))}
           </Select>
         </Field>
-        <Field label="Expires In (days)" htmlFor="expiryDays">
-          <Input id="expiryDays" name="expiryDays" type="number" min={1} max={90} defaultValue={defaultExpiryDays} />
-        </Field>
         <Field label="Label (optional)" htmlFor="label">
           <Input id="label" name="label" placeholder="e.g. Sharma family" />
         </Field>
       </div>
+
+      <Field label="Notes for the family (optional)" htmlFor="notes">
+        <Textarea
+          id="notes"
+          name="notes"
+          rows={3}
+          maxLength={2000}
+          placeholder="e.g. Both families are open to a December wedding. Do let me know your thoughts on either profile."
+        />
+      </Field>
+      {/* Spelled out because the label alone reads like an internal note. */}
+      <p className="-mt-2 text-xs text-ink-900/50">
+        Shown to whoever opens the link, above the profiles.
+      </p>
 
       {state.error && <p className="text-xs text-red-700">{state.error}</p>}
 

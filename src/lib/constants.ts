@@ -40,8 +40,6 @@ export const CASTE_OPTIONS = ["Reddy", "Kamma", "Velama"] as const;
 /** Internal classification from the intake sheet. */
 export const TAG_OPTIONS = ["AM", "AMP", "AMO"] as const;
 
-export const DEFAULT_SHARE_EXPIRY_DAYS = 3;
-
 export const ADMIN_SESSION_COOKIE = "aura_admin_session";
 
 export const PROFILE_PHOTOS_BUCKET = "profile-photos";

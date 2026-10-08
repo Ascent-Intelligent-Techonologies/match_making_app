@@ -39,11 +39,9 @@ export interface SearchResult {
 export function SearchResultsGrid({
   results,
   client,
-  defaultExpiryDays,
 }: {
   results: SearchResult[];
   client: { id: string; full_name: string; phone: string };
-  defaultExpiryDays: number;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
@@ -157,7 +155,6 @@ export function SearchResultsGrid({
             city: null,
           }))}
           preselectedIds={selectedIdList}
-          defaultExpiryDays={defaultExpiryDays}
           fixedClient={{ full_name: client.full_name, phone: client.phone }}
           lockSelection
         />

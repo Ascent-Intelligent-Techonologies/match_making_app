@@ -21,7 +21,7 @@ export interface ShortlistResult {
  */
 async function resolveLink(token: string, profileId: string) {
   const link = await getShareLinkByToken(token);
-  if (!link || link.revoked || new Date(link.expires_at) < new Date()) {
+  if (!link || link.revoked) {
     return { error: "This link is no longer active." as const };
   }
   if (!link.profiles.some((p) => p.id === profileId)) {

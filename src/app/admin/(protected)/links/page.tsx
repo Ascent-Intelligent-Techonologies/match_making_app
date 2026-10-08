@@ -1,18 +1,13 @@
 import { listShareLinks } from "@/lib/data/share-links";
 import { listProfiles } from "@/lib/data/profiles";
-import { getAppSettings } from "@/lib/data/settings";
 import { listClientsForPicker } from "@/lib/data/clients";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { ShareLinkRow } from "@/components/ShareLinkRow";
-import { Field, Input } from "@/components/ui/Field";
-import { Button } from "@/components/ui/Button";
-import { updateDefaultExpiryAction } from "@/lib/actions/share-links";
 
 export default async function ShareLinksPage() {
-  const [links, profiles, settings, clients] = await Promise.all([
+  const [links, profiles, clients] = await Promise.all([
     listShareLinks(),
     listProfiles({}),
-    getAppSettings(),
     listClientsForPicker(),
   ]);
 
@@ -23,7 +18,8 @@ export default async function ShareLinksPage() {
       <div>
         <h1 className="font-serif text-3xl font-semibold text-maroon-700">Share Links</h1>
         <p className="text-sm text-ink-900/60">
-          Create, monitor and revoke expiring links shared with prospective families.
+          Create, monitor and revoke the links shared with prospective families. A link
+          stays live until you revoke or delete it.
         </p>
       </div>
 
@@ -31,29 +27,8 @@ export default async function ShareLinksPage() {
         <h2 className="mb-4 font-serif text-xl font-semibold text-maroon-700">New share link</h2>
         <ShareLinkCreator
           allProfiles={profiles.map((p) => ({ id: p.id, full_name: p.full_name, city: p.city }))}
-          defaultExpiryDays={settings.default_expiry_days}
           existingClients={clients}
         />
-      </section>
-
-      <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
-        <h2 className="mb-3 font-serif text-xl font-semibold text-maroon-700">Default expiry</h2>
-        <form action={updateDefaultExpiryAction} className="flex items-end gap-3">
-          <Field label="Default expiry (days)" htmlFor="defaultExpiryDays">
-            <Input
-              id="defaultExpiryDays"
-              name="defaultExpiryDays"
-              type="number"
-              min={1}
-              max={90}
-              defaultValue={settings.default_expiry_days}
-              className="w-32"
-            />
-          </Field>
-          <Button type="submit" size="sm">
-            Save
-          </Button>
-        </form>
       </section>
 
       <section className="rounded-2xl border border-gold-400/25 bg-white/60 p-6">
@@ -65,10 +40,10 @@ export default async function ShareLinksPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-blush-200 text-xs uppercase tracking-wider text-maroon-700/60">
-                  <th className="pb-2 pr-4 font-medium">Profiles</th>
+                  <th className="pb-2 pr-4 font-medium">Profiles &amp; note</th>
                   <th className="pb-2 pr-4 font-medium">Access</th>
                   <th className="pb-2 pr-4 font-medium">Status</th>
-                  <th className="pb-2 pr-4 font-medium">Expires</th>
+                  <th className="pb-2 pr-4 font-medium">Created</th>
                   <th className="pb-2 pr-4 font-medium">Actions</th>
                 </tr>
               </thead>

@@ -6,7 +6,6 @@ import {
   PROFILE_PAGE_SIZE,
 } from "@/lib/data/profiles";
 import { getCoverPhotoUrls } from "@/lib/data/photos";
-import { getAppSettings } from "@/lib/data/settings";
 import { listClientsForPicker } from "@/lib/data/clients";
 import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
@@ -21,7 +20,7 @@ export default async function AdminDashboardPage({
 
   const gender = getStr(params.gender);
   const page = pageFromParams(params.page);
-  const [{ profiles, total }, settings, clients, birthYears] = await Promise.all([
+  const [{ profiles, total }, clients, birthYears] = await Promise.all([
     listProfilePage({
       search: getStr(params.search),
       gender,
@@ -40,7 +39,6 @@ export default async function AdminDashboardPage({
       urgent: getStr(params.urgent) === "1",
       potentialClient: getStr(params.potentialClient) === "1",
     }, page),
-    getAppSettings(),
     listClientsForPicker(),
     listProfileBirthYears(gender),
   ]);
@@ -92,7 +90,6 @@ export default async function AdminDashboardPage({
 
       <ProfileSelectionGrid
         profiles={selectableProfiles}
-        defaultExpiryDays={settings.default_expiry_days}
         existingClients={clients}
       />
 

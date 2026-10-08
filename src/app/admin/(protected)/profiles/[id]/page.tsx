@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProfileWithPhotos } from "@/lib/data/profiles";
 import { listProfiles } from "@/lib/data/profiles";
-import { getAppSettings } from "@/lib/data/settings";
 import { ProfileForm } from "@/components/ProfileForm";
 import { PhotoManager } from "@/components/PhotoManager";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
@@ -14,10 +13,9 @@ export default async function ProfileDetailPage({
 }: PageProps<"/admin/profiles/[id]">) {
   const { id } = await params;
 
-  const [profile, allProfiles, settings] = await Promise.all([
+  const [profile, allProfiles] = await Promise.all([
     getProfileWithPhotos(id),
     listProfiles({}),
-    getAppSettings(),
   ]);
 
   if (!profile) notFound();
@@ -59,7 +57,6 @@ export default async function ProfileDetailPage({
         <ShareLinkCreator
           allProfiles={allProfiles.map((p) => ({ id: p.id, full_name: p.full_name, city: p.city }))}
           preselectedIds={[profile.id]}
-          defaultExpiryDays={settings.default_expiry_days}
         />
       </section>
     </div>

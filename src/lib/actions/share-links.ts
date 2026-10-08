@@ -6,10 +6,10 @@ import {
   createShareLink,
   deleteShareLink,
   revokeShareLink,
-  extendShareLink,
+  restoreShareLink,
   updateShareLinkAccessLevel,
+  updateShareLinkNotes,
 } from "@/lib/data/share-links";
-import { updateDefaultExpiryDays } from "@/lib/data/settings";
 import { upsertClientByPhone } from "@/lib/data/clients";
 import type { AccessLevel } from "@/lib/types";
 
@@ -28,8 +28,8 @@ export async function createShareLinkAction(
   const parsed = shareLinkSchema.safeParse({
     profileIds,
     accessLevel: formData.get("accessLevel"),
-    expiryDays: formData.get("expiryDays"),
     label: formData.get("label") ?? undefined,
+    notes: formData.get("notes") ?? undefined,
     clientName: formData.get("clientName"),
     clientPhone: formData.get("clientPhone"),
   });
@@ -78,20 +78,19 @@ export async function deleteShareLinkAction(id: string) {
   revalidatePath("/admin/analytics");
 }
 
-export async function extendShareLinkAction(id: string, additionalDays: number) {
-  await extendShareLink(id, additionalDays);
+export async function restoreShareLinkAction(id: string) {
+  await restoreShareLink(id);
   revalidatePath("/admin/links");
+}
+
+/** The note is visible to the family, so it has to be correctable later. */
+export async function updateShareLinkNotesAction(id: string, formData: FormData) {
+  await updateShareLinkNotes(id, String(formData.get("notes") ?? ""));
+  revalidatePath("/admin/links");
+  revalidatePath("/admin/clients");
 }
 
 export async function updateAccessLevelAction(id: string, accessLevel: AccessLevel) {
   await updateShareLinkAccessLevel(id, accessLevel);
-  revalidatePath("/admin/links");
-}
-
-export async function updateDefaultExpiryAction(formData: FormData) {
-  const days = Number(formData.get("defaultExpiryDays"));
-  if (Number.isFinite(days) && days > 0) {
-    await updateDefaultExpiryDays(days);
-  }
   revalidatePath("/admin/links");
 }
