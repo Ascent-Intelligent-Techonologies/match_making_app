@@ -135,9 +135,19 @@ az role assignment create --assignee-object-id <principalId> \
 az identity federated-credential create --identity-name anurupa-github-deploy \
   -g anurupa-rg --name github-main \
   --issuer https://token.actions.githubusercontent.com \
-  --subject 'repo:Ascent-Intelligent-Techonologies/match_making_app:ref:refs/heads/main' \
+  --subject 'repo:Ascent-Intelligent-Techonologies@132645480/match_making_app@1324831828:ref:refs/heads/main' \
   --audiences api://AzureADTokenExchange
 ```
+
+**The `@132645480` and `@1324831828` are not optional.** GitHub's OIDC token now
+carries the organisation's and the repository's numeric IDs in its subject
+claim, and a managed identity's federated credential matches the subject
+*exactly* — the plain `repo:owner/name:ref:…` form from older guides is
+rejected with no useful message. Get the IDs with
+`gh api orgs/Ascent-Intelligent-Techonologies --jq .id` and
+`gh api repos/Ascent-Intelligent-Techonologies/match_making_app --jq .id`, or
+read the exact subject out of the `azure/login` step's log on a failed run,
+which prints it under "Federated token details".
 
 The role is Contributor on the web app resource only — not the resource
 group, so a compromised workflow could redeploy the site but not touch the
