@@ -5,7 +5,7 @@ Three files do the work:
 | File | What it is |
 | --- | --- |
 | `azure/infra.sh` | Creates the Azure resources. Idempotent — run it as often as you like. |
-| `azure-pipelines.yml` | Azure DevOps pipeline. Every push to `main` builds and deploys. |
+| `.github/workflows/deploy.yml` | GitHub Actions. Every push to `main` builds and deploys. |
 | `azure/deploy-local.sh` | The same deploy, from your laptop, reading your local `.env`. |
 | `azure/migrate-from-supabase.mjs` | One-off: copies the existing rows and files across. |
 
@@ -115,31 +115,55 @@ Roughly three minutes.
 
 ### From a push to main
 
-In Azure DevOps, once:
+`.github/workflows/deploy.yml` builds on every pull request and deploys on
+every push to `main`. It signs in to Azure with OpenID Connect: GitHub mints a
+token for the run, and a **user-assigned managed identity** in the resource
+group (`anurupa-github-deploy`) accepts it through a federated credential
+naming this repository and branch. There is no password, key or publish
+profile stored anywhere.
 
-1. **Project settings → Service connections → New → Azure Resource Manager →
-   Workload identity federation (automatic)**. Name it `anurupa-azure`, scope it
-   to the resource group. Federation is preferred over a service principal
-   secret: there is no credential to rotate or leak.
-2. **Pipelines → Library → + Variable group**, named `anurupa-azure`:
-   - `azureResourceGroup` — e.g. `anurupa-rg`
-   - `azureAppName` — e.g. `anurupa-a1b2c3`
-   - `siteUrl` — e.g. `https://anurupa-a1b2c3.azurewebsites.net`
+That identity is a managed identity rather than an Entra app registration
+because the Azure account is a subscription Owner but not a directory admin —
+it cannot create app registrations, and a managed identity needs no directory
+rights at all. `infra.sh` does not create it; it was set up once by hand:
 
-   (All three are in `azure/.env.azure`.) Then **Pipeline permissions → allow**
-   this pipeline to use the group.
-3. **Pipelines → New pipeline → GitHub → this repo → Existing YAML file →
-   `/azure-pipelines.yml`**.
+```bash
+az identity create -g anurupa-rg -n anurupa-github-deploy -l centralindia
+az role assignment create --assignee-object-id <principalId> \
+  --assignee-principal-type ServicePrincipal --role Contributor \
+  --scope <the web app's resource id>
+az identity federated-credential create --identity-name anurupa-github-deploy \
+  -g anurupa-rg --name github-main \
+  --issuer https://token.actions.githubusercontent.com \
+  --subject 'repo:Ascent-Intelligent-Techonologies/match_making_app:ref:refs/heads/main' \
+  --audiences api://AzureADTokenExchange
+```
+
+The role is Contributor on the web app resource only — not the resource
+group, so a compromised workflow could redeploy the site but not touch the
+database or the storage account.
+
+The workflow reads five **repository variables** (not secrets — none of them
+is confidential):
+
+```bash
+gh variable set AZURE_CLIENT_ID       --body "<the identity's clientId>"
+gh variable set AZURE_TENANT_ID       --body "<tenant id>"
+gh variable set AZURE_SUBSCRIPTION_ID --body "<subscription id>"
+gh variable set AZURE_WEBAPP_NAME     --body "anurupa-8c72e8"
+gh variable set SITE_URL              --body "https://anurupa-8c72e8.azurewebsites.net"
+```
 
 Pull requests type-check, lint and build but do not deploy. Pushes to `main`
-deploy, then smoke-test the URL and fail the run if the site does not come back.
+deploy, then poll the site and fail the run if it does not come back.
 
-Application secrets are **not** in the pipeline or the variable group. They live
-in App Service configuration, written by `infra.sh` and `deploy-local.sh`, so
-read access to this repository or to Azure DevOps does not hand over the
-production database.
+Application secrets are **not** in the workflow or the variables. They live in
+App Service configuration, written by `infra.sh` and `deploy-local.sh`, so
+read access to this repository does not hand over the production database.
 
----
+Vercel is a development backup only. It builds from the `vercel-dev` branch
+(the last Supabase-based commit), and `vercel.json` on `main` tells it to
+skip every build of `main`.
 
 ## 4. Move the data off Supabase
 
