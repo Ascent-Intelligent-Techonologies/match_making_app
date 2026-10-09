@@ -413,6 +413,11 @@ settings=(
   "NODE_ENV=production"
   "WEBSITE_NODE_DEFAULT_VERSION=~22"
   "SCM_DO_BUILD_DURING_DEPLOYMENT=false"
+  # Extracting a 50 MB bundle and cold-starting Node on a B1 instance can run
+  # past App Service's default 230-second start limit, at which point it
+  # restarts the container and the deploy is reported failed. 1800 is the
+  # maximum allowed.
+  "WEBSITES_CONTAINER_START_TIME_LIMIT=1800"
   "NEXT_TELEMETRY_DISABLED=1"
   "NEXT_PUBLIC_SITE_URL=$SITE_URL"
   "AZURE_STORAGE_ACCOUNT=$STORAGE_ACCOUNT"

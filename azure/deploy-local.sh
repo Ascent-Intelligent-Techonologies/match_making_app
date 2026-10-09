@@ -135,7 +135,10 @@ if [ "$DO_BUILD" -eq 1 ]; then
   cp -R .next/static "$STAGE/.next/static"
   if [ -d public ]; then cp -R public "$STAGE/public"; fi
 
-  ( cd "$STAGE" && zip -r -q "$ZIP_PATH" . )
+  # Zipped in UTC: zip stores local time with no zone, and a Mac in IST
+  # produces a bundle whose every file the (UTC) container reports as
+  # "time stamp is in the future" — 1,175 warnings on the first deploy.
+  ( cd "$STAGE" && TZ=UTC zip -r -q "$ZIP_PATH" . )
   info "$(du -h "$ZIP_PATH" | cut -f1) → $(basename "$ZIP_PATH")"
 elif [ "$DO_DEPLOY" -eq 1 ]; then
   [ -f "$ZIP_PATH" ] || die "No $ZIP_PATH to deploy. Drop --no-build."
@@ -179,14 +182,21 @@ fi
 
 if [ "$DO_DEPLOY" -eq 1 ]; then
   step "Deploying"
-  az webapp deploy \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_NAME" \
-    --src-path "$ZIP_PATH" \
-    --type zip \
-    --async false \
-    -o none
-  info "uploaded and restarting"
+  # The CLI waits up to ten minutes for App Service to call the site
+  # healthy and then reports failure — but on the first deploy the site was
+  # up at the three-minute mark and answering 200 while the CLI was still
+  # waiting. So its verdict is a warning here, and the poll below decides.
+  if az webapp deploy \
+       --resource-group "$RESOURCE_GROUP" \
+       --name "$APP_NAME" \
+       --src-path "$ZIP_PATH" \
+       --type zip \
+       --async false \
+       -o none; then
+    info "uploaded and restarting"
+  else
+    info "az reported the site slow to start — checking it directly"
+  fi
 
   step "Waiting for the site"
   code=000
