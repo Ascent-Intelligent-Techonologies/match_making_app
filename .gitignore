@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# azure
+/azure/.env.azure
+/.azure-deploy/
+/.azure-deploy.zip
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
