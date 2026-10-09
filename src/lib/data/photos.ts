@@ -1,5 +1,14 @@
 import "server-only";
-import { count, execute, one, query, transaction } from "@/lib/db";
+import {
+  anyOf,
+  countRows,
+  deleteMany,
+  execute,
+  insertOne,
+  selectMany,
+  selectOneOrThrow,
+  transaction,
+} from "@/lib/db";
 import { deleteBlobs, signedUrl, uploadBlob } from "@/lib/storage/blob";
 import { PROFILE_PHOTOS_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { ProfilePhoto } from "@/lib/types";
@@ -13,33 +22,31 @@ export async function uploadProfilePhoto(
 
   await uploadBlob(PROFILE_PHOTOS_CONTAINER, path, file);
 
-  const existing = await count(
-    "select count(*) from profile_photos where profile_id = $1",
-    [profileId]
-  );
+  const existing = await countRows("profile_photos", { profile_id: profileId });
 
-  return one<ProfilePhoto>(
-    `insert into profile_photos (profile_id, storage_path, sort_order, is_cover)
-     values ($1, $2, $3, $4)
-     returning *`,
-    [profileId, path, existing, existing === 0]
-  );
+  return insertOne<ProfilePhoto>("profile_photos", {
+    profile_id: profileId,
+    storage_path: path,
+    sort_order: existing,
+    is_cover: existing === 0,
+  });
 }
 
 export async function deleteProfilePhoto(photoId: string): Promise<void> {
-  const photo = await one<{ storage_path: string }>(
-    "select storage_path from profile_photos where id = $1",
-    [photoId]
-  );
+  const photo = await selectOneOrThrow<{ storage_path: string }>("profile_photos", {
+    columns: "storage_path",
+    where: { id: photoId },
+  });
 
   await deleteBlobs(PROFILE_PHOTOS_CONTAINER, [photo.storage_path]);
-  await execute("delete from profile_photos where id = $1", [photoId]);
+  await deleteMany("profile_photos", { id: photoId });
 }
 
 export async function reorderProfilePhotos(orderedIds: string[]): Promise<void> {
   if (orderedIds.length === 0) return;
-  // One statement rather than a write per photo: a half-applied reorder would
-  // leave two photos claiming the same position.
+  // `update … from unnest(…) with ordinality` is beyond a generic builder,
+  // and worth it: one statement rather than a write per photo, so a failure
+  // cannot leave two photos claiming the same position.
   await execute(
     `update profile_photos p
         set sort_order = v.position
@@ -62,11 +69,12 @@ export async function setCoverPhoto(profileId: string, photoId: string): Promise
 export async function getCoverPhotoUrls(profileIds: string[]): Promise<Map<string, string>> {
   if (profileIds.length === 0) return new Map();
 
-  const covers = await query<{ profile_id: string; storage_path: string }>(
-    `select profile_id, storage_path
-       from profile_photos
-      where profile_id = any($1::uuid[]) and is_cover = true`,
-    [profileIds]
+  const covers = await selectMany<{ profile_id: string; storage_path: string }>(
+    "profile_photos",
+    {
+      columns: "profile_id, storage_path",
+      where: { profile_id: anyOf(profileIds, "uuid"), is_cover: true },
+    }
   );
 
   return new Map(

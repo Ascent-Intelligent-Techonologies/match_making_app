@@ -85,25 +85,42 @@ const HEADERS = {
 // by the time the referencing row is inserted.
 
 const TABLES = [
-  { name: "profiles", conflict: "id" },
-  { name: "clients", conflict: "id" },
-  { name: "app_settings", conflict: "id" },
-  { name: "team_notes", conflict: "slug" },
-  { name: "share_links", conflict: "id" },
-  { name: "share_link_profiles", conflict: "share_link_id, profile_id" },
-  { name: "profile_photos", conflict: "id" },
-  { name: "client_shortlists", conflict: "id" },
-  { name: "client_searches", conflict: "id" },
-  { name: "client_followups", conflict: "id" },
-  { name: "journey_media", conflict: "id" },
+  { name: "profiles", conflict: "id", order: "id" },
+  { name: "clients", conflict: "id", order: "id" },
+  // setup.sql seeds app_settings with a default row, so this one has to
+  // overwrite rather than skip — otherwise the saved colour palette and
+  // expiry default would be silently left behind.
+  { name: "app_settings", conflict: "id", order: "id", overwrite: true },
+  // Like app_settings, setup.sql seeds a row per consultant, so these have
+  // to overwrite — otherwise the notes they have actually written are
+  // silently replaced by the empty placeholders.
+  { name: "team_notes", conflict: "slug", order: "slug", overwrite: true },
+  { name: "share_links", conflict: "id", order: "id" },
+  {
+    name: "share_link_profiles",
+    conflict: "share_link_id, profile_id",
+    order: "share_link_id,profile_id",
+  },
+  { name: "profile_photos", conflict: "id", order: "id" },
+  { name: "client_shortlists", conflict: "id", order: "id" },
+  { name: "client_searches", conflict: "id", order: "id" },
+  { name: "client_followups", conflict: "id", order: "id" },
+  { name: "journey_media", conflict: "id", order: "id" },
 ];
 
 const PAGE = 1000; // PostgREST will not return more than this in one response
 
-async function fetchAll(table) {
+/**
+ * Every row of a table, a page at a time.
+ *
+ * The explicit `order` is not cosmetic: paging with limit/offset over an
+ * unordered result is free to return a row twice and skip another, which on a
+ * 2,700-row table would be a silent, partial copy.
+ */
+async function fetchAll(table, order) {
   const rows = [];
   for (let offset = 0; ; offset += PAGE) {
-    const url = `${SUPABASE}/rest/v1/${table}?select=*&limit=${PAGE}&offset=${offset}`;
+    const url = `${SUPABASE}/rest/v1/${table}?select=*&order=${order}&limit=${PAGE}&offset=${offset}`;
     const response = await fetch(url, { headers: HEADERS });
     if (!response.ok) {
       const body = await response.text();
@@ -126,11 +143,21 @@ function encode(value) {
   return value;
 }
 
+/** The columns a table actually has in Azure, so we only write those. */
+async function targetColumns(pool, table) {
+  const { rows } = await pool.query(
+    `select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = $1`,
+    [table]
+  );
+  return new Set(rows.map((r) => r.column_name));
+}
+
 async function copyRows(pool) {
   let grandTotal = 0;
 
-  for (const { name, conflict } of TABLES) {
-    const rows = await fetchAll(name);
+  for (const { name, conflict, order, overwrite } of TABLES) {
+    const rows = await fetchAll(name, order);
     if (rows.length === 0) {
       console.log(`  ${name.padEnd(22)} nothing to copy`);
       continue;
@@ -142,9 +169,13 @@ async function copyRows(pool) {
       continue;
     }
 
-    // Union of keys: a column added after some rows were written is null on
-    // the older ones, and PostgREST omits nothing, but this costs nothing.
-    const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+    // Only the columns the Azure table actually has. Supabase still carries
+    // retired columns that setup.sql no longer creates, and copying a column
+    // into a table that lacks it fails the whole statement.
+    const available = await targetColumns(pool, name);
+    const sourceColumns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+    const columns = sourceColumns.filter((c) => available.has(c));
+    const dropped = sourceColumns.filter((c) => !available.has(c));
     let written = 0;
 
     for (let i = 0; i < rows.length; i += 200) {
@@ -158,10 +189,17 @@ async function copyRows(pool) {
         return `(${placeholders.join(", ")})`;
       });
 
+      const action = overwrite
+        ? `do update set ${columns
+            .filter((c) => !conflict.split(",").map((x) => x.trim()).includes(c))
+            .map((c) => `${c} = excluded.${c}`)
+            .join(", ")}`
+        : "do nothing";
+
       const result = await pool.query(
         `insert into ${name} (${columns.join(", ")})
          values ${tuples.join(", ")}
-         on conflict (${conflict}) do nothing`,
+         on conflict (${conflict}) ${action}`,
         params
       );
       written += result.rowCount ?? 0;
@@ -170,7 +208,8 @@ async function copyRows(pool) {
     const skipped = rows.length - written;
     console.log(
       `  ${name.padEnd(22)} ${String(written).padStart(5)} written` +
-        (skipped > 0 ? `, ${skipped} already there` : "")
+        (skipped > 0 ? `, ${skipped} already there` : "") +
+        (dropped.length > 0 ? `, ignoring retired ${dropped.join(", ")}` : "")
     );
     grandTotal += written;
   }
@@ -184,21 +223,20 @@ async function copyRows(pool) {
 // gets copied is exactly what the application can still reach. An orphaned
 // blob in Supabase that no row points at is left behind on purpose.
 
-async function copyFiles(pool) {
+async function copyFiles() {
+  // Read from Supabase, not from Azure: this has to give the same answer
+  // whether or not the rows have been copied yet, so that --dry-run and
+  // --files both report the truth.
   const sets = [
     {
       container: "profile-photos",
       bucket: "profile-photos",
-      paths: (
-        await pool.query("select storage_path from profile_photos order by storage_path")
-      ).rows.map((r) => r.storage_path),
+      paths: (await fetchAll("profile_photos", "id")).map((r) => r.storage_path),
     },
     {
       container: "journey-media",
       bucket: "journey-media",
-      paths: (
-        await pool.query("select storage_path from journey_media order by storage_path")
-      ).rows.map((r) => r.storage_path),
+      paths: (await fetchAll("journey_media", "id")).map((r) => r.storage_path),
     },
   ];
 
@@ -304,7 +342,7 @@ try {
 
   if (DO_FILES) {
     console.log("\nFiles");
-    const { copied, skipped, failed } = await copyFiles(pool);
+    const { copied, skipped, failed } = await copyFiles();
     if (!DRY_RUN) {
       console.log(`  copied ${copied}, already there ${skipped}, failed ${failed.length}`);
       for (const line of failed.slice(0, 20)) console.log(`    ${line}`);

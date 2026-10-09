@@ -1,5 +1,21 @@
 import "server-only";
-import { buildInsert, buildUpdate, count, execute, maybeOne, one, query } from "@/lib/db";
+import {
+  anyOf,
+  countRows,
+  deleteMany,
+  gte,
+  ilike,
+  insertMany,
+  insertOne,
+  notNull,
+  overlaps,
+  selectColumn,
+  selectMany,
+  selectOne,
+  updateMany,
+  updateOne,
+  type Filters,
+} from "@/lib/db";
 import { deleteBlobs, signedUrl } from "@/lib/storage/blob";
 import { PROFILE_PHOTOS_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
@@ -44,59 +60,68 @@ export interface ProfilePage {
 }
 
 /**
- * The filters, as a list of SQL conditions and the values they bind.
+ * The filters, as a `Filters` object the CRUD layer turns into SQL.
  *
  * Shared by the list and the count so the two can never disagree about what
  * "matching" means — a count that drifts from its list is worse than no count.
- * Every value is a bound parameter; nothing is interpolated into the SQL.
  */
-function profileConditions(filters: ProfileFilters): {
-  where: string;
-  params: unknown[];
-} {
-  const clauses: string[] = ["is_active = true", "deleted_at is null"];
-  const params: unknown[] = [];
-
-  const bind = (value: unknown): string => {
-    params.push(value);
-    return `$${params.length}`;
+function profileFilters(filters: ProfileFilters): Filters {
+  const where: Filters = {
+    is_active: true,
+    // Soft-deleted profiles are invisible to every list; the Deleted page has
+    // its own query rather than a flag threaded through this one.
+    deleted_at: null,
   };
+  const and: Filters["$raw"] = [];
 
   if (filters.search) {
     const term = `%${filters.search.trim()}%`;
-    const p = bind(term);
-    clauses.push(
-      `(full_name ilike ${p} or city ilike ${p} or profession ilike ${p}
-        or religion ilike ${p} or caste ilike ${p})`
-    );
+    where.$or = [
+      { full_name: ilike(term) },
+      { city: ilike(term) },
+      { profession: ilike(term) },
+      { religion: ilike(term) },
+      { caste: ilike(term) },
+    ];
   }
-  if (filters.gender) clauses.push(`gender = ${bind(filters.gender)}`);
-  if (filters.city) clauses.push(`city ilike ${bind(`%${filters.city}%`)}`);
-  if (filters.religion) clauses.push(`religion = ${bind(filters.religion)}`);
-  // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge the latest.
-  if (filters.minAge) clauses.push(`dob <= ${bind(dobFromAge(filters.minAge))}`);
-  if (filters.maxAge) clauses.push(`dob >= ${bind(dobFromAge(filters.maxAge))}`);
-  if (filters.caste) clauses.push(`caste ilike ${bind(`%${filters.caste}%`)}`);
-  // && is "arrays overlap": carries any one of these tags.
-  if (filters.tags?.length) clauses.push(`tags && ${bind(filters.tags)}::text[]`);
-  if (filters.anurupaAura) clauses.push("anurupa_aura = true");
-  if (filters.minHeight) clauses.push(`height_cm >= ${bind(filters.minHeight)}`);
-  if (filters.maxHeight) clauses.push(`height_cm <= ${bind(filters.maxHeight)}`);
-  if (filters.minFinances) clauses.push(`annual_income_inr >= ${bind(filters.minFinances)}`);
-  if (filters.maxFinances) clauses.push(`annual_income_inr <= ${bind(filters.maxFinances)}`);
-  if (filters.professionCategory) {
-    clauses.push(`profession_category = ${bind(filters.professionCategory)}`);
+  if (filters.gender) where.gender = filters.gender;
+  if (filters.city) where.city = ilike(`%${filters.city}%`);
+  if (filters.religion) where.religion = filters.religion;
+  if (filters.caste) where.caste = ilike(`%${filters.caste}%`);
+  if (filters.anurupaAura) where.anurupa_aura = true;
+  if (filters.urgent) where.urgent = true;
+  if (filters.professionCategory) where.profession_category = filters.professionCategory;
+  if (filters.minHeight) where.height_cm = gte(filters.minHeight);
+  if (filters.maxHeight) {
+    and.push({ sql: "height_cm <= ?", params: [filters.maxHeight] });
   }
-  if (filters.urgent) clauses.push("urgent = true");
-  if (filters.potentialClient) {
-    clauses.push("(sibling1_potential_client = true or sibling2_potential_client = true)");
+  if (filters.minFinances) where.annual_income_inr = gte(filters.minFinances);
+  if (filters.maxFinances) {
+    and.push({ sql: "annual_income_inr <= ?", params: [filters.maxFinances] });
+  }
+  if (filters.tags?.length) where.tags = overlaps(filters.tags);
+
+  // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge
+  // the latest. Both ends can apply at once, as can a birth year, so they go
+  // in as fragments rather than fighting over the one `dob` key.
+  if (filters.minAge) {
+    and.push({ sql: "dob <= ?", params: [dobFromAge(filters.minAge)] });
+  }
+  if (filters.maxAge) {
+    and.push({ sql: "dob >= ?", params: [dobFromAge(filters.maxAge)] });
   }
   if (filters.birthYear) {
-    clauses.push(`dob >= ${bind(`${filters.birthYear}-01-01`)}`);
-    clauses.push(`dob <= ${bind(`${filters.birthYear}-12-31`)}`);
+    and.push({ sql: "extract(year from dob) = ?", params: [filters.birthYear] });
   }
 
-  return { where: clauses.join(" and "), params };
+  if (filters.potentialClient) {
+    and.push({
+      sql: "(sibling1_potential_client = true or sibling2_potential_client = true)",
+    });
+  }
+
+  if (and.length > 0) where.$raw = and;
+  return where;
 }
 
 /**
@@ -111,18 +136,16 @@ export async function listProfilePage(
   page = 1,
   pageSize = PROFILE_PAGE_SIZE
 ): Promise<ProfilePage> {
-  const offset = Math.max(0, page - 1) * pageSize;
-  const { where, params } = profileConditions(filters);
+  const where = profileFilters(filters);
 
   const [profiles, total] = await Promise.all([
-    query<Profile>(
-      `select * from profiles
-        where ${where}
-        order by created_at desc
-        limit $${params.length + 1} offset $${params.length + 2}`,
-      [...params, pageSize, offset]
-    ),
-    count(`select count(*) from profiles where ${where}`, params),
+    selectMany<Profile>("profiles", {
+      where,
+      orderBy: "created_at desc",
+      limit: pageSize,
+      offset: Math.max(0, page - 1) * pageSize,
+    }),
+    countRows("profiles", where),
   ]);
 
   return { profiles, total };
@@ -154,13 +177,13 @@ function attachSignedPhotoUrls(photos: ProfilePhoto[]): ProfilePhoto[] {
  * Anything client-facing goes through getPublicProfileWithPhotos instead.
  */
 export async function getProfileWithPhotos(id: string): Promise<ProfileWithPhotos | null> {
-  const profile = await maybeOne<Profile>("select * from profiles where id = $1", [id]);
+  const profile = await selectOne<Profile>("profiles", { where: { id } });
   if (!profile) return null;
 
-  const photos = await query<ProfilePhoto>(
-    "select * from profile_photos where profile_id = $1 order by sort_order asc",
-    [id]
-  );
+  const photos = await selectMany<ProfilePhoto>("profile_photos", {
+    where: { profile_id: id },
+    orderBy: "sort_order asc",
+  });
 
   return { ...profile, photos: attachSignedPhotoUrls(photos) };
 }
@@ -179,16 +202,13 @@ export async function getManyProfilesWithPhotos(
   if (ids.length === 0) return [];
 
   const [profiles, photos] = await Promise.all([
-    query<Profile>(
-      "select * from profiles where deleted_at is null and id = any($1::uuid[])",
-      [ids]
-    ),
-    query<ProfilePhoto>(
-      `select * from profile_photos
-        where profile_id = any($1::uuid[])
-        order by sort_order asc`,
-      [ids]
-    ),
+    selectMany<Profile>("profiles", {
+      where: { deleted_at: null, id: anyOf(ids, "uuid") },
+    }),
+    selectMany<ProfilePhoto>("profile_photos", {
+      where: { profile_id: anyOf(ids, "uuid") },
+      orderBy: "sort_order asc",
+    }),
   ]);
 
   const signedPhotos = attachSignedPhotoUrls(photos);
@@ -200,20 +220,18 @@ export async function getManyProfilesWithPhotos(
 }
 
 export async function createProfile(values: ProfileFormValues): Promise<Profile> {
-  const { text, params } = buildInsert("profiles", values);
-  return one<Profile>(text, params);
+  return insertOne<Profile>("profiles", values);
 }
 
 export async function updateProfile(
   id: string,
   values: Partial<ProfileFormValues>
 ): Promise<Profile> {
-  const { text, params } = buildUpdate(
+  return updateOne<Profile>(
     "profiles",
     { ...values, updated_at: new Date().toISOString() },
-    { column: "id", value: id }
+    { id }
   );
-  return one<Profile>(text, params);
 }
 
 /**
@@ -222,53 +240,52 @@ export async function updateProfile(
  * whole record back exactly as it was.
  */
 export async function softDeleteProfile(id: string): Promise<void> {
-  await execute("update profiles set deleted_at = now() where id = $1", [id]);
+  await updateMany("profiles", { deleted_at: new Date().toISOString() }, { id });
 }
 
 export async function restoreProfile(id: string): Promise<void> {
-  await execute("update profiles set deleted_at = null where id = $1", [id]);
+  await updateMany("profiles", { deleted_at: null }, { id });
 }
 
 export async function listDeletedProfiles(): Promise<Profile[]> {
-  return query<Profile>(
-    "select * from profiles where deleted_at is not null order by deleted_at desc"
-  );
+  return selectMany<Profile>("profiles", {
+    where: { deleted_at: notNull() },
+    orderBy: "deleted_at desc",
+  });
 }
 
 /** Permanent. Removes the photos from storage first, then the row. */
 export async function deleteProfile(id: string): Promise<void> {
-  const photos = await query<{ storage_path: string }>(
-    "select storage_path from profile_photos where profile_id = $1",
-    [id]
-  );
+  const paths = await selectColumn<string>("profile_photos", "storage_path", {
+    where: { profile_id: id },
+  });
 
-  await deleteBlobs(
-    PROFILE_PHOTOS_CONTAINER,
-    photos.map((p) => p.storage_path)
-  );
-
-  await execute("delete from profiles where id = $1", [id]);
+  await deleteBlobs(PROFILE_PHOTOS_CONTAINER, paths);
+  await deleteMany("profiles", { id });
 }
 
 export async function getDistinctCities(): Promise<string[]> {
-  const rows = await query<{ city: string }>(
-    "select distinct city from profiles where city is not null order by city"
-  );
-  return rows.map((r) => r.city);
+  return selectColumn<string>("profiles", "city", {
+    columns: "distinct city",
+    where: { city: notNull() },
+    orderBy: "city",
+  } as never);
 }
 
 /** Birth years present in the book, newest first, for the All Profiles filter. */
 export async function listProfileBirthYears(gender?: string): Promise<number[]> {
   // Grouped in the database rather than by reading every dob into memory and
   // de-duplicating here, which is what the thousand-row page cap used to force.
-  const rows = await query<{ year: number }>(
-    `select distinct extract(year from dob)::int as year
-       from profiles
-      where is_active = true and deleted_at is null and dob is not null
-        and ($1::text is null or gender = $1)
-      order by year desc`,
-    [gender ?? null]
-  );
+  const rows = await selectMany<{ year: number }>("profiles", {
+    columns: "distinct extract(year from dob)::int as year",
+    where: {
+      is_active: true,
+      deleted_at: null,
+      dob: notNull(),
+      ...(gender ? { gender } : {}),
+    },
+    orderBy: "year desc",
+  });
   return rows.map((r) => r.year);
 }
 
@@ -292,40 +309,22 @@ export async function bulkUpsertProfilesBySourceId(
   chunkSize = 250
 ): Promise<BulkUpsertResult> {
   const result: BulkUpsertResult = { written: 0, failed: [] };
-  if (rows.length === 0) return result;
-
-  // Every row is written with the same column list, so a row that happens to
-  // leave a field blank still overwrites it rather than keeping a stale value
-  // from a previous import.
-  const columns = Array.from(
-    new Set(rows.flatMap((row) => Object.keys(row).filter((k) => row[k as keyof typeof row] !== undefined)))
-  );
-  const updates = columns
-    .filter((c) => c !== "source_id")
-    .map((c) => `${c} = excluded.${c}`)
-    .concat("updated_at = now()");
 
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-
-    const params: unknown[] = [];
-    const tuples = chunk.map((row) => {
-      const placeholders = columns.map((column) => {
-        params.push(row[column as keyof typeof row] ?? null);
-        return `$${params.length}`;
-      });
-      return `(${placeholders.join(", ")})`;
-    });
-
     try {
-      await execute(
-        `insert into profiles (${columns.join(", ")})
-         values ${tuples.join(", ")}
-         on conflict (source_id) do update set ${updates.join(", ")}`,
-        params
-      );
+      await insertMany("profiles", chunk, {
+        chunkSize,
+        conflict: {
+          onConflict: "source_id",
+          update: true,
+          alsoSet: { updated_at: "now()" },
+        },
+      });
       result.written += chunk.length;
     } catch (error) {
+      // A chunk that fails is reported row by row and the import carries on,
+      // rather than one bad row losing the whole file.
       const message = error instanceof Error ? error.message : String(error);
       for (const row of chunk) {
         result.failed.push({ sourceId: row.source_id, message });
@@ -339,5 +338,5 @@ export async function bulkUpsertProfilesBySourceId(
 /** How many of these source ids are already on the books. */
 export async function countExistingSourceIds(sourceIds: string[]): Promise<number> {
   if (sourceIds.length === 0) return 0;
-  return count("select count(*) from profiles where source_id = any($1::text[])", [sourceIds]);
+  return countRows("profiles", { source_id: anyOf(sourceIds) });
 }

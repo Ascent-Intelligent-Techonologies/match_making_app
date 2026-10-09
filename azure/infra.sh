@@ -182,8 +182,37 @@ done
 
 step "PostgreSQL flexible server"
 PG_CREATED=0
+
+# A previous run may already have created the server and saved its password.
+# Re-reading it here is what makes this script resumable: without it a second
+# run would have a server it cannot log in to.
+PG_ADMIN_PASSWORD=""
+if [ -f "$OUTPUT_ENV" ]; then
+  saved="$(sed -n 's|^DATABASE_URL=postgresql://[^:]*:\([^@]*\)@.*|\1|p' "$OUTPUT_ENV" | head -n 1 || true)"
+  saved_host="$(sed -n 's|^AZURE_PG_HOST=\(.*\)|\1|p' "$OUTPUT_ENV" | head -n 1 || true)"
+  if [ -n "$saved" ] && [ "$saved_host" = "${PG_SERVER}.postgres.database.azure.com" ]; then
+    PG_ADMIN_PASSWORD="$saved"
+    info "reusing the admin password recorded in azure/.env.azure"
+  fi
+fi
+
 if az postgres flexible-server show -g "$RESOURCE_GROUP" -n "$PG_SERVER" -o none 2>/dev/null; then
-  info "$PG_SERVER already exists — leaving its admin password alone"
+  info "$PG_SERVER already exists"
+  if [ -z "$PG_ADMIN_PASSWORD" ]; then
+    # The server exists but nothing recorded its password — an earlier run
+    # failed before writing it out. Rotating is the only way forward, and is
+    # safe: the new value is written to app settings and azure/.env.azure in
+    # the same run.
+    PG_RANDOM="$(openssl rand -base64 48 | tr -d '/+=\n')"
+    PG_ADMIN_PASSWORD="Az9${PG_RANDOM:0:29}"
+    info "no saved password — resetting the admin password"
+    az postgres flexible-server update \
+      --resource-group "$RESOURCE_GROUP" \
+      --name "$PG_SERVER" \
+      --admin-password "$PG_ADMIN_PASSWORD" \
+      -o none
+    PG_CREATED=1
+  fi
 else
   # Alphanumeric only: this password ends up inside a URL, and encoding rules
   # around '@', ':' and '/' are a classic source of silent connection failures.
@@ -205,7 +234,7 @@ else
     --storage-auto-grow Disabled \
     --version "$PG_VERSION" \
     --backup-retention "$PG_BACKUP_DAYS" \
-    --public-access None \
+    --public-access Enabled \
     --tags "${TAGS[@]}" \
     --yes \
     -o none
@@ -213,12 +242,22 @@ else
   info "created $PG_SERVER"
 fi
 
-az postgres flexible-server db create \
-  --resource-group "$RESOURCE_GROUP" \
-  --server-name "$PG_SERVER" \
-  --database-name "$PG_DATABASE" \
-  -o none 2>/dev/null || true
-info "database $PG_DATABASE"
+# Checked rather than created-and-ignored: an `|| true` here once hid a
+# wrong flag name, and the schema step then failed with "database does not
+# exist" several minutes later.
+if az postgres flexible-server db show \
+     --resource-group "$RESOURCE_GROUP" \
+     --server-name "$PG_SERVER" \
+     --database-name "$PG_DATABASE" -o none 2>/dev/null; then
+  info "database $PG_DATABASE already exists"
+else
+  az postgres flexible-server db create \
+    --resource-group "$RESOURCE_GROUP" \
+    --server-name "$PG_SERVER" \
+    --name "$PG_DATABASE" \
+    -o none
+  info "created database $PG_DATABASE"
+fi
 
 # setup.sql opens with `create extension pgcrypto`, and Flexible Server refuses
 # any extension that is not on this allow-list first.
@@ -311,32 +350,50 @@ info "granted Storage Blob Data Contributor on $STORAGE_ACCOUNT"
 
 # ------------------------------------------------------- database firewall --
 
-# The database has no public firewall rules at all until this point, so nothing
-# can reach it. Rather than the blanket "allow all Azure services" rule — which
-# opens the server to every tenant in the region — only this app's outbound
-# addresses and the operator's own IP are let through.
 step "Database firewall"
-OUTBOUND_IPS="$(az webapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query possibleOutboundIpAddresses -o tsv)"
-i=0
-IFS=',' read -r -a ip_list <<< "$OUTBOUND_IPS" || true
-for ip in "${ip_list[@]}"; do
-  [ -n "$ip" ] || continue
-  i=$((i + 1))
-  az postgres flexible-server firewall-rule create \
+
+# `--public-access None` is documented as "public access mode, but no firewall
+# rule". In CLI 2.91 it actually leaves publicNetworkAccess Disabled, and with
+# no delegated subnet that is a server nothing can reach. Assert the state we
+# need rather than trusting the create flag.
+PUBLIC_ACCESS="$(az postgres flexible-server show \
+  -g "$RESOURCE_GROUP" -n "$PG_SERVER" \
+  --query network.publicNetworkAccess -o tsv)"
+if [ "$PUBLIC_ACCESS" != "Enabled" ]; then
+  info "public endpoint is $PUBLIC_ACCESS — enabling it so rules can be added"
+  az postgres flexible-server update \
     --resource-group "$RESOURCE_GROUP" \
     --name "$PG_SERVER" \
-    --rule-name "appservice-$i" \
-    --start-ip-address "$ip" \
-    --end-ip-address "$ip" \
+    --public-access Enabled \
     -o none
-done
-info "$i App Service outbound addresses allowed"
+fi
+
+# One rule rather than one per address. App Service reports 31 possible
+# outbound IPs here, each firewall rule is a separate ~70-second server
+# operation, and the list is not stable — Azure can move the app to another
+# scale unit, at which point per-IP rules silently stop matching and the app
+# loses its database.
+#
+# 0.0.0.0 is Azure's sentinel for "any Azure resource", not "the internet".
+# It is wider than this app alone: another Azure tenant can reach the port,
+# though they still need the admin user and a 32-character random password
+# over enforced TLS. The tight alternative is a private endpoint (about
+# ₹700/month) plus VNet integration, which also stops a laptop reaching the
+# database to run migrations. See azure/README.md.
+az postgres flexible-server firewall-rule create \
+  --resource-group "$RESOURCE_GROUP" \
+  --server-name "$PG_SERVER" \
+  --name "allow-azure-services" \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 0.0.0.0 \
+  -o none
+info "Azure services allowed (covers this app's outbound addresses)"
 
 if [ -n "$MY_IP" ]; then
   az postgres flexible-server firewall-rule create \
     --resource-group "$RESOURCE_GROUP" \
-    --name "$PG_SERVER" \
-    --rule-name "operator" \
+    --server-name "$PG_SERVER" \
+    --name "operator" \
     --start-ip-address "$MY_IP" \
     --end-ip-address "$MY_IP" \
     -o none
@@ -361,7 +418,7 @@ settings=(
   "AZURE_STORAGE_ACCOUNT=$STORAGE_ACCOUNT"
   "AZURE_STORAGE_KEY=$STORAGE_KEY"
 )
-if [ "$PG_CREATED" -eq 1 ]; then
+if [ -n "$PG_ADMIN_PASSWORD" ]; then
   settings+=("DATABASE_URL=postgresql://${PG_ADMIN_USER}:${PG_ADMIN_PASSWORD}@${PG_HOST}:5432/${PG_DATABASE}?sslmode=require")
 fi
 
@@ -381,10 +438,10 @@ elif ! command -v psql >/dev/null 2>&1; then
   step "Schema — skipped"
   info "psql is not installed. Install it with:  brew install libpq"
   info "then re-run this script, or load it by hand (see azure/README.md)."
-elif [ "$PG_CREATED" -ne 1 ]; then
+elif [ -z "$PG_ADMIN_PASSWORD" ]; then
   step "Schema — skipped"
-  info "The server already existed, so its password is not known to this run."
-  info "Load the schema by hand if you need to; see azure/README.md."
+  info "This run does not know the server's password, so it cannot connect."
+  info "Load the schema by hand; see azure/README.md."
 else
   step "Loading the schema"
   # supabase/setup.sql is the single source of truth for the schema, and is
@@ -420,7 +477,7 @@ umask 077
   echo "AZURE_PG_SERVER=$PG_SERVER"
   echo "AZURE_PG_HOST=$PG_HOST"
   echo "NEXT_PUBLIC_SITE_URL=$SITE_URL"
-  if [ "$PG_CREATED" -eq 1 ]; then
+  if [ -n "$PG_ADMIN_PASSWORD" ]; then
     echo "DATABASE_URL=postgresql://${PG_ADMIN_USER}:${PG_ADMIN_PASSWORD}@${PG_HOST}:5432/${PG_DATABASE}?sslmode=require"
   fi
 } > "$OUTPUT_ENV"

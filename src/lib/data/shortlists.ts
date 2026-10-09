@@ -1,5 +1,5 @@
 import "server-only";
-import { execute, query } from "@/lib/db";
+import { deleteMany, insertOne, selectMany } from "@/lib/db";
 import { touchClientActivity } from "@/lib/data/clients";
 
 export interface ShortlistedProfile {
@@ -10,27 +10,26 @@ export interface ShortlistedProfile {
 }
 
 export async function getShortlistedProfileIds(clientId: string): Promise<string[]> {
-  const rows = await query<{ profile_id: string }>(
-    "select profile_id from client_shortlists where client_id = $1",
-    [clientId]
-  );
+  const rows = await selectMany<{ profile_id: string }>("client_shortlists", {
+    columns: "profile_id",
+    where: { client_id: clientId },
+  });
   return rows.map((r) => r.profile_id);
 }
 
 export async function listShortlistedProfiles(clientId: string): Promise<ShortlistedProfile[]> {
   // Left-joined: a shortlist outlives a hard-deleted profile, and the client
   // having hearted something is worth showing even once it is gone.
-  return query<ShortlistedProfile>(
-    `select cs.profile_id,
-            cs.created_at,
-            coalesce(p.full_name, 'Unknown profile') as full_name,
-            p.city
-       from client_shortlists cs
-       left join profiles p on p.id = cs.profile_id
-      where cs.client_id = $1
-      order by cs.created_at desc`,
-    [clientId]
-  );
+  return selectMany<ShortlistedProfile>("client_shortlists", {
+    from: "client_shortlists cs",
+    joins: "left join profiles p on p.id = cs.profile_id",
+    columns: `cs.profile_id,
+              cs.created_at,
+              coalesce(p.full_name, 'Unknown profile') as full_name,
+              p.city`,
+    where: { "cs.client_id": clientId },
+    orderBy: "cs.created_at desc",
+  });
 }
 
 /**
@@ -40,17 +39,16 @@ export async function listShortlistedProfiles(clientId: string): Promise<Shortli
  * immediately.
  */
 async function toggle(clientId: string, profileId: string, shareLinkId: string | null) {
-  const removed = await execute(
-    "delete from client_shortlists where client_id = $1 and profile_id = $2",
-    [clientId, profileId]
-  );
+  const removed = await deleteMany("client_shortlists", {
+    client_id: clientId,
+    profile_id: profileId,
+  });
   if (removed > 0) return false;
 
-  await execute(
-    `insert into client_shortlists (client_id, profile_id, share_link_id)
-     values ($1, $2, $3)
-     on conflict (client_id, profile_id) do nothing`,
-    [clientId, profileId, shareLinkId]
+  await insertOne(
+    "client_shortlists",
+    { client_id: clientId, profile_id: profileId, share_link_id: shareLinkId },
+    { onConflict: ["client_id", "profile_id"] }
   );
   return true;
 }
@@ -73,10 +71,7 @@ export async function toggleShortlist(input: {
  * our tidying up is not their activity.
  */
 export async function removeShortlist(clientId: string, profileId: string): Promise<void> {
-  await execute(
-    "delete from client_shortlists where client_id = $1 and profile_id = $2",
-    [clientId, profileId]
-  );
+  await deleteMany("client_shortlists", { client_id: clientId, profile_id: profileId });
 }
 
 /**

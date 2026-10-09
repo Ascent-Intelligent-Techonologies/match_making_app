@@ -1,5 +1,15 @@
 import "server-only";
-import { execute, maybeOne, one, query } from "@/lib/db";
+import {
+  deleteMany,
+  ilike,
+  notNull,
+  selectMany,
+  selectOne,
+  updateMany,
+  upsertOne,
+  type Filters,
+  type SelectOptions,
+} from "@/lib/db";
 import { normalizePhone } from "@/lib/phone";
 import type { Client, ClientSummary } from "@/lib/types";
 
@@ -13,29 +23,32 @@ export const RECENT_CONTACT_DAYS = 7;
  *
  * The counts are computed in the database rather than by pulling every link
  * and shortlist back and counting them here — the lists are the slow part,
- * and nothing on the page needs the rows themselves.
+ * and nothing on the page needs the rows themselves. Two lateral joins are
+ * past what a generic select can assemble, so the shape is written out once
+ * and reused by both callers.
  */
-const SUMMARY_SELECT = `
-  select c.*,
-         coalesce(s.shared_profiles, 0)::int as "sharedProfileCount",
-         coalesce(h.shortlists, 0)::int      as "shortlistedCount",
-         coalesce(s.links, 0)::int           as "linkCount",
-         s.last_shared_at                    as "lastSharedAt"
-    from clients c
-    left join lateral (
-      select count(distinct slp.profile_id) as shared_profiles,
-             count(distinct l.id)           as links,
-             max(l.created_at)              as last_shared_at
-        from share_links l
-        left join share_link_profiles slp on slp.share_link_id = l.id
-       where l.client_id = c.id
-    ) s on true
-    left join lateral (
-      select count(*) as shortlists
-        from client_shortlists cs
-       where cs.client_id = c.id
-    ) h on true
-`;
+const SUMMARY_QUERY: SelectOptions = {
+  from: "clients c",
+  columns: `c.*,
+            coalesce(s.shared_profiles, 0)::int as "sharedProfileCount",
+            coalesce(h.shortlists, 0)::int      as "shortlistedCount",
+            coalesce(s.links, 0)::int           as "linkCount",
+            s.last_shared_at                    as "lastSharedAt"`,
+  joins: `left join lateral (
+            select count(distinct slp.profile_id) as shared_profiles,
+                   count(distinct l.id)           as links,
+                   max(l.created_at)              as last_shared_at
+              from share_links l
+              left join share_link_profiles slp on slp.share_link_id = l.id
+             where l.client_id = c.id
+          ) s on true
+          left join lateral (
+            select count(*) as shortlists
+              from client_shortlists cs
+             where cs.client_id = c.id
+          ) h on true`,
+  orderBy: "c.created_at desc",
+};
 
 /**
  * Finds the client with this phone number, or creates one. Phone is the
@@ -48,65 +61,56 @@ export async function upsertClientByPhone(input: {
 }): Promise<Client> {
   const phone = normalizePhone(input.phone);
 
-  return one<Client>(
-    `insert into clients (phone, phone_display, full_name, updated_at)
-     values ($1, $2, $3, now())
-     on conflict (phone) do update
-        set phone_display = excluded.phone_display,
-            full_name     = excluded.full_name,
-            updated_at    = now(),
-            -- Re-entering someone's details brings them back rather than
-            -- silently writing to a row every list is filtering out.
-            deleted_at    = null
-     returning *`,
-    [phone, input.phone.trim(), input.fullName.trim()]
+  return upsertOne<Client>(
+    "clients",
+    {
+      phone,
+      phone_display: input.phone.trim(),
+      full_name: input.fullName.trim(),
+      // Re-entering someone's details brings them back rather than silently
+      // writing to a row every list is filtering out.
+      deleted_at: null,
+    },
+    "phone",
+    { updated_at: "now()" }
   );
 }
 
 export async function listClientSummaries(search?: string): Promise<ClientSummary[]> {
   // Soft-deleted clients are hidden from every list but the Deleted page.
-  const clauses = ["c.deleted_at is null"];
-  const params: unknown[] = [];
+  const where: Filters = { "c.deleted_at": null };
 
   const term = search?.trim();
   if (term) {
     // Match the typed text against the name, and the digits against the phone.
     const digits = normalizePhone(term);
-    params.push(`%${term}%`);
-    const name = `c.full_name ilike $${params.length}`;
-    if (digits) {
-      params.push(`%${digits}%`);
-      clauses.push(`(${name} or c.phone ilike $${params.length})`);
-    } else {
-      clauses.push(name);
-    }
+    where.$or = [
+      { "c.full_name": ilike(`%${term}%`) },
+      ...(digits ? [{ "c.phone": ilike(`%${digits}%`) }] : []),
+    ];
   }
 
-  return query<ClientSummary>(
-    `${SUMMARY_SELECT} where ${clauses.join(" and ")} order by c.created_at desc`,
-    params
-  );
+  return selectMany<ClientSummary>("clients", { ...SUMMARY_QUERY, where });
 }
 
 export async function getClientById(id: string): Promise<Client | null> {
-  return maybeOne<Client>("select * from clients where id = $1", [id]);
+  return selectOne<Client>("clients", { where: { id } });
 }
 
 /** Lightweight list used to autocomplete the client fields when sharing. */
 export async function listClientsForPicker(): Promise<
   Pick<Client, "id" | "full_name" | "phone_display" | "phone">[]
 > {
-  return query(
-    `select id, full_name, phone_display, phone
-       from clients
-      where deleted_at is null
-      order by full_name`
-  );
+  return selectMany("clients", {
+    columns: "id, full_name, phone_display, phone",
+    where: { deleted_at: null },
+    orderBy: "full_name",
+  });
 }
 
 /** Records that a client engaged (opened a link or shortlisted a profile). */
 export async function touchClientActivity(clientId: string): Promise<void> {
-  await execute("update clients set last_activity_at = now() where id = $1", [clientId]);
+  await updateMany("clients", { last_activity_at: new Date().toISOString() }, { id: clientId });
 }
 
 export interface ClientAnalytics {
@@ -173,29 +177,29 @@ export async function getClientAnalytics(): Promise<ClientAnalytics> {
 
 /** Profile ids already shared with this client, used to grey out search hits. */
 export async function getSharedProfileIdsForClient(clientId: string): Promise<string[]> {
-  const rows = await query<{ profile_id: string }>(
-    `select distinct slp.profile_id
-       from share_links l
-       join share_link_profiles slp on slp.share_link_id = l.id
-      where l.client_id = $1`,
-    [clientId]
-  );
+  const rows = await selectMany<{ profile_id: string }>("share_links", {
+    from: "share_links l",
+    joins: "join share_link_profiles slp on slp.share_link_id = l.id",
+    columns: "distinct slp.profile_id",
+    where: { "l.client_id": clientId },
+  });
   return rows.map((r) => r.profile_id);
 }
 
 /** Hides a client without destroying anything. Reversible from the Deleted page. */
 export async function softDeleteClient(id: string): Promise<void> {
-  await execute("update clients set deleted_at = now() where id = $1", [id]);
+  await updateMany("clients", { deleted_at: new Date().toISOString() }, { id });
 }
 
 export async function restoreClient(id: string): Promise<void> {
-  await execute("update clients set deleted_at = null where id = $1", [id]);
+  await updateMany("clients", { deleted_at: null }, { id });
 }
 
 export async function listDeletedClients(): Promise<Client[]> {
-  return query<Client>(
-    "select * from clients where deleted_at is not null order by deleted_at desc"
-  );
+  return selectMany<Client>("clients", {
+    where: { deleted_at: notNull() },
+    orderBy: "deleted_at desc",
+  });
 }
 
 /**
@@ -208,6 +212,6 @@ export async function listDeletedClients(): Promise<Client[]> {
  * while the attribution still exists to find it by.
  */
 export async function deleteClient(id: string): Promise<void> {
-  await execute("delete from share_links where client_id = $1", [id]);
-  await execute("delete from clients where id = $1", [id]);
+  await deleteMany("share_links", { client_id: id });
+  await deleteMany("clients", { id });
 }

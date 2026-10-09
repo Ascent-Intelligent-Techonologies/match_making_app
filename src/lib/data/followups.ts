@@ -1,5 +1,5 @@
 import "server-only";
-import { execute, query } from "@/lib/db";
+import { deleteMany, insertOne, selectMany } from "@/lib/db";
 
 export interface ClientFollowup {
   id: string;
@@ -16,10 +16,10 @@ export async function addFollowup(input: {
   clientId: string;
   note: string;
 }): Promise<void> {
-  await execute("insert into client_followups (client_id, note) values ($1, $2)", [
-    input.clientId,
-    input.note.trim(),
-  ]);
+  await insertOne("client_followups", {
+    client_id: input.clientId,
+    note: input.note.trim(),
+  });
 
   // Deliberately does NOT touch clients.last_activity_at. That column means
   // "the client responded"; a follow-up is us contacting them, and counting it
@@ -27,33 +27,33 @@ export async function addFollowup(input: {
 }
 
 export async function listFollowupsForClient(clientId: string): Promise<ClientFollowup[]> {
-  return query<ClientFollowup>(
-    "select * from client_followups where client_id = $1 order by created_at desc",
-    [clientId]
-  );
+  return selectMany<ClientFollowup>("client_followups", {
+    where: { client_id: clientId },
+    orderBy: "created_at desc",
+  });
 }
 
 export async function listRecentFollowups(limit = 15): Promise<FollowupWithClient[]> {
-  // A left join rather than an inner one: a follow-up whose client was deleted
-  // is still worth showing, with the client shown as unknown.
-  return query<FollowupWithClient>(
-    `select f.*,
-            case when c.id is null then null
-                 else jsonb_build_object(
-                   'id', c.id,
-                   'full_name', c.full_name,
-                   'phone_display', c.phone_display,
-                   'phone', c.phone
-                 )
-            end as client
-       from client_followups f
-       left join clients c on c.id = f.client_id
-      order by f.created_at desc
-      limit $1`,
-    [limit]
-  );
+  // Left-joined and folded into a JSON object so the caller gets `client`
+  // already shaped. A generic select cannot express the join, so this one is
+  // written out.
+  return selectMany<FollowupWithClient>("client_followups", {
+    from: "client_followups f",
+    joins: "left join clients c on c.id = f.client_id",
+    columns: `f.*,
+              case when c.id is null then null
+                   else jsonb_build_object(
+                     'id', c.id,
+                     'full_name', c.full_name,
+                     'phone_display', c.phone_display,
+                     'phone', c.phone
+                   )
+              end as client`,
+    orderBy: "f.created_at desc",
+    limit,
+  });
 }
 
 export async function deleteFollowup(id: string): Promise<void> {
-  await execute("delete from client_followups where id = $1", [id]);
+  await deleteMany("client_followups", { id });
 }

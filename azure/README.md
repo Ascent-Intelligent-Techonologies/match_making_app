@@ -192,6 +192,21 @@ az webapp config appsettings list -g anurupa-rg -n <app> -o table
 az postgres flexible-server show -g anurupa-rg -n <pg> --query state
 ```
 
+### If `infra.sh` stops partway
+
+It is idempotent — run it again and it picks up where it left off. Two things
+are worth knowing:
+
+- **Don't pipe it.** `./azure/infra.sh | grep …` reports grep's exit code, not
+  the script's, so a failure looks like a success and the output simply stops
+  mid-way. Run it directly and let it print.
+- **The database password.** It is generated on the run that creates the
+  server and written to `azure/.env.azure` at the very end. If a run dies in
+  between, nothing holds that password any more, so the next run resets it and
+  says so. That is safe — the new value goes into App Service settings and
+  `azure/.env.azure` in the same run — but anything else holding the old one
+  (a `psql` session, another developer's `.env.local`) needs updating.
+
 ### Turning it off
 
 ```bash

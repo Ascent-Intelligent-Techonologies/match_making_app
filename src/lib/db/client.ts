@@ -2,13 +2,15 @@ import "server-only";
 import { Pool, types } from "pg";
 
 /**
- * PostgreSQL access for the whole application.
+ * The connection to PostgreSQL: the pool, the type parsers, and the four ways
+ * of running a statement.
  *
- * The data layer used to go through Supabase's client, which speaks PostgREST
- * — an HTTP API in front of Postgres. Azure Database for PostgreSQL is the
- * database on its own, so everything here is plain SQL over a connection pool.
+ * Most code should not import this directly — `@/lib/db` also exports the
+ * CRUD helpers in ./crud, which are what the data layer is built from. This
+ * file is the floor underneath them, and the escape hatch for the handful of
+ * queries that are genuinely bespoke.
  *
- * Nothing in this file is reachable from the browser: `server-only` makes an
+ * Nothing here is reachable from the browser: `server-only` makes an
  * accidental client import a build error rather than a leaked connection
  * string.
  */
@@ -35,7 +37,6 @@ types.setTypeParser(types.builtins.INT8, (value) => Number(value));
 // ------------------------------------------------------------------- pool --
 
 declare global {
-  // eslint-disable-next-line no-var
   var __anurupaPool: Pool | undefined;
 }
 
@@ -136,88 +137,4 @@ export async function transaction<T>(
   } finally {
     client.release();
   }
-}
-
-// ----------------------------------------------------- statement builders --
-
-const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
-
-/**
- * Column names reach these builders from our own schemas, never from a
- * request body — but a typo that silently produced valid SQL would be worse
- * than a loud failure, and the check costs nothing.
- */
-function columns(values: Record<string, unknown>): string[] {
-  const names = Object.keys(values).filter((k) => values[k] !== undefined);
-  for (const name of names) {
-    if (!IDENTIFIER.test(name)) throw new Error(`Unsafe column name: ${name}`);
-  }
-  return names;
-}
-
-export interface Statement {
-  text: string;
-  params: unknown[];
-}
-
-/**
- * Builds `insert into <table> (…) values (…) returning *`.
- *
- * Keys whose value is `undefined` are left out entirely, which is what the
- * Supabase client did (JSON.stringify drops them) and therefore what the
- * forms have always relied on.
- */
-export function buildInsert(table: string, values: Record<string, unknown>): Statement {
-  const names = columns(values);
-  if (names.length === 0) throw new Error(`Nothing to insert into ${table}`);
-  const placeholders = names.map((_, i) => `$${i + 1}`);
-  return {
-    text: `insert into ${table} (${names.join(", ")}) values (${placeholders.join(", ")}) returning *`,
-    params: names.map((n) => values[n]),
-  };
-}
-
-/** Builds `update <table> set … where <whereColumn> = $n returning *`. */
-export function buildUpdate(
-  table: string,
-  values: Record<string, unknown>,
-  where: { column: string; value: unknown }
-): Statement {
-  const names = columns(values);
-  if (names.length === 0) throw new Error(`Nothing to update in ${table}`);
-  if (!IDENTIFIER.test(where.column)) throw new Error(`Unsafe column name: ${where.column}`);
-
-  const assignments = names.map((n, i) => `${n} = $${i + 1}`);
-  return {
-    text: `update ${table} set ${assignments.join(", ")} where ${where.column} = $${names.length + 1} returning *`,
-    params: [...names.map((n) => values[n]), where.value],
-  };
-}
-
-/**
- * Builds an upsert keyed on one column — the `onConflict` option the Supabase
- * client took. Every column in the payload is overwritten on conflict.
- */
-export function buildUpsert(
-  table: string,
-  values: Record<string, unknown>,
-  conflictColumn: string
-): Statement {
-  const insert = buildInsert(table, values);
-  const names = columns(values);
-  if (!IDENTIFIER.test(conflictColumn)) {
-    throw new Error(`Unsafe column name: ${conflictColumn}`);
-  }
-  const updates = names
-    .filter((n) => n !== conflictColumn)
-    .map((n) => `${n} = excluded.${n}`);
-
-  const action = updates.length > 0 ? `do update set ${updates.join(", ")}` : "do nothing";
-  return {
-    text: insert.text.replace(
-      " returning *",
-      ` on conflict (${conflictColumn}) ${action} returning *`
-    ),
-    params: insert.params,
-  };
 }

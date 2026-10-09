@@ -1,5 +1,5 @@
 import "server-only";
-import { execute, query } from "@/lib/db";
+import { insertOne, selectMany } from "@/lib/db";
 
 export interface ClientSearch {
   id: string;
@@ -14,21 +14,20 @@ export async function recordClientSearch(input: {
   filters: Record<string, string>;
   resultCount: number;
 }): Promise<void> {
-  await execute(
-    `insert into client_searches (client_id, filters, result_count) values ($1, $2, $3)`,
-    [input.clientId, JSON.stringify(input.filters), input.resultCount]
-  );
+  await insertOne("client_searches", {
+    client_id: input.clientId,
+    filters: JSON.stringify(input.filters),
+    result_count: input.resultCount,
+  });
 }
 
 export async function listClientSearches(
   clientId: string,
   limit = 25
 ): Promise<ClientSearch[]> {
-  return query<ClientSearch>(
-    `select * from client_searches
-      where client_id = $1
-      order by created_at desc
-      limit $2`,
-    [clientId, limit]
-  );
+  return selectMany<ClientSearch>("client_searches", {
+    where: { client_id: clientId },
+    orderBy: "created_at desc",
+    limit,
+  });
 }
