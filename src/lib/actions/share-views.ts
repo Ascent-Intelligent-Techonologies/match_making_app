@@ -14,5 +14,5 @@ export async function recordShareViewAction(token: string): Promise<void> {
   const link = await getShareLinkByToken(token);
   if (!link || link.revoked) return;
 
-  await recordShareLinkView(link.id, link.client_id, link.view_count, link.first_viewed_at);
+  await recordShareLinkView(link.id, link.client_id);
 }

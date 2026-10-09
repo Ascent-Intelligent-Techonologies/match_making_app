@@ -1,99 +1,78 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { PROFILE_PHOTOS_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import { count, execute, one, query, transaction } from "@/lib/db";
+import { deleteBlobs, signedUrl, uploadBlob } from "@/lib/storage/blob";
+import { PROFILE_PHOTOS_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { ProfilePhoto } from "@/lib/types";
 
 export async function uploadProfilePhoto(
   profileId: string,
   file: File
 ): Promise<ProfilePhoto> {
-  const supabase = getSupabaseAdmin();
-
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${profileId}/${crypto.randomUUID()}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(PROFILE_PHOTOS_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
-  if (uploadError) throw uploadError;
+  await uploadBlob(PROFILE_PHOTOS_CONTAINER, path, file);
 
-  const { count } = await supabase
-    .from("profile_photos")
-    .select("id", { count: "exact", head: true })
-    .eq("profile_id", profileId);
+  const existing = await count(
+    "select count(*) from profile_photos where profile_id = $1",
+    [profileId]
+  );
 
-  const { data, error } = await supabase
-    .from("profile_photos")
-    .insert({
-      profile_id: profileId,
-      storage_path: path,
-      sort_order: count ?? 0,
-      is_cover: (count ?? 0) === 0,
-    })
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data;
+  return one<ProfilePhoto>(
+    `insert into profile_photos (profile_id, storage_path, sort_order, is_cover)
+     values ($1, $2, $3, $4)
+     returning *`,
+    [profileId, path, existing, existing === 0]
+  );
 }
 
 export async function deleteProfilePhoto(photoId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
+  const photo = await one<{ storage_path: string }>(
+    "select storage_path from profile_photos where id = $1",
+    [photoId]
+  );
 
-  const { data: photo, error: fetchError } = await supabase
-    .from("profile_photos")
-    .select("storage_path")
-    .eq("id", photoId)
-    .single();
-  if (fetchError) throw fetchError;
-
-  await supabase.storage.from(PROFILE_PHOTOS_BUCKET).remove([photo.storage_path]);
-
-  const { error } = await supabase.from("profile_photos").delete().eq("id", photoId);
-  if (error) throw error;
+  await deleteBlobs(PROFILE_PHOTOS_CONTAINER, [photo.storage_path]);
+  await execute("delete from profile_photos where id = $1", [photoId]);
 }
 
 export async function reorderProfilePhotos(orderedIds: string[]): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  await Promise.all(
-    orderedIds.map((id, index) =>
-      supabase.from("profile_photos").update({ sort_order: index }).eq("id", id)
-    )
+  if (orderedIds.length === 0) return;
+  // One statement rather than a write per photo: a half-applied reorder would
+  // leave two photos claiming the same position.
+  await execute(
+    `update profile_photos p
+        set sort_order = v.position
+       from unnest($1::uuid[]) with ordinality as v(id, position)
+      where p.id = v.id`,
+    [orderedIds]
   );
 }
 
 export async function setCoverPhoto(profileId: string, photoId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  await supabase
-    .from("profile_photos")
-    .update({ is_cover: false })
-    .eq("profile_id", profileId);
-  const { error } = await supabase
-    .from("profile_photos")
-    .update({ is_cover: true })
-    .eq("id", photoId);
-  if (error) throw error;
+  // Both halves together, so a failure can never leave a profile with two
+  // covers or none.
+  await transaction(async (run) => {
+    await run("update profile_photos set is_cover = false where profile_id = $1", [profileId]);
+    await run("update profile_photos set is_cover = true where id = $1", [photoId]);
+  });
 }
 
 /** Signed cover-photo URL per profile, for lightweight grid/list views. */
 export async function getCoverPhotoUrls(profileIds: string[]): Promise<Map<string, string>> {
   if (profileIds.length === 0) return new Map();
-  const supabase = getSupabaseAdmin();
-  const { data: covers } = await supabase
-    .from("profile_photos")
-    .select("profile_id, storage_path")
-    .in("profile_id", profileIds)
-    .eq("is_cover", true);
 
-  if (!covers || covers.length === 0) return new Map();
+  const covers = await query<{ profile_id: string; storage_path: string }>(
+    `select profile_id, storage_path
+       from profile_photos
+      where profile_id = any($1::uuid[]) and is_cover = true`,
+    [profileIds]
+  );
 
-  const { data: signed } = await supabase.storage
-    .from(PROFILE_PHOTOS_BUCKET)
-    .createSignedUrls(covers.map((c) => c.storage_path), SIGNED_URL_TTL_SECONDS);
-
-  const map = new Map<string, string>();
-  covers.forEach((c, i) => {
-    const url = signed?.[i]?.signedUrl;
-    if (url) map.set(c.profile_id, url);
-  });
-  return map;
+  return new Map(
+    covers.map((c) => [
+      c.profile_id,
+      signedUrl(PROFILE_PHOTOS_CONTAINER, c.storage_path, SIGNED_URL_TTL_SECONDS),
+    ])
+  );
 }

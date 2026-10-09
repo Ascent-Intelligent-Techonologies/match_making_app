@@ -1,5 +1,5 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { execute, query } from "@/lib/db";
 
 export interface ClientSearch {
   id: string;
@@ -14,26 +14,21 @@ export async function recordClientSearch(input: {
   filters: Record<string, string>;
   resultCount: number;
 }): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("client_searches").insert({
-    client_id: input.clientId,
-    filters: input.filters,
-    result_count: input.resultCount,
-  });
-  if (error) throw error;
+  await execute(
+    `insert into client_searches (client_id, filters, result_count) values ($1, $2, $3)`,
+    [input.clientId, JSON.stringify(input.filters), input.resultCount]
+  );
 }
 
 export async function listClientSearches(
   clientId: string,
   limit = 25
 ): Promise<ClientSearch[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("client_searches")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data ?? [];
+  return query<ClientSearch>(
+    `select * from client_searches
+      where client_id = $1
+      order by created_at desc
+      limit $2`,
+    [clientId, limit]
+  );
 }

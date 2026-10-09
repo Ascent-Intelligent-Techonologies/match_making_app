@@ -1,5 +1,5 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { execute, maybeOne, one, query } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone";
 import type { Client, ClientSummary } from "@/lib/types";
 
@@ -8,36 +8,34 @@ export const STALE_CLIENT_DAYS = 30;
 /** Window used for the "recently contacted" analytics bucket. */
 export const RECENT_CONTACT_DAYS = 7;
 
-interface RawClientRow extends Client {
-  share_links: {
-    id: string;
-    created_at: string;
-    share_link_profiles: { profile_id: string }[];
-  }[];
-  client_shortlists: { profile_id: string }[];
-}
-
-const SUMMARY_SELECT =
-  "*, share_links(id, created_at, share_link_profiles(profile_id)), client_shortlists(profile_id)";
-
-function toSummary(row: RawClientRow): ClientSummary {
-  const { share_links, client_shortlists, ...client } = row;
-  const sharedProfileIds = new Set<string>();
-  let lastSharedAt: string | null = null;
-
-  for (const link of share_links ?? []) {
-    for (const slp of link.share_link_profiles ?? []) sharedProfileIds.add(slp.profile_id);
-    if (!lastSharedAt || link.created_at > lastSharedAt) lastSharedAt = link.created_at;
-  }
-
-  return {
-    ...client,
-    sharedProfileCount: sharedProfileIds.size,
-    shortlistedCount: (client_shortlists ?? []).length,
-    linkCount: (share_links ?? []).length,
-    lastSharedAt,
-  };
-}
+/**
+ * A client with the counts the dashboard reads.
+ *
+ * The counts are computed in the database rather than by pulling every link
+ * and shortlist back and counting them here — the lists are the slow part,
+ * and nothing on the page needs the rows themselves.
+ */
+const SUMMARY_SELECT = `
+  select c.*,
+         coalesce(s.shared_profiles, 0)::int as "sharedProfileCount",
+         coalesce(h.shortlists, 0)::int      as "shortlistedCount",
+         coalesce(s.links, 0)::int           as "linkCount",
+         s.last_shared_at                    as "lastSharedAt"
+    from clients c
+    left join lateral (
+      select count(distinct slp.profile_id) as shared_profiles,
+             count(distinct l.id)           as links,
+             max(l.created_at)              as last_shared_at
+        from share_links l
+        left join share_link_profiles slp on slp.share_link_id = l.id
+       where l.client_id = c.id
+    ) s on true
+    left join lateral (
+      select count(*) as shortlists
+        from client_shortlists cs
+       where cs.client_id = c.id
+    ) h on true
+`;
 
 /**
  * Finds the client with this phone number, or creates one. Phone is the
@@ -48,77 +46,67 @@ export async function upsertClientByPhone(input: {
   fullName: string;
   phone: string;
 }): Promise<Client> {
-  const supabase = getSupabaseAdmin();
   const phone = normalizePhone(input.phone);
 
-  const { data, error } = await supabase
-    .from("clients")
-    .upsert(
-      {
-        phone,
-        phone_display: input.phone.trim(),
-        full_name: input.fullName.trim(),
-        updated_at: new Date().toISOString(),
-        // Re-entering someone's details brings them back rather than silently
-        // writing to a row that every list is filtering out.
-        deleted_at: null,
-      },
-      { onConflict: "phone" }
-    )
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data;
+  return one<Client>(
+    `insert into clients (phone, phone_display, full_name, updated_at)
+     values ($1, $2, $3, now())
+     on conflict (phone) do update
+        set phone_display = excluded.phone_display,
+            full_name     = excluded.full_name,
+            updated_at    = now(),
+            -- Re-entering someone's details brings them back rather than
+            -- silently writing to a row every list is filtering out.
+            deleted_at    = null
+     returning *`,
+    [phone, input.phone.trim(), input.fullName.trim()]
+  );
 }
 
 export async function listClientSummaries(search?: string): Promise<ClientSummary[]> {
-  const supabase = getSupabaseAdmin();
   // Soft-deleted clients are hidden from every list but the Deleted page.
-  let query = supabase.from("clients").select(SUMMARY_SELECT).is("deleted_at", null);
+  const clauses = ["c.deleted_at is null"];
+  const params: unknown[] = [];
 
   const term = search?.trim();
   if (term) {
     // Match the typed text against the name, and the digits against the phone.
     const digits = normalizePhone(term);
-    const clauses = [`full_name.ilike.*${term}*`];
-    if (digits) clauses.push(`phone.ilike.*${digits}*`);
-    query = query.or(clauses.join(","));
+    params.push(`%${term}%`);
+    const name = `c.full_name ilike $${params.length}`;
+    if (digits) {
+      params.push(`%${digits}%`);
+      clauses.push(`(${name} or c.phone ilike $${params.length})`);
+    } else {
+      clauses.push(name);
+    }
   }
 
-  const { data, error } = await query.order("created_at", { ascending: false });
-  if (error) throw error;
-  return ((data ?? []) as RawClientRow[]).map(toSummary);
+  return query<ClientSummary>(
+    `${SUMMARY_SELECT} where ${clauses.join(" and ")} order by c.created_at desc`,
+    params
+  );
 }
 
 export async function getClientById(id: string): Promise<Client | null> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from("clients").select("*").eq("id", id).maybeSingle();
-  if (error) throw error;
-  return data;
+  return maybeOne<Client>("select * from clients where id = $1", [id]);
 }
 
 /** Lightweight list used to autocomplete the client fields when sharing. */
 export async function listClientsForPicker(): Promise<
   Pick<Client, "id" | "full_name" | "phone_display" | "phone">[]
 > {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, full_name, phone_display, phone")
-    .is("deleted_at", null)
-    .order("full_name");
-  if (error) throw error;
-  return data ?? [];
+  return query(
+    `select id, full_name, phone_display, phone
+       from clients
+      where deleted_at is null
+      order by full_name`
+  );
 }
 
 /** Records that a client engaged (opened a link or shortlisted a profile). */
 export async function touchClientActivity(clientId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("clients")
-    .update({ last_activity_at: new Date().toISOString() })
-    .eq("id", clientId);
-  if (error) throw error;
+  await execute("update clients set last_activity_at = now() where id = $1", [clientId]);
 }
 
 export interface ClientAnalytics {
@@ -185,48 +173,29 @@ export async function getClientAnalytics(): Promise<ClientAnalytics> {
 
 /** Profile ids already shared with this client, used to grey out search hits. */
 export async function getSharedProfileIdsForClient(clientId: string): Promise<string[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("share_links")
-    .select("share_link_profiles(profile_id)")
-    .eq("client_id", clientId);
-  if (error) throw error;
-
-  const ids = new Set<string>();
-  for (const row of (data ?? []) as { share_link_profiles: { profile_id: string }[] }[]) {
-    for (const slp of row.share_link_profiles ?? []) ids.add(slp.profile_id);
-  }
-  return Array.from(ids);
+  const rows = await query<{ profile_id: string }>(
+    `select distinct slp.profile_id
+       from share_links l
+       join share_link_profiles slp on slp.share_link_id = l.id
+      where l.client_id = $1`,
+    [clientId]
+  );
+  return rows.map((r) => r.profile_id);
 }
 
 /** Hides a client without destroying anything. Reversible from the Deleted page. */
 export async function softDeleteClient(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("clients")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  await execute("update clients set deleted_at = now() where id = $1", [id]);
 }
 
 export async function restoreClient(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("clients")
-    .update({ deleted_at: null })
-    .eq("id", id);
-  if (error) throw error;
+  await execute("update clients set deleted_at = null where id = $1", [id]);
 }
 
 export async function listDeletedClients(): Promise<Client[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .not("deleted_at", "is", null)
-    .order("deleted_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  return query<Client>(
+    "select * from clients where deleted_at is not null order by deleted_at desc"
+  );
 }
 
 /**
@@ -239,14 +208,6 @@ export async function listDeletedClients(): Promise<Client[]> {
  * while the attribution still exists to find it by.
  */
 export async function deleteClient(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-
-  const { error: linksError } = await supabase
-    .from("share_links")
-    .delete()
-    .eq("client_id", id);
-  if (linksError) throw linksError;
-
-  const { error } = await supabase.from("clients").delete().eq("id", id);
-  if (error) throw error;
+  await execute("delete from share_links where client_id = $1", [id]);
+  await execute("delete from clients where id = $1", [id]);
 }

@@ -12,11 +12,14 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    // Photos come from a private Blob container as SAS URLs, which carry the
+    // token in the query string; next/image keys its cache on the full URL,
+    // so a fresh token each hour means a fresh optimisation each hour.
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/**",
+        hostname: "*.blob.core.windows.net",
+        pathname: "/**",
       },
     ],
   },

@@ -9,6 +9,7 @@
 #   • App Service plan            Basic B1, Linux          ~₹1,261 / month
 #   • Web App                     Node 22 LTS              (in the plan above)
 #   • PostgreSQL Flexible Server  Burstable B1ms, 32 GB    ~₹2,119 / month
+#                                 (free for 12 months on a new account)
 #   • Storage account             Standard LRS, hot        ~₹90 / month at 25 GB
 #                                 two private containers
 #
@@ -186,7 +187,11 @@ if az postgres flexible-server show -g "$RESOURCE_GROUP" -n "$PG_SERVER" -o none
 else
   # Alphanumeric only: this password ends up inside a URL, and encoding rules
   # around '@', ':' and '/' are a classic source of silent connection failures.
-  PG_ADMIN_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+  # The "Az9" prefix guarantees the upper/lower/digit mix Azure insists on, and
+  # the trimming is parameter expansion rather than `| head`, which would send
+  # SIGPIPE upstream and — under `set -o pipefail` — abort the whole script.
+  PG_RANDOM="$(openssl rand -base64 48 | tr -d '/+=\n')"
+  PG_ADMIN_PASSWORD="Az9${PG_RANDOM:0:29}"
   info "creating $PG_SERVER — this takes 3–5 minutes"
   az postgres flexible-server create \
     --resource-group "$RESOURCE_GROUP" \
@@ -200,7 +205,6 @@ else
     --storage-auto-grow Disabled \
     --version "$PG_VERSION" \
     --backup-retention "$PG_BACKUP_DAYS" \
-    --high-availability Disabled \
     --public-access None \
     --tags "${TAGS[@]}" \
     --yes \
@@ -355,8 +359,7 @@ settings=(
   "NEXT_TELEMETRY_DISABLED=1"
   "NEXT_PUBLIC_SITE_URL=$SITE_URL"
   "AZURE_STORAGE_ACCOUNT=$STORAGE_ACCOUNT"
-  "AZURE_STORAGE_PHOTOS_CONTAINER=$PHOTOS_CONTAINER"
-  "AZURE_STORAGE_JOURNEY_CONTAINER=$JOURNEY_CONTAINER"
+  "AZURE_STORAGE_KEY=$STORAGE_KEY"
 )
 if [ "$PG_CREATED" -eq 1 ]; then
   settings+=("DATABASE_URL=postgresql://${PG_ADMIN_USER}:${PG_ADMIN_PASSWORD}@${PG_HOST}:5432/${PG_DATABASE}?sslmode=require")
@@ -384,22 +387,9 @@ elif [ "$PG_CREATED" -ne 1 ]; then
   info "Load the schema by hand if you need to; see azure/README.md."
 else
   step "Loading the schema"
-  schema_tmp="$(mktemp -d)"
-  trap 'rm -rf "$schema_tmp"' EXIT
-
-  # supabase/setup.sql is the single source of truth for the schema. Everything
-  # in it is portable Postgres except the one insert into storage.buckets, which
-  # is a Supabase-only table — Blob Storage containers replace it here.
-  awk '
-    /^insert into storage\.buckets/ { skip = 1 }
-    skip && /on conflict \(id\) do nothing;/ { skip = 0; next }
-    !skip { print }
-  ' "$SCHEMA_SOURCE" > "$schema_tmp/schema.sql"
-
-  if grep -q 'storage\.buckets' "$schema_tmp/schema.sql"; then
-    die "Failed to strip the Supabase storage block out of setup.sql."
-  fi
-
+  # supabase/setup.sql is the single source of truth for the schema, and is
+  # portable PostgreSQL — the directory is named after where the project
+  # started, not where it runs.
   PGPASSWORD="$PG_ADMIN_PASSWORD" psql \
     --host "$PG_HOST" \
     --port 5432 \
@@ -408,7 +398,7 @@ else
     --set=sslmode=require \
     --set ON_ERROR_STOP=1 \
     --quiet \
-    --file "$schema_tmp/schema.sql"
+    --file "$SCHEMA_SOURCE"
 
   table_count="$(PGPASSWORD="$PG_ADMIN_PASSWORD" psql -h "$PG_HOST" -U "$PG_ADMIN_USER" -d "$PG_DATABASE" \
     -tAc "select count(*) from information_schema.tables where table_schema = 'public'")"
@@ -426,6 +416,7 @@ umask 077
   echo "AZURE_APP_NAME=$APP_NAME"
   echo "AZURE_LOCATION=$LOCATION"
   echo "AZURE_STORAGE_ACCOUNT=$STORAGE_ACCOUNT"
+  echo "AZURE_STORAGE_KEY=$STORAGE_KEY"
   echo "AZURE_PG_SERVER=$PG_SERVER"
   echo "AZURE_PG_HOST=$PG_HOST"
   echo "NEXT_PUBLIC_SITE_URL=$SITE_URL"

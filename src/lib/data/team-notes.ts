@@ -1,5 +1,5 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { execute, query } from "@/lib/db";
 import { TEAM_MEMBERS } from "@/lib/constants";
 import type { TeamNote } from "@/lib/types";
 
@@ -9,11 +9,9 @@ import type { TeamNote } from "@/lib/types";
  * textarea the whole block is saved from matches how they are actually used.
  */
 export async function listTeamNotes(): Promise<TeamNote[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from("team_notes").select("*");
-  if (error) throw error;
+  const rows = await query<TeamNote>("select * from team_notes");
 
-  const bySlug = new Map((data ?? []).map((n: TeamNote) => [n.slug, n]));
+  const bySlug = new Map(rows.map((n) => [n.slug, n]));
   // Ordered by TEAM_MEMBERS, and complete even before anyone has saved.
   return TEAM_MEMBERS.map(
     ({ slug }) =>
@@ -22,9 +20,10 @@ export async function listTeamNotes(): Promise<TeamNote[]> {
 }
 
 export async function saveTeamNote(slug: string, body: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("team_notes")
-    .upsert({ slug, body, updated_at: new Date().toISOString() }, { onConflict: "slug" });
-  if (error) throw error;
+  await execute(
+    `insert into team_notes (slug, body, updated_at)
+     values ($1, $2, now())
+     on conflict (slug) do update set body = excluded.body, updated_at = excluded.updated_at`,
+    [slug, body]
+  );
 }

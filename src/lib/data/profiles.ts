@@ -1,6 +1,7 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { PROFILE_PHOTOS_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import { buildInsert, buildUpdate, count, execute, maybeOne, one, query } from "@/lib/db";
+import { deleteBlobs, signedUrl } from "@/lib/storage/blob";
+import { PROFILE_PHOTOS_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
 import type { ProfileFormValues } from "@/lib/validation";
 
@@ -33,11 +34,6 @@ function dobFromAge(age: number): string {
     .slice(0, 10);
 }
 
-/** The chainable filter builder the two profile queries share. */
-type ProfileQuery = ReturnType<
-  ReturnType<ReturnType<typeof getSupabaseAdmin>["from"]>["select"]
->;
-
 /** How many profiles a list shows at once. */
 export const PROFILE_PAGE_SIZE = 60;
 
@@ -48,80 +44,88 @@ export interface ProfilePage {
 }
 
 /**
- * The filters, applied to any query over profiles.
+ * The filters, as a list of SQL conditions and the values they bind.
  *
  * Shared by the list and the count so the two can never disagree about what
  * "matching" means — a count that drifts from its list is worse than no count.
+ * Every value is a bound parameter; nothing is interpolated into the SQL.
  */
-function applyProfileFilters<Q extends ProfileQuery>(query: Q, filters: ProfileFilters): Q {
-  let q = query;
+function profileConditions(filters: ProfileFilters): {
+  where: string;
+  params: unknown[];
+} {
+  const clauses: string[] = ["is_active = true", "deleted_at is null"];
+  const params: unknown[] = [];
+
+  const bind = (value: unknown): string => {
+    params.push(value);
+    return `$${params.length}`;
+  };
 
   if (filters.search) {
-    const term = filters.search.trim();
-    q = q.or(
-      `full_name.ilike.%${term}%,city.ilike.%${term}%,profession.ilike.%${term}%,religion.ilike.%${term}%,caste.ilike.%${term}%`
-    ) as Q;
+    const term = `%${filters.search.trim()}%`;
+    const p = bind(term);
+    clauses.push(
+      `(full_name ilike ${p} or city ilike ${p} or profession ilike ${p}
+        or religion ilike ${p} or caste ilike ${p})`
+    );
   }
-  if (filters.gender) q = q.eq("gender", filters.gender) as Q;
-  if (filters.city) q = q.ilike("city", `%${filters.city}%`) as Q;
-  if (filters.religion) q = q.eq("religion", filters.religion) as Q;
+  if (filters.gender) clauses.push(`gender = ${bind(filters.gender)}`);
+  if (filters.city) clauses.push(`city ilike ${bind(`%${filters.city}%`)}`);
+  if (filters.religion) clauses.push(`religion = ${bind(filters.religion)}`);
   // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge the latest.
-  if (filters.minAge) q = q.lte("dob", dobFromAge(filters.minAge)) as Q;
-  if (filters.maxAge) q = q.gte("dob", dobFromAge(filters.maxAge)) as Q;
-  if (filters.caste) q = q.ilike("caste", `%${filters.caste}%`) as Q;
-  if (filters.tags?.length) q = q.overlaps("tags", filters.tags) as Q;
-  if (filters.anurupaAura) q = q.eq("anurupa_aura", true) as Q;
-  if (filters.minHeight) q = q.gte("height_cm", filters.minHeight) as Q;
-  if (filters.maxHeight) q = q.lte("height_cm", filters.maxHeight) as Q;
-  if (filters.minFinances) q = q.gte("annual_income_inr", filters.minFinances) as Q;
-  if (filters.maxFinances) q = q.lte("annual_income_inr", filters.maxFinances) as Q;
+  if (filters.minAge) clauses.push(`dob <= ${bind(dobFromAge(filters.minAge))}`);
+  if (filters.maxAge) clauses.push(`dob >= ${bind(dobFromAge(filters.maxAge))}`);
+  if (filters.caste) clauses.push(`caste ilike ${bind(`%${filters.caste}%`)}`);
+  // && is "arrays overlap": carries any one of these tags.
+  if (filters.tags?.length) clauses.push(`tags && ${bind(filters.tags)}::text[]`);
+  if (filters.anurupaAura) clauses.push("anurupa_aura = true");
+  if (filters.minHeight) clauses.push(`height_cm >= ${bind(filters.minHeight)}`);
+  if (filters.maxHeight) clauses.push(`height_cm <= ${bind(filters.maxHeight)}`);
+  if (filters.minFinances) clauses.push(`annual_income_inr >= ${bind(filters.minFinances)}`);
+  if (filters.maxFinances) clauses.push(`annual_income_inr <= ${bind(filters.maxFinances)}`);
   if (filters.professionCategory) {
-    q = q.eq("profession_category", filters.professionCategory) as Q;
+    clauses.push(`profession_category = ${bind(filters.professionCategory)}`);
   }
-  if (filters.urgent) q = q.eq("urgent", true) as Q;
+  if (filters.urgent) clauses.push("urgent = true");
   if (filters.potentialClient) {
-    q = q.or("sibling1_potential_client.eq.true,sibling2_potential_client.eq.true") as Q;
+    clauses.push("(sibling1_potential_client = true or sibling2_potential_client = true)");
   }
   if (filters.birthYear) {
-    q = q
-      .gte("dob", `${filters.birthYear}-01-01`)
-      .lte("dob", `${filters.birthYear}-12-31`) as Q;
+    clauses.push(`dob >= ${bind(`${filters.birthYear}-01-01`)}`);
+    clauses.push(`dob <= ${bind(`${filters.birthYear}-12-31`)}`);
   }
-  return q;
+
+  return { where: clauses.join(" and "), params };
 }
 
 /**
  * One page of profiles, plus how many match in total.
  *
- * Paged rather than unbounded: PostgREST stops at a thousand rows, so an
- * unbounded list quietly showed part of the book and counted it as the whole
- * thing. The total comes from the database, so the page can say how much more
- * there is.
+ * Paged rather than unbounded: the book runs to thousands of profiles, and
+ * rendering all of them to show sixty is seconds of work thrown away. The
+ * total comes from the database, so the page can say how much more there is.
  */
 export async function listProfilePage(
   filters: ProfileFilters = {},
   page = 1,
   pageSize = PROFILE_PAGE_SIZE
 ): Promise<ProfilePage> {
-  const supabase = getSupabaseAdmin();
-  const from = Math.max(0, page - 1) * pageSize;
+  const offset = Math.max(0, page - 1) * pageSize;
+  const { where, params } = profileConditions(filters);
 
-  const query = applyProfileFilters(
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact" })
-      .eq("is_active", true)
-      // Soft-deleted profiles are invisible to every list; the Deleted page
-      // has its own query rather than a flag threaded through this one.
-      .is("deleted_at", null),
-    filters
-  )
-    .order("created_at", { ascending: false })
-    .range(from, from + pageSize - 1);
+  const [profiles, total] = await Promise.all([
+    query<Profile>(
+      `select * from profiles
+        where ${where}
+        order by created_at desc
+        limit $${params.length + 1} offset $${params.length + 2}`,
+      [...params, pageSize, offset]
+    ),
+    count(`select count(*) from profiles where ${where}`, params),
+  ]);
 
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { profiles: data ?? [], total: count ?? 0 };
+  return { profiles, total };
 }
 
 /** Every match, for the places that genuinely need them all. Capped for safety. */
@@ -133,20 +137,14 @@ export async function listProfiles(
   return profiles;
 }
 
-async function attachSignedPhotoUrls(photos: ProfilePhoto[]): Promise<ProfilePhoto[]> {
-  if (photos.length === 0) return photos;
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.storage
-    .from(PROFILE_PHOTOS_BUCKET)
-    .createSignedUrls(
-      photos.map((p) => p.storage_path),
-      SIGNED_URL_TTL_SECONDS
-    );
-  if (error) throw error;
-
-  return photos.map((photo, i) => ({
+function attachSignedPhotoUrls(photos: ProfilePhoto[]): ProfilePhoto[] {
+  return photos.map((photo) => ({
     ...photo,
-    signedUrl: data?.[i]?.signedUrl ?? undefined,
+    signedUrl: signedUrl(
+      PROFILE_PHOTOS_CONTAINER,
+      photo.storage_path,
+      SIGNED_URL_TTL_SECONDS
+    ),
   }));
 }
 
@@ -156,23 +154,15 @@ async function attachSignedPhotoUrls(photos: ProfilePhoto[]): Promise<ProfilePho
  * Anything client-facing goes through getPublicProfileWithPhotos instead.
  */
 export async function getProfileWithPhotos(id: string): Promise<ProfileWithPhotos | null> {
-  const supabase = getSupabaseAdmin();
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
+  const profile = await maybeOne<Profile>("select * from profiles where id = $1", [id]);
   if (!profile) return null;
 
-  const { data: photos, error: photosError } = await supabase
-    .from("profile_photos")
-    .select("*")
-    .eq("profile_id", id)
-    .order("sort_order", { ascending: true });
-  if (photosError) throw photosError;
+  const photos = await query<ProfilePhoto>(
+    "select * from profile_photos where profile_id = $1 order by sort_order asc",
+    [id]
+  );
 
-  return { ...profile, photos: await attachSignedPhotoUrls(photos ?? []) };
+  return { ...profile, photos: attachSignedPhotoUrls(photos) };
 }
 
 /** The same profile, but never a soft-deleted one — used by the public pages. */
@@ -187,53 +177,43 @@ export async function getManyProfilesWithPhotos(
   ids: string[]
 ): Promise<ProfileWithPhotos[]> {
   if (ids.length === 0) return [];
-  const supabase = getSupabaseAdmin();
-  const { data: profiles, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .is("deleted_at", null)
-    .in("id", ids);
-  if (error) throw error;
 
-  const { data: photos, error: photosError } = await supabase
-    .from("profile_photos")
-    .select("*")
-    .in("profile_id", ids)
-    .order("sort_order", { ascending: true });
-  if (photosError) throw photosError;
+  const [profiles, photos] = await Promise.all([
+    query<Profile>(
+      "select * from profiles where deleted_at is null and id = any($1::uuid[])",
+      [ids]
+    ),
+    query<ProfilePhoto>(
+      `select * from profile_photos
+        where profile_id = any($1::uuid[])
+        order by sort_order asc`,
+      [ids]
+    ),
+  ]);
 
-  const signedPhotos = await attachSignedPhotoUrls(photos ?? []);
+  const signedPhotos = attachSignedPhotoUrls(photos);
 
-  return (profiles ?? []).map((profile) => ({
+  return profiles.map((profile) => ({
     ...profile,
     photos: signedPhotos.filter((p) => p.profile_id === profile.id),
   }));
 }
 
 export async function createProfile(values: ProfileFormValues): Promise<Profile> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("profiles")
-    .insert(values)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data;
+  const { text, params } = buildInsert("profiles", values);
+  return one<Profile>(text, params);
 }
 
 export async function updateProfile(
   id: string,
   values: Partial<ProfileFormValues>
 ): Promise<Profile> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("profiles")
-    .update({ ...values, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data;
+  const { text, params } = buildUpdate(
+    "profiles",
+    { ...values, updated_at: new Date().toISOString() },
+    { column: "id", value: id }
+  );
+  return one<Profile>(text, params);
 }
 
 /**
@@ -242,85 +222,54 @@ export async function updateProfile(
  * whole record back exactly as it was.
  */
 export async function softDeleteProfile(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("profiles")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  await execute("update profiles set deleted_at = now() where id = $1", [id]);
 }
 
 export async function restoreProfile(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("profiles")
-    .update({ deleted_at: null })
-    .eq("id", id);
-  if (error) throw error;
+  await execute("update profiles set deleted_at = null where id = $1", [id]);
 }
 
 export async function listDeletedProfiles(): Promise<Profile[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .not("deleted_at", "is", null)
-    .order("deleted_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  return query<Profile>(
+    "select * from profiles where deleted_at is not null order by deleted_at desc"
+  );
 }
 
 /** Permanent. Removes the photos from storage first, then the row. */
 export async function deleteProfile(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
+  const photos = await query<{ storage_path: string }>(
+    "select storage_path from profile_photos where profile_id = $1",
+    [id]
+  );
 
-  const { data: photos, error: photosError } = await supabase
-    .from("profile_photos")
-    .select("storage_path")
-    .eq("profile_id", id);
-  if (photosError) throw photosError;
+  await deleteBlobs(
+    PROFILE_PHOTOS_CONTAINER,
+    photos.map((p) => p.storage_path)
+  );
 
-  if (photos && photos.length > 0) {
-    await supabase.storage
-      .from(PROFILE_PHOTOS_BUCKET)
-      .remove(photos.map((p) => p.storage_path));
-  }
-
-  const { error } = await supabase.from("profiles").delete().eq("id", id);
-  if (error) throw error;
+  await execute("delete from profiles where id = $1", [id]);
 }
 
 export async function getDistinctCities(): Promise<string[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("city")
-    .not("city", "is", null);
-  if (error) throw error;
-  return Array.from(new Set((data ?? []).map((r) => r.city as string))).sort();
+  const rows = await query<{ city: string }>(
+    "select distinct city from profiles where city is not null order by city"
+  );
+  return rows.map((r) => r.city);
 }
-
 
 /** Birth years present in the book, newest first, for the All Profiles filter. */
 export async function listProfileBirthYears(gender?: string): Promise<number[]> {
-  const supabase = getSupabaseAdmin();
-  let query = supabase
-    .from("profiles")
-    .select("dob")
-    .eq("is_active", true)
-    .is("deleted_at", null)
-    .not("dob", "is", null);
-  if (gender) query = query.eq("gender", gender);
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const years = new Set<number>();
-  for (const row of data ?? []) {
-    const y = Number(String(row.dob).slice(0, 4));
-    if (Number.isFinite(y)) years.add(y);
-  }
-  return Array.from(years).sort((a, b) => b - a);
+  // Grouped in the database rather than by reading every dob into memory and
+  // de-duplicating here, which is what the thousand-row page cap used to force.
+  const rows = await query<{ year: number }>(
+    `select distinct extract(year from dob)::int as year
+       from profiles
+      where is_active = true and deleted_at is null and dob is not null
+        and ($1::text is null or gender = $1)
+      order by year desc`,
+    [gender ?? null]
+  );
+  return rows.map((r) => r.year);
 }
 
 export interface BulkUpsertResult {
@@ -342,22 +291,46 @@ export async function bulkUpsertProfilesBySourceId(
   rows: (ProfileFormValues & { source_id: string })[],
   chunkSize = 250
 ): Promise<BulkUpsertResult> {
-  const supabase = getSupabaseAdmin();
   const result: BulkUpsertResult = { written: 0, failed: [] };
+  if (rows.length === 0) return result;
+
+  // Every row is written with the same column list, so a row that happens to
+  // leave a field blank still overwrites it rather than keeping a stale value
+  // from a previous import.
+  const columns = Array.from(
+    new Set(rows.flatMap((row) => Object.keys(row).filter((k) => row[k as keyof typeof row] !== undefined)))
+  );
+  const updates = columns
+    .filter((c) => c !== "source_id")
+    .map((c) => `${c} = excluded.${c}`)
+    .concat("updated_at = now()");
 
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-    const { error } = await supabase
-      .from("profiles")
-      .upsert(chunk, { onConflict: "source_id" });
 
-    if (error) {
+    const params: unknown[] = [];
+    const tuples = chunk.map((row) => {
+      const placeholders = columns.map((column) => {
+        params.push(row[column as keyof typeof row] ?? null);
+        return `$${params.length}`;
+      });
+      return `(${placeholders.join(", ")})`;
+    });
+
+    try {
+      await execute(
+        `insert into profiles (${columns.join(", ")})
+         values ${tuples.join(", ")}
+         on conflict (source_id) do update set ${updates.join(", ")}`,
+        params
+      );
+      result.written += chunk.length;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       for (const row of chunk) {
-        result.failed.push({ sourceId: row.source_id, message: error.message });
+        result.failed.push({ sourceId: row.source_id, message });
       }
-      continue;
     }
-    result.written += chunk.length;
   }
 
   return result;
@@ -366,17 +339,5 @@ export async function bulkUpsertProfilesBySourceId(
 /** How many of these source ids are already on the books. */
 export async function countExistingSourceIds(sourceIds: string[]): Promise<number> {
   if (sourceIds.length === 0) return 0;
-  const supabase = getSupabaseAdmin();
-
-  let found = 0;
-  // Chunked to keep the `in` list out of URL-length territory.
-  for (let i = 0; i < sourceIds.length; i += 200) {
-    const { count, error } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .in("source_id", sourceIds.slice(i, i + 200));
-    if (error) throw error;
-    found += count ?? 0;
-  }
-  return found;
+  return count("select count(*) from profiles where source_id = any($1::text[])", [sourceIds]);
 }

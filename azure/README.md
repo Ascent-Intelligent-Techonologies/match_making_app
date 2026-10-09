@@ -7,9 +7,12 @@ Three files do the work:
 | `azure/infra.sh` | Creates the Azure resources. Idempotent — run it as often as you like. |
 | `azure-pipelines.yml` | Azure DevOps pipeline. Every push to `main` builds and deploys. |
 | `azure/deploy-local.sh` | The same deploy, from your laptop, reading your local `.env`. |
+| `azure/migrate-from-supabase.mjs` | One-off: copies the existing rows and files across. |
 
 The target is the Azure column of `docs/cloud-cost-comparison.pdf`: **about ₹3,470 a
-month** in Central India.
+month** in Central India — of which the database, at ₹2,119, is **free for the
+first 12 months** on a new Azure account, because B1ms with 32 GB is exactly
+the free-tier SKU. Expect roughly **₹1,350 a month** for the first year.
 
 ---
 
@@ -138,44 +141,31 @@ production database.
 
 ---
 
-## 4. The part that is not done yet
+## 4. Move the data off Supabase
 
-`infra.sh` provisions a PostgreSQL server and a Blob Storage account, and loads
-the schema. **The application cannot use either of them yet.**
+The application no longer talks to Supabase at all: `src/lib/data/*` runs SQL
+against this database through `pg`, and photos and videos live in the two Blob
+containers. What is left is moving the existing rows and files across.
 
-Every one of the 13 files under `src/lib/data/` talks to Supabase through
-`@supabase/supabase-js`, which speaks PostgREST — an HTTP API that sits in front
-of Postgres. Azure Database for PostgreSQL is the database on its own, with no
-PostgREST in front of it, so `supabase.from("profiles").select(...)` has nothing
-to call. The same is true of `supabase.storage` and Blob Storage.
+```bash
+node azure/migrate-from-supabase.mjs --dry-run   # count everything, write nothing
+node azure/migrate-from-supabase.mjs             # do it
+```
 
-So the move is two steps, and only the first is in these scripts:
+It reads Supabase through its REST API with the service-role key still in
+`.env.local`, so you do not need the database password from the Supabase
+dashboard. Tables are copied parents-first, rows are inserted with
+`on conflict do nothing`, and a blob already in Azure at the same size is
+skipped — so if it stops halfway, run it again.
 
-**Step 1 — now.** Deploy the app to Azure App Service with the Supabase
-environment variables it already uses. The app runs on Azure; the data still
-lives in Supabase. Everything in this README works today, and `deploy-local.sh`
-forwards `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for exactly this reason.
+The file paths it copies come from `profile_photos.storage_path` and
+`journey_media.storage_path` rather than from a bucket listing, so what moves
+is exactly what the application can still reach. An orphaned file in Supabase
+that no row points at is left behind deliberately.
 
-**Step 2 — a separate piece of work.** Port the data layer:
-
-- Replace the Supabase query builder with SQL (`pg`, or Drizzle if you want
-  typed queries) across `src/lib/data/*` — roughly 2,000 lines, and the filter
-  builder in `profiles.ts` is the fiddly part.
-- Replace `supabase.storage` with `@azure/storage-blob`, swapping signed URLs
-  for user-delegation SAS tokens. The managed identity and its
-  *Storage Blob Data Contributor* role are already in place for this.
-- Move the data: `pg_dump` from Supabase, `pg_restore` into Flexible Server,
-  then copy both buckets across with `azcopy`.
-- Point `images.remotePatterns` in `next.config.ts` at the blob host.
-
-I'd put that at two to three days, and it is worth doing as its own change with
-its own testing rather than bundled into a hosting move. Until then the Azure
-Postgres server costs about ₹2,119 a month to sit idle, so it is reasonable to
-run `infra.sh` with the database and run step 2 soon after — or tell me and I
-will split the database out of the script so you only pay for it when the code
-is ready.
-
----
+Once the app is running on Azure and you are satisfied, delete
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`. Nothing
+reads them except this migration script.
 
 ## 5. After the first deploy
 

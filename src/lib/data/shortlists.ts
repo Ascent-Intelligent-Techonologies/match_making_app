@@ -1,5 +1,5 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { execute, query } from "@/lib/db";
 import { touchClientActivity } from "@/lib/data/clients";
 
 export interface ShortlistedProfile {
@@ -9,73 +9,59 @@ export interface ShortlistedProfile {
   city: string | null;
 }
 
-interface RawShortlistRow {
-  profile_id: string;
-  created_at: string;
-  profiles: { full_name: string; city: string | null } | null;
-}
-
 export async function getShortlistedProfileIds(clientId: string): Promise<string[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("client_shortlists")
-    .select("profile_id")
-    .eq("client_id", clientId);
-  if (error) throw error;
-  return (data ?? []).map((r) => r.profile_id);
+  const rows = await query<{ profile_id: string }>(
+    "select profile_id from client_shortlists where client_id = $1",
+    [clientId]
+  );
+  return rows.map((r) => r.profile_id);
 }
 
 export async function listShortlistedProfiles(clientId: string): Promise<ShortlistedProfile[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("client_shortlists")
-    .select("profile_id, created_at, profiles(full_name, city)")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-
-  return ((data ?? []) as unknown as RawShortlistRow[]).map((r) => ({
-    profile_id: r.profile_id,
-    created_at: r.created_at,
-    full_name: r.profiles?.full_name ?? "Unknown profile",
-    city: r.profiles?.city ?? null,
-  }));
+  // Left-joined: a shortlist outlives a hard-deleted profile, and the client
+  // having hearted something is worth showing even once it is gone.
+  return query<ShortlistedProfile>(
+    `select cs.profile_id,
+            cs.created_at,
+            coalesce(p.full_name, 'Unknown profile') as full_name,
+            p.city
+       from client_shortlists cs
+       left join profiles p on p.id = cs.profile_id
+      where cs.client_id = $1
+      order by cs.created_at desc`,
+    [clientId]
+  );
 }
 
 /**
- * Hearts or un-hearts a profile for a client. Returns the resulting state so
- * the caller can reflect it immediately. Counts as client activity either way.
+ * Hearts or un-hearts a profile for a client, in one statement each way so
+ * two taps in quick succession cannot both see "not there yet" and insert
+ * twice. Returns the resulting state so the caller can reflect it
+ * immediately.
  */
+async function toggle(clientId: string, profileId: string, shareLinkId: string | null) {
+  const removed = await execute(
+    "delete from client_shortlists where client_id = $1 and profile_id = $2",
+    [clientId, profileId]
+  );
+  if (removed > 0) return false;
+
+  await execute(
+    `insert into client_shortlists (client_id, profile_id, share_link_id)
+     values ($1, $2, $3)
+     on conflict (client_id, profile_id) do nothing`,
+    [clientId, profileId, shareLinkId]
+  );
+  return true;
+}
+
+/** The client's own heart. Counts as client activity either way. */
 export async function toggleShortlist(input: {
   clientId: string;
   profileId: string;
   shareLinkId: string | null;
 }): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-
-  const { data: existing, error: findError } = await supabase
-    .from("client_shortlists")
-    .select("id")
-    .eq("client_id", input.clientId)
-    .eq("profile_id", input.profileId)
-    .maybeSingle();
-  if (findError) throw findError;
-
-  let shortlisted: boolean;
-  if (existing) {
-    const { error } = await supabase.from("client_shortlists").delete().eq("id", existing.id);
-    if (error) throw error;
-    shortlisted = false;
-  } else {
-    const { error } = await supabase.from("client_shortlists").insert({
-      client_id: input.clientId,
-      profile_id: input.profileId,
-      share_link_id: input.shareLinkId,
-    });
-    if (error) throw error;
-    shortlisted = true;
-  }
-
+  const shortlisted = await toggle(input.clientId, input.profileId, input.shareLinkId);
   await touchClientActivity(input.clientId);
   return shortlisted;
 }
@@ -87,13 +73,10 @@ export async function toggleShortlist(input: {
  * our tidying up is not their activity.
  */
 export async function removeShortlist(clientId: string, profileId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("client_shortlists")
-    .delete()
-    .eq("client_id", clientId)
-    .eq("profile_id", profileId);
-  if (error) throw error;
+  await execute(
+    "delete from client_shortlists where client_id = $1 and profile_id = $2",
+    [clientId, profileId]
+  );
 }
 
 /**
@@ -107,25 +90,5 @@ export async function toggleShortlistForAdmin(
   clientId: string,
   profileId: string
 ): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-
-  const { data: existing, error: findError } = await supabase
-    .from("client_shortlists")
-    .select("id")
-    .eq("client_id", clientId)
-    .eq("profile_id", profileId)
-    .maybeSingle();
-  if (findError) throw findError;
-
-  if (existing) {
-    const { error } = await supabase.from("client_shortlists").delete().eq("id", existing.id);
-    if (error) throw error;
-    return false;
-  }
-
-  const { error } = await supabase
-    .from("client_shortlists")
-    .insert({ client_id: clientId, profile_id: profileId, share_link_id: null });
-  if (error) throw error;
-  return true;
+  return toggle(clientId, profileId, null);
 }

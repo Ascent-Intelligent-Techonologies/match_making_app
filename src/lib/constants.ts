@@ -42,7 +42,8 @@ export const TAG_OPTIONS = ["AM", "AMP", "AMO"] as const;
 
 export const ADMIN_SESSION_COOKIE = "aura_admin_session";
 
-export const PROFILE_PHOTOS_BUCKET = "profile-photos";
+/** Azure Blob containers. Both private; everything is read through a SAS URL. */
+export const PROFILE_PHOTOS_CONTAINER = "profile-photos";
 
 export const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour, regenerated on each render
 
@@ -108,4 +109,4 @@ export const TEAM_MEMBERS = [
   { slug: "shreya", name: "Shreya" },
 ] as const;
 
-export const JOURNEY_MEDIA_BUCKET = "journey-media";
+export const JOURNEY_MEDIA_CONTAINER = "journey-media";

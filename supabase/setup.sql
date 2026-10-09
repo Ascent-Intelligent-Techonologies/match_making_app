@@ -1,9 +1,13 @@
 -- =================================================================
 -- AnuRupa Matrimony — complete database setup
 -- =================================================================
--- Run this once, in the Supabase SQL editor, against a brand-new project.
--- It creates everything the app needs: tables, indexes, storage buckets and
--- the row-level-security posture.
+-- Run this once against a brand-new, empty PostgreSQL database. It creates
+-- everything the app needs: tables, indexes and the row-level-security
+-- posture. azure/infra.sh runs it for you on a fresh Azure server.
+--
+-- Photos and videos are NOT in here. They live in two private Azure Blob
+-- containers (profile-photos, journey-media) that azure/infra.sh creates;
+-- these tables only hold the path to each blob.
 --
 -- This is the schema in its final shape, not a replay of the migration
 -- history. `schema.sql` plus `migrations/` document how it got here and are
@@ -13,7 +17,8 @@
 -- Every statement is idempotent, so re-running it is safe.
 --
 -- Afterwards, set these environment variables for the app:
---   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (Project Settings -> API)
+--   DATABASE_URL                              (postgresql://…?sslmode=require)
+--   AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_KEY  (see azure/README.md)
 --   ADMIN_PASSWORD_HASH                       (bcrypt; see README)
 --   SESSION_SECRET                            (long random string)
 --   NEXT_PUBLIC_SITE_URL                      (no trailing slash)
@@ -299,22 +304,16 @@ values (1, 3)
 on conflict (id) do nothing;
 
 -- -----------------------------------------------------------------
--- Storage — both buckets private
--- -----------------------------------------------------------------
--- Nothing in either bucket is reachable without a signed URL, which the app
--- mints per render with a one-hour life.
-insert into storage.buckets (id, name, public) values
-  ('profile-photos', 'profile-photos', false),
-  ('journey-media',  'journey-media',  false)
-on conflict (id) do nothing;
-
--- -----------------------------------------------------------------
 -- Row-level security
 -- -----------------------------------------------------------------
--- RLS is enabled with NO policies anywhere, which denies the anon and
--- authenticated roles everything. All access goes through the Next.js server
--- using the service_role key, which bypasses RLS. This is deliberate: the
--- browser never talks to the database, so a leaked anon key is worthless.
+-- RLS is enabled with NO policies anywhere, so every role is denied
+-- everything. The app connects as the server's admin user, which owns these
+-- tables and therefore bypasses RLS; the browser never talks to the database
+-- at all. This is a backstop, not the access control.
+--
+-- Note for later: if you add a separate, non-owning database user for the
+-- app, it will be denied everything until policies are written. That is the
+-- intended behaviour, but a confusing way to discover it.
 alter table profiles            enable row level security;
 alter table profile_photos      enable row level security;
 alter table share_links         enable row level security;

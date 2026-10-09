@@ -1,5 +1,5 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { execute, query } from "@/lib/db";
 
 export interface ClientFollowup {
   id: string;
@@ -16,11 +16,10 @@ export async function addFollowup(input: {
   clientId: string;
   note: string;
 }): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("client_followups")
-    .insert({ client_id: input.clientId, note: input.note.trim() });
-  if (error) throw error;
+  await execute("insert into client_followups (client_id, note) values ($1, $2)", [
+    input.clientId,
+    input.note.trim(),
+  ]);
 
   // Deliberately does NOT touch clients.last_activity_at. That column means
   // "the client responded"; a follow-up is us contacting them, and counting it
@@ -28,31 +27,33 @@ export async function addFollowup(input: {
 }
 
 export async function listFollowupsForClient(clientId: string): Promise<ClientFollowup[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("client_followups")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  return query<ClientFollowup>(
+    "select * from client_followups where client_id = $1 order by created_at desc",
+    [clientId]
+  );
 }
 
 export async function listRecentFollowups(limit = 15): Promise<FollowupWithClient[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("client_followups")
-    .select("*, clients(id, full_name, phone_display, phone)")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-
-  return ((data ?? []) as unknown as (ClientFollowup & { clients: FollowupWithClient["client"] })[])
-    .map(({ clients, ...f }) => ({ ...f, client: clients }));
+  // A left join rather than an inner one: a follow-up whose client was deleted
+  // is still worth showing, with the client shown as unknown.
+  return query<FollowupWithClient>(
+    `select f.*,
+            case when c.id is null then null
+                 else jsonb_build_object(
+                   'id', c.id,
+                   'full_name', c.full_name,
+                   'phone_display', c.phone_display,
+                   'phone', c.phone
+                 )
+            end as client
+       from client_followups f
+       left join clients c on c.id = f.client_id
+      order by f.created_at desc
+      limit $1`,
+    [limit]
+  );
 }
 
 export async function deleteFollowup(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("client_followups").delete().eq("id", id);
-  if (error) throw error;
+  await execute("delete from client_followups where id = $1", [id]);
 }

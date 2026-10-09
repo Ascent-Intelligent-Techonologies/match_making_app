@@ -48,7 +48,7 @@ export default async function JourneyPage() {
                   ) : isVideo ? (
                     <video src={item.signedUrl} controls className="h-full w-full object-cover" />
                   ) : (
-                    // Signed Supabase URLs expire hourly, so these are plain
+                    // Signed blob URLs expire hourly, so these are plain
                     // <img> rather than next/image, which would cache them.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

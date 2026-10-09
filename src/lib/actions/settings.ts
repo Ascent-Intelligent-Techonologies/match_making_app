@@ -17,13 +17,13 @@ function revalidateEverything() {
 
 /**
  * Saves, turning the one predictable failure into something actionable: the
- * column arrives with migration 005, which has to be run by hand in Supabase.
+ * column arrives with migration 005, which has to be run by hand.
  */
 async function save(colors: ThemeColors | null): Promise<ThemeState> {
   try {
     await updateThemeColors(colors);
   } catch (error) {
-    // Supabase rejects with a plain object, not an Error.
+    // Not every driver rejects with a real Error, so unwrap defensively.
     const message =
       typeof error === "object" && error !== null && "message" in error
         ? String((error as { message: unknown }).message)
@@ -31,7 +31,7 @@ async function save(colors: ThemeColors | null): Promise<ThemeState> {
     if (/theme_colors/.test(message)) {
       return {
         error:
-          "The theme_colors column is missing — run supabase/migrations/005_theme_colors.sql in the Supabase SQL editor, then save again.",
+          "The theme_colors column is missing — run supabase/migrations/005_theme_colors.sql against the database, then save again.",
       };
     }
     return { error: `Could not save the colours: ${message}` };

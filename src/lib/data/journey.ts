@@ -1,64 +1,42 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { JOURNEY_MEDIA_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import { execute, one, query } from "@/lib/db";
+import { deleteBlobs, signedUrl, uploadBlob } from "@/lib/storage/blob";
+import { JOURNEY_MEDIA_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import type { JourneyMedia } from "@/lib/types";
 
 /** Photos and videos, newest first, each with a short-lived signed URL. */
 export async function listJourneyMedia(): Promise<JourneyMedia[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("journey_media")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+  const items = await query<JourneyMedia>(
+    "select * from journey_media order by created_at desc"
+  );
 
-  const items = (data ?? []) as JourneyMedia[];
-  if (items.length === 0) return items;
-
-  // The bucket is private, exactly like profile photos, so nothing is
+  // The container is private, exactly like profile photos, so nothing is
   // reachable without a signed URL minted on this render.
-  const { data: signed, error: signError } = await supabase.storage
-    .from(JOURNEY_MEDIA_BUCKET)
-    .createSignedUrls(
-      items.map((m) => m.storage_path),
-      SIGNED_URL_TTL_SECONDS
-    );
-  if (signError) throw signError;
-
-  return items.map((m, i) => ({ ...m, signedUrl: signed?.[i]?.signedUrl ?? undefined }));
+  return items.map((m) => ({
+    ...m,
+    signedUrl: signedUrl(JOURNEY_MEDIA_CONTAINER, m.storage_path, SIGNED_URL_TTL_SECONDS),
+  }));
 }
 
 export async function uploadJourneyMedia(file: File, caption?: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
   const ext = file.name.split(".").pop() ?? "bin";
   const path = `${crypto.randomUUID()}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(JOURNEY_MEDIA_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
-  if (uploadError) throw uploadError;
+  await uploadBlob(JOURNEY_MEDIA_CONTAINER, path, file);
 
-  const { error } = await supabase.from("journey_media").insert({
-    storage_path: path,
-    file_name: file.name,
-    content_type: file.type || null,
-    size_bytes: file.size,
-    caption: caption?.trim() || null,
-  });
-  if (error) throw error;
+  await execute(
+    `insert into journey_media (storage_path, file_name, content_type, size_bytes, caption)
+     values ($1, $2, $3, $4, $5)`,
+    [path, file.name, file.type || null, file.size, caption?.trim() || null]
+  );
 }
 
 export async function deleteJourneyMedia(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const { data: item, error: fetchError } = await supabase
-    .from("journey_media")
-    .select("storage_path")
-    .eq("id", id)
-    .single();
-  if (fetchError) throw fetchError;
+  const item = await one<{ storage_path: string }>(
+    "select storage_path from journey_media where id = $1",
+    [id]
+  );
 
-  await supabase.storage.from(JOURNEY_MEDIA_BUCKET).remove([item.storage_path]);
-
-  const { error } = await supabase.from("journey_media").delete().eq("id", id);
-  if (error) throw error;
+  await deleteBlobs(JOURNEY_MEDIA_CONTAINER, [item.storage_path]);
+  await execute("delete from journey_media where id = $1", [id]);
 }
