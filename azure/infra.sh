@@ -165,6 +165,17 @@ else
   info "created $STORAGE_ACCOUNT"
 fi
 
+# Deleted blobs and containers are kept, invisibly, for 14 days and can be
+# undeleted in one command — the only recovery there is for a photo removed
+# by mistake, since nothing else holds a copy. Costs nothing until something
+# is deleted, and then only the deleted bytes for those days.
+az storage account blob-service-properties update \
+  --account-name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" \
+  --enable-delete-retention true --delete-retention-days 14 \
+  --enable-container-delete-retention true --container-delete-retention-days 14 \
+  -o none
+info "soft delete: blobs and containers recoverable for 14 days"
+
 # Containers are private: nothing in them is reachable without a signed URL,
 # which is the same posture the Supabase buckets have today.
 STORAGE_KEY="$(az storage account keys list -g "$RESOURCE_GROUP" -n "$STORAGE_ACCOUNT" --query '[0].value' -o tsv)"
