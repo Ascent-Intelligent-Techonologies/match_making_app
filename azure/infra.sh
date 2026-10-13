@@ -168,6 +168,21 @@ fi
 # Containers are private: nothing in them is reachable without a signed URL,
 # which is the same posture the Supabase buckets have today.
 STORAGE_KEY="$(az storage account keys list -g "$RESOURCE_GROUP" -n "$STORAGE_ACCOUNT" --query '[0].value' -o tsv)"
+# Photos are uploaded straight from the browser to Blob Storage with a
+# short-lived write SAS, so the blob service has to answer the browser's CORS
+# preflight for the site's origin. GET is included because the app reads
+# images from the same origin check. Cleared and re-added so re-runs never
+# accumulate duplicate rules.
+SITE_ORIGIN="${NEXT_PUBLIC_SITE_URL:-https://${APP_NAME}.azurewebsites.net}"
+az storage cors clear --services b \
+  --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" -o none 2>/dev/null || true
+az storage cors add --services b \
+  --methods GET HEAD OPTIONS PUT \
+  --origins "$SITE_ORIGIN" "http://localhost:3000" \
+  --allowed-headers "*" --exposed-headers "*" --max-age 3600 \
+  --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" -o none
+info "CORS: browser uploads allowed from $SITE_ORIGIN and localhost"
+
 for container in "$PHOTOS_CONTAINER" "$JOURNEY_CONTAINER"; do
   az storage container create \
     --account-name "$STORAGE_ACCOUNT" \

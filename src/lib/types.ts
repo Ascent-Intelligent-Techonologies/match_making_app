@@ -11,8 +11,12 @@ export interface ProfilePhoto {
   sort_order: number;
   is_cover: boolean;
   created_at: string;
-  /** Populated at render time, never stored. */
+  /** Populated at render time, never stored. The original; never shown. */
   signedUrl?: string;
+  /** 480 px WebP, for grids and cover tiles. */
+  thumbUrl?: string;
+  /** 1200 px WebP, for the carousel, slideshow and share page. */
+  mediumUrl?: string;
 }
 
 export interface Profile {

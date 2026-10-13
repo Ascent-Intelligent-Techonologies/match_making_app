@@ -2,36 +2,50 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  uploadProfilePhoto,
+  beginPhotoUpload,
   deleteProfilePhoto,
+  finalisePhotoUpload,
   reorderProfilePhotos,
   setCoverPhoto,
+  type UploadTicket,
 } from "@/lib/data/photos";
+import type { ProfilePhoto } from "@/lib/types";
 
-export interface PhotoActionState {
-  error?: string;
+/**
+ * Uploading is two calls from the browser with a direct PUT to Blob Storage
+ * in between. Neither action ever sees the file's bytes, which is what lets
+ * a batch of fifty HD photos go up without touching this server's request
+ * limit or memory.
+ */
+
+export type UploadTicketResult = { ticket: UploadTicket } | { error: string };
+
+/** Step one: a write-only URL for one file, to a path the server chooses. */
+export async function requestPhotoUploadAction(
+  profileId: string,
+  file: { name: string; type: string; size: number }
+): Promise<UploadTicketResult> {
+  try {
+    return { ticket: await beginPhotoUpload(profileId, file) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not start the upload." };
+  }
 }
 
-export async function uploadPhotosAction(
+export type FinaliseResult = { photo: ProfilePhoto } | { error: string };
+
+/** Step two, after the PUT: validate, make the resized copies, record it. */
+export async function finalisePhotoUploadAction(
   profileId: string,
-  _prevState: PhotoActionState,
-  formData: FormData
-): Promise<PhotoActionState> {
-  const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) {
-    return { error: "Please choose at least one photo." };
-  }
-
+  path: string
+): Promise<FinaliseResult> {
   try {
-    for (const file of files) {
-      await uploadProfilePhoto(profileId, file);
-    }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Upload failed." };
+    const photo = await finalisePhotoUpload(profileId, path);
+    revalidatePath(`/admin/profiles/${profileId}`);
+    return { photo };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Upload failed." };
   }
-
-  revalidatePath(`/admin/profiles/${profileId}`);
-  return {};
 }
 
 export async function deletePhotoAction(profileId: string, photoId: string) {

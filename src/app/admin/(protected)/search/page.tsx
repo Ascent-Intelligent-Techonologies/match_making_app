@@ -80,7 +80,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
     city: p.city,
     state: p.state,
     country: p.country,
-    coverUrl: coverUrls.get(p.id),
+    coverUrl: coverUrls.get(p.id)?.thumb,
+    coverLargeUrl: coverUrls.get(p.id)?.medium,
     alreadyShared: shared.has(p.id),
     shortlisted: shortlisted.has(p.id),
   }));

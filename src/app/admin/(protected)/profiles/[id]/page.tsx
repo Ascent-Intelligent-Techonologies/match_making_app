@@ -6,7 +6,6 @@ import { PhotoManager } from "@/components/PhotoManager";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { DeleteProfileButton } from "@/components/DeleteProfileButton";
 import { updateProfileAction } from "@/lib/actions/profiles";
-import { uploadPhotosAction } from "@/lib/actions/photos";
 
 export default async function ProfileDetailPage({
   params,
@@ -46,7 +45,6 @@ export default async function ProfileDetailPage({
         <PhotoManager
           profileId={profile.id}
           photos={profile.photos}
-          uploadAction={uploadPhotosAction.bind(null, profile.id)}
         />
       </section>
 

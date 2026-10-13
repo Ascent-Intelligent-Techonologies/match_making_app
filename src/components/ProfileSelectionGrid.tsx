@@ -31,7 +31,10 @@ export interface SelectableProfile {
   caste: string | null;
   height_cm: number | null;
   annual_income_inr: number | null;
+  /** Thumb, for the tile. */
   coverUrl?: string;
+  /** Medium, for the slideshow. */
+  coverLargeUrl?: string;
 }
 
 
@@ -152,7 +155,7 @@ export function ProfileSelectionGrid({
                 .filter(Boolean)
                 .join(" · "),
               details: slideDetails(p),
-              coverUrl: p.coverUrl,
+              coverUrl: p.coverLargeUrl ?? p.coverUrl,
             }))}
           />
           <span className="text-sm text-ink-900/60">
@@ -221,8 +224,7 @@ export function ProfileSelectionGrid({
                         alt={profile.full_name}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover"
-                      />
+                        className="object-cover" unoptimized />
                     )}
                   </div>
                   <div className="flex flex-col gap-3 p-4">

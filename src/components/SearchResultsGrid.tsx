@@ -29,7 +29,10 @@ export interface SearchResult {
   city: string | null;
   state: string | null;
   country: string | null;
+  /** Thumb, for the row. */
   coverUrl?: string;
+  /** Medium, for the slideshow. */
+  coverLargeUrl?: string;
   /** Already sent to this client in an earlier link — shown greyed out. */
   alreadyShared: boolean;
   /** This client hearted it on a share page. */
@@ -117,7 +120,7 @@ export function SearchResultsGrid({
                 { label: "Native place", value: r.native_place },
                 { label: "Current location", value: formatLocation(r) },
               ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
-              coverUrl: r.coverUrl,
+              coverUrl: r.coverLargeUrl ?? r.coverUrl,
               favorite: r.shortlisted,
             }))}
           />
@@ -183,7 +186,7 @@ export function SearchResultsGrid({
 
               <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-blush-100">
                 {r.coverUrl ? (
-                  <Image src={r.coverUrl} alt={r.full_name} fill sizes="80px" className="object-cover" />
+                  <Image src={r.coverUrl} alt={r.full_name} fill sizes="80px" className="object-cover" unoptimized />
                 ) : (
                   <span className="flex h-full items-center justify-center text-maroon-700/30">
                     <ImageOff size={20} strokeWidth={1.25} />

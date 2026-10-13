@@ -16,8 +16,9 @@ import {
   updateOne,
   type Filters,
 } from "@/lib/db";
-import { deleteBlobs, signedUrl } from "@/lib/storage/blob";
-import { PROFILE_PHOTOS_CONTAINER, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import { deleteBlobs } from "@/lib/storage/blob";
+import { photoBlobPaths, withPhotoUrls } from "@/lib/data/photos";
+import { PROFILE_PHOTOS_CONTAINER } from "@/lib/constants";
 import type { Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
 import type { ProfileFormValues } from "@/lib/validation";
 
@@ -161,14 +162,7 @@ export async function listProfiles(
 }
 
 function attachSignedPhotoUrls(photos: ProfilePhoto[]): ProfilePhoto[] {
-  return photos.map((photo) => ({
-    ...photo,
-    signedUrl: signedUrl(
-      PROFILE_PHOTOS_CONTAINER,
-      photo.storage_path,
-      SIGNED_URL_TTL_SECONDS
-    ),
-  }));
+  return photos.map(withPhotoUrls);
 }
 
 /**
@@ -260,7 +254,7 @@ export async function deleteProfile(id: string): Promise<void> {
     where: { profile_id: id },
   });
 
-  await deleteBlobs(PROFILE_PHOTOS_CONTAINER, paths);
+  await deleteBlobs(PROFILE_PHOTOS_CONTAINER, photoBlobPaths(paths));
   await deleteMany("profiles", { id });
 }
 

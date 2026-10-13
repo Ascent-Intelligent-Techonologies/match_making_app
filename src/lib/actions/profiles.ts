@@ -11,7 +11,7 @@ import {
   softDeleteProfile,
   restoreProfile,
 } from "@/lib/data/profiles";
-import { uploadProfilePhoto } from "@/lib/data/photos";
+import { storeProfilePhoto } from "@/lib/data/photos";
 
 export interface ProfileFormState {
   error?: string;
@@ -65,7 +65,7 @@ export async function createProfileAction(
   const photos = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   for (const photo of photos) {
     try {
-      await uploadProfilePhoto(profile.id, photo);
+      await storeProfilePhoto(profile.id, photo);
     } catch {
       // Profile is already saved; skip a bad photo rather than losing the profile data.
     }

@@ -10,7 +10,8 @@ export function ProfilePhotoCarousel({
   photos,
   alt,
 }: {
-  photos: { id: string; signedUrl?: string }[];
+  /** Rendered from `mediumUrl`; `signedUrl` (the original) is only a fallback. */
+  photos: { id: string; mediumUrl?: string; signedUrl?: string }[];
   alt: string;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: photos.length > 1 });
@@ -44,14 +45,15 @@ export function ProfilePhotoCarousel({
         <div className="flex">
           {photos.map((photo, i) => (
             <div key={photo.id} className="relative aspect-[4/5] w-full flex-[0_0_100%]">
-              {photo.signedUrl && (
+              {(photo.mediumUrl ?? photo.signedUrl) && (
                 <Image
-                  src={photo.signedUrl}
+                  src={photo.mediumUrl ?? photo.signedUrl!}
                   alt={`${alt} photo ${i + 1}`}
                   fill
                   sizes="(max-width: 768px) 100vw, 480px"
                   className="object-cover"
                   priority={i === 0}
+                  unoptimized
                 />
               )}
             </div>

@@ -107,7 +107,7 @@ export default async function BrowseProfilesPage({
                 { label: "Native place", value: p.native_place },
                 { label: "Current location", value: formatLocation(p) },
               ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
-              coverUrl: coverUrls.get(p.id),
+              coverUrl: coverUrls.get(p.id)?.medium,
               favorite: shortlisted.has(p.id),
             }))}
           />
@@ -122,7 +122,7 @@ export default async function BrowseProfilesPage({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {profiles.map((profile) => {
             const age = calculateAge(profile.dob);
-            const coverUrl = coverUrls.get(profile.id);
+            const coverUrl = coverUrls.get(profile.id)?.thumb;
             return (
               <div key={profile.id} className="relative">
                 <BrowseShortlistButton
@@ -139,6 +139,7 @@ export default async function BrowseProfilesPage({
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <ImageOff size={32} strokeWidth={1.25} className="text-maroon-700/40" />

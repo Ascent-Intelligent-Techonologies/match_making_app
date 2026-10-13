@@ -47,6 +47,13 @@ export const PROFILE_PHOTOS_CONTAINER = "profile-photos";
 
 export const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour, regenerated on each render
 
+/**
+ * The largest photo the browser may send straight to Blob Storage. Not a
+ * request-body limit any more — the bytes never pass through the server —
+ * just a sanity ceiling, and the server re-checks it on the blob itself.
+ */
+export const MAX_PHOTO_BYTES = 30 * 1024 * 1024;
+
 /** Cookie holding the signed id of the client currently browsing. */
 export const CLIENT_SESSION_COOKIE = "aura_client_session";
 

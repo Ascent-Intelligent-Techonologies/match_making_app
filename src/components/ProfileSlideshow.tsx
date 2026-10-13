@@ -167,8 +167,8 @@ export function ProfileSlideshow({
       {/* The slide: photo edge to edge, name and heart on a scrim. */}
       <div className="relative mx-auto flex w-full min-h-0 max-w-3xl flex-1 overflow-hidden rounded-3xl bg-blush-200 shadow-2xl">
         {current.coverUrl ? (
-          // Signed URLs expire hourly, so this stays a plain <img> rather than
-          // going through the next/image cache.
+          // The medium derivative, straight from Blob Storage: already the
+          // right size, so there is nothing for next/image to do.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={current.coverUrl}

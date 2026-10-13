@@ -1,55 +1,162 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Star, Trash2, ArrowLeft, ArrowRight, UploadCloud } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Star, Trash2, UploadCloud, X } from "lucide-react";
 import type { ProfilePhoto } from "@/lib/types";
-import type { PhotoActionState } from "@/lib/actions/photos";
+import { MAX_PHOTO_BYTES } from "@/lib/constants";
 import {
   deletePhotoAction,
+  finalisePhotoUploadAction,
   reorderPhotosAction,
+  requestPhotoUploadAction,
   setCoverPhotoAction,
 } from "@/lib/actions/photos";
+
+/**
+ * Uploads go straight from the browser to Blob Storage.
+ *
+ * For each file: ask the server for a write-only URL (step one), PUT the
+ * bytes there (the only hop that carries the image, and it never touches our
+ * server), then ask the server to finalise it (step two: validate, make the
+ * resized copies, record the row). Three files are in flight at a time —
+ * enough to keep a connection busy, few enough that one slow photo cannot
+ * hold the rest of a batch hostage.
+ */
+
+type JobStatus = "queued" | "uploading" | "finalising" | "done" | "error";
+
+interface UploadJob {
+  id: string;
+  name: string;
+  status: JobStatus;
+  /** 0–1, for the bar. */
+  progress: number;
+  error?: string;
+}
+
+const CONCURRENCY = 3;
+
+/** A PUT that reports progress, which fetch() still cannot do for uploads. */
+function putBlob(url: string, file: File, onProgress: (fraction: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    // Required by the Blob service for a single-shot upload.
+    xhr.setRequestHeader("x-ms-blob-type", "BlockBlob");
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () =>
+      xhr.status === 201
+        ? resolve()
+        : reject(new Error(`Storage answered ${xhr.status} while uploading.`));
+    xhr.onerror = () => reject(new Error("The upload could not reach storage."));
+    xhr.ontimeout = () => reject(new Error("The upload timed out."));
+    xhr.timeout = 9 * 60 * 1000; // under the ten-minute life of the URL
+    xhr.send(file);
+  });
+}
 
 export function PhotoManager({
   profileId,
   photos,
-  uploadAction,
 }: {
   profileId: string;
   photos: ProfilePhoto[];
-  uploadAction: (
-    state: PhotoActionState,
-    formData: FormData
-  ) => Promise<PhotoActionState>;
 }) {
-  const [state, formAction, pending] = useActionState<PhotoActionState, FormData>(
-    uploadAction,
-    {}
-  );
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDragging, setIsDragging] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [jobs, setJobs] = useState<UploadJob[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function move(index: number, direction: -1 | 1) {
-    const next = [...photos];
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    startTransition(() => {
-      reorderPhotosAction(profileId, next.map((p) => p.id));
-    });
-  }
+  const patchJob = useCallback((id: string, patch: Partial<UploadJob>) => {
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  }, []);
 
-  function uploadFiles(files: FileList | File[]) {
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (images.length === 0 || !inputRef.current) return;
-    const dt = new DataTransfer();
-    images.forEach((f) => dt.items.add(f));
-    inputRef.current.files = dt.files;
-    formRef.current?.requestSubmit();
-  }
+  const uploadOne = useCallback(
+    async (job: UploadJob, file: File) => {
+      try {
+        patchJob(job.id, { status: "uploading", progress: 0 });
+        const ticket = await requestPhotoUploadAction(profileId, {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+        if ("error" in ticket) throw new Error(ticket.error);
+
+        await putBlob(ticket.ticket.uploadUrl, file, (fraction) =>
+          patchJob(job.id, { progress: fraction })
+        );
+
+        patchJob(job.id, { status: "finalising", progress: 1 });
+        const result = await finalisePhotoUploadAction(profileId, ticket.ticket.path);
+        if ("error" in result) throw new Error(result.error);
+
+        patchJob(job.id, { status: "done" });
+        // The server component owns the photo list; refreshing it is what
+        // makes the new tile appear, in order, with its real URLs.
+        router.refresh();
+      } catch (error) {
+        patchJob(job.id, {
+          status: "error",
+          error: error instanceof Error ? error.message : "Upload failed.",
+        });
+      }
+    },
+    [patchJob, profileId, router]
+  );
+
+  const uploadFiles = useCallback(
+    (files: FileList | File[]) => {
+      const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      if (images.length === 0) return;
+
+      const batch = images.map((file) => ({
+        file,
+        job: {
+          id: crypto.randomUUID(),
+          name: file.name,
+          status: "queued" as JobStatus,
+          progress: 0,
+          // Caught here so an oversized file fails instantly, not after a
+          // 30 MB upload the server then refuses.
+          error:
+            file.size > MAX_PHOTO_BYTES
+              ? `Over the ${MAX_PHOTO_BYTES / 1_048_576} MB limit.`
+              : undefined,
+        },
+      }));
+      setJobs((prev) => [
+        ...prev,
+        ...batch.map(({ job }) => (job.error ? { ...job, status: "error" as JobStatus } : job)),
+      ]);
+
+      const runnable = batch.filter(({ job }) => !job.error);
+      let next = 0;
+      const worker = async () => {
+        while (next < runnable.length) {
+          const { file, job } = runnable[next++];
+          await uploadOne(job, file);
+        }
+      };
+      void Promise.all(Array.from({ length: Math.min(CONCURRENCY, runnable.length) }, worker));
+    },
+    [uploadOne]
+  );
+
+  // Finished jobs leave the list on their own; failures stay until dismissed.
+  useEffect(() => {
+    if (!jobs.some((j) => j.status === "done")) return;
+    const t = setTimeout(
+      () => setJobs((prev) => prev.filter((j) => j.status !== "done")),
+      1500
+    );
+    return () => clearTimeout(t);
+  }, [jobs]);
 
   // Paste-to-upload: a third input path that needs neither the OS file picker
   // nor a drag source. Copy an image anywhere, then press Cmd/Ctrl+V.
@@ -63,16 +170,23 @@ export function PhotoManager({
     }
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  });
+  }, [uploadFiles]);
+
+  function move(index: number, direction: -1 | 1) {
+    const next = [...photos];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    startTransition(() => {
+      reorderPhotosAction(profileId, next.map((p) => p.id));
+    });
+  }
+
+  const active = jobs.filter((j) => j.status === "uploading" || j.status === "finalising");
 
   return (
     <div className="flex flex-col gap-5">
-      <form
-        ref={formRef}
-        action={(fd) => {
-          formAction(fd);
-          formRef.current?.reset();
-        }}
+      <div
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -83,99 +197,150 @@ export function PhotoManager({
           setIsDragging(false);
           uploadFiles(e.dataTransfer.files);
         }}
-        className={`flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-4 transition-colors ${
+        className={`flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors ${
           isDragging
             ? "border-maroon-600 bg-blush-200/70"
             : "border-gold-400/50 bg-blush-100/60"
         }`}
       >
-        {/* Single control: selecting files uploads them immediately, so a
-            separate submit button would only ever be a dead end. */}
-        <label
-          className={`inline-flex items-center gap-2 rounded-full bg-maroon-600 px-5 py-2.5 text-sm font-medium text-blush-50 transition-opacity focus-within:ring-2 focus-within:ring-maroon-600/40 ${
-            pending ? "cursor-wait opacity-70" : "cursor-pointer hover:opacity-90"
-          }`}
-        >
-          <UploadCloud size={16} />
-          <span>{pending ? "Uploading…" : "Add photos"}</span>
-          <input
-            ref={inputRef}
-            type="file"
-            name="photos"
-            accept="image/*"
-            multiple
-            disabled={pending}
-            className="sr-only"
-            onChange={() => formRef.current?.requestSubmit()}
-          />
-        </label>
-        <span className="text-xs text-ink-900/40">or drag photos here, or paste one</span>
-        {state.error && <p className="text-xs text-red-700">{state.error}</p>}
-      </form>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Single control: selecting files uploads them immediately, so a
+              separate submit button would only ever be a dead end. */}
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-maroon-600 px-5 py-2.5 text-sm font-medium text-blush-50 transition-opacity hover:opacity-90 focus-within:ring-2 focus-within:ring-maroon-600/40">
+            <UploadCloud size={16} />
+            <span>{active.length > 0 ? `Uploading ${active.length}…` : "Add photos"}</span>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={(e) => {
+                if (e.target.files) uploadFiles(e.target.files);
+                // So the same file can be chosen again after a failure.
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <span className="text-xs text-ink-900/40">
+            or drag photos here, or paste one · up to {MAX_PHOTO_BYTES / 1_048_576} MB each
+          </span>
+        </div>
+
+        {jobs.length > 0 && (
+          <ul className="flex flex-col gap-1.5">
+            {jobs.map((job) => (
+              <li
+                key={job.id}
+                className="flex items-center gap-3 rounded-lg bg-white/70 px-3 py-1.5 text-xs"
+              >
+                <span className="min-w-0 flex-1 truncate text-ink-900/80">{job.name}</span>
+                {job.status === "error" ? (
+                  <>
+                    <span className="flex items-center gap-1 text-red-700">
+                      <AlertCircle size={12} /> {job.error}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Dismiss"
+                      onClick={() => setJobs((prev) => prev.filter((j) => j.id !== job.id))}
+                      className="rounded-full p-0.5 text-ink-900/50 hover:text-ink-900"
+                    >
+                      <X size={12} />
+                    </button>
+                  </>
+                ) : job.status === "done" ? (
+                  <span className="text-olive-600">Added</span>
+                ) : (
+                  <>
+                    <span className="h-1.5 w-28 overflow-hidden rounded-full bg-blush-200">
+                      <span
+                        className="block h-full rounded-full bg-maroon-600 transition-[width]"
+                        style={{ width: `${Math.round(job.progress * 100)}%` }}
+                      />
+                    </span>
+                    <span className="w-16 text-right text-ink-900/50">
+                      {job.status === "finalising"
+                        ? "Resizing…"
+                        : job.status === "uploading"
+                          ? `${Math.round(job.progress * 100)}%`
+                          : "Waiting"}
+                    </span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {photos.length === 0 ? (
         <p className="text-sm text-ink-900/50">No photos uploaded yet.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {photos.map((photo, index) => (
-            <div
-              key={photo.id}
-              className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-blush-200 bg-blush-100"
-            >
-              {photo.signedUrl && (
-                <Image
-                  src={photo.signedUrl}
-                  alt="Profile photo"
-                  fill
-                  sizes="220px"
-                  className="object-cover"
-                />
-              )}
-              {photo.is_cover && (
-                <span className="absolute left-2 top-2 rounded-full bg-maroon-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-blush-50">
-                  Cover
-                </span>
-              )}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                <button
-                  type="button"
-                  title="Move left"
-                  disabled={isPending}
-                  onClick={() => move(index, -1)}
-                  className="rounded-full bg-white/90 p-1.5 text-ink-900 cursor-pointer"
-                >
-                  <ArrowLeft size={14} />
-                </button>
-                <button
-                  type="button"
-                  title="Set as cover"
-                  disabled={isPending}
-                  onClick={() => startTransition(() => setCoverPhotoAction(profileId, photo.id))}
-                  className="rounded-full bg-white/90 p-1.5 text-gold-500 cursor-pointer"
-                >
-                  <Star size={14} />
-                </button>
-                <button
-                  type="button"
-                  title="Delete"
-                  disabled={isPending}
-                  onClick={() => startTransition(() => deletePhotoAction(profileId, photo.id))}
-                  className="rounded-full bg-white/90 p-1.5 text-red-700 cursor-pointer"
-                >
-                  <Trash2 size={14} />
-                </button>
-                <button
-                  type="button"
-                  title="Move right"
-                  disabled={isPending}
-                  onClick={() => move(index, 1)}
-                  className="rounded-full bg-white/90 p-1.5 text-ink-900 cursor-pointer"
-                >
-                  <ArrowRight size={14} />
-                </button>
+          {photos.map((photo, index) => {
+            const src = photo.thumbUrl ?? photo.signedUrl;
+            return (
+              <div
+                key={photo.id}
+                className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-blush-200 bg-blush-100"
+              >
+                {src && (
+                  <Image
+                    src={src}
+                    alt="Profile photo"
+                    fill
+                    sizes="220px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                )}
+                {photo.is_cover && (
+                  <span className="absolute left-2 top-2 rounded-full bg-maroon-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-blush-50">
+                    Cover
+                  </span>
+                )}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <button
+                    type="button"
+                    title="Move left"
+                    disabled={isPending}
+                    onClick={() => move(index, -1)}
+                    className="cursor-pointer rounded-full bg-white/90 p-1.5 text-ink-900"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Set as cover"
+                    disabled={isPending}
+                    onClick={() => startTransition(() => setCoverPhotoAction(profileId, photo.id))}
+                    className="cursor-pointer rounded-full bg-white/90 p-1.5 text-gold-500"
+                  >
+                    <Star size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Delete"
+                    disabled={isPending}
+                    onClick={() => startTransition(() => deletePhotoAction(profileId, photo.id))}
+                    className="cursor-pointer rounded-full bg-white/90 p-1.5 text-red-700"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Move right"
+                    disabled={isPending}
+                    onClick={() => move(index, 1)}
+                    className="cursor-pointer rounded-full bg-white/90 p-1.5 text-ink-900"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
