@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Technical &amp; Operations Documentation — AnuRupa Matrimony</title>
+<link rel="stylesheet" href="_style.css">
+<style>
+  .brandrow{display:flex;align-items:flex-start;gap:14px}
+  .brandrow .logo{height:46px;width:auto;flex:none;margin-top:1px}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+  pre{background:var(--soft);border:1px solid var(--rule);border-radius:6px;padding:9px 12px;white-space:pre-wrap;line-height:1.45;margin:6px 0 10px}
+  table td code{white-space:nowrap}
+  .kv td:first-child{white-space:nowrap;font-weight:600;color:var(--maroon)}
+  h3{margin:14px 0 4px;font-size:1.02em;color:var(--maroon)}
+  .diagram{background:var(--soft);border:1px solid var(--rule);border-radius:6px;padding:10px 14px;font-family:ui-monospace,Menlo,monospace;font-size:.84em;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0 12px}
+</style></head>
+<body><div class="page">
+
+<header class="doc">
+  <div class="brand">
+    <div class="brandrow">
+      <img class="logo" src="assets/ascent-logo.png" alt="">
+      <div>ASCENT INTELLIGENT<small>Technologies</small></div>
+    </div>
+    <span class="addr">Ascent Intelligent Technologies Private Limited<br>
+    Gachibowli, Hyderabad – 500032</span>
+  </div>
+  <div class="doctitle"><h1>Technical &amp; Operations</h1>
+    <div class="meta">PLATFORM <b>AnuRupa Matrimony</b><br>VERSION <b>1.0</b><br>DATE <b>13 October 2026</b></div>
+  </div>
+</header>
+
+<p>How the platform is built, how it is configured, how a change reaches production, how to
+put the previous version back, and how the data is protected and recovered. Written for whoever
+runs it next — a developer who has never seen the code should be able to operate it from this
+document and the repository alone.</p>
+
+<div class="note"><b>Where things are.</b> Production: <code>https://anurupa-8c72e8.azurewebsites.net</code>.
+Source: GitHub, <code>Ascent-Intelligent-Techonologies/match_making_app</code>, branch <code>main</code>.
+Azure: subscription <i>Azure subscription 1</i>, resource group <code>anurupa-rg</code>, region Central India.
+Everything operational lives under <code>azure/</code> in the repository; <code>azure/README.md</code> is the
+hands-on runbook and this document is its context.</div>
+
+<h2><span class="n">1</span>Architecture</h2>
+
+<p>A single Next.js application, server-rendered, with one managed PostgreSQL database and one storage
+account. There is no separate API tier, no queue, no cache server and no container orchestration: at
+a few thousand profiles and a consultant team of three, each of those would be cost and surface area
+with nothing to pay for it.</p>
+
+<div class="diagram">            Admin (Anupama, Shaurya, Shreya)        Families (WhatsApp link / browse page)
+                      │                                        │
+                      └──────────────┬─────────────────────────┘
+                                     ▼  HTTPS
+                     ┌──────────────────────────────────────┐
+                     │  Azure App Service  ·  Basic B1 Linux │
+                     │  Next.js 16 standalone · node server.js│
+                     │  server components + server actions   │
+                     └───────┬──────────────────────┬────────┘
+            SQL over TLS     │                      │  SAS-signed HTTPS
+                             ▼                      ▼
+       ┌──────────────────────────┐      ┌─────────────────────────────────┐
+       │ Azure Database for        │      │ Azure Blob Storage (Standard LRS)│
+       │ PostgreSQL Flexible Server│      │  profile-photos  (private)       │
+       │ Burstable B1ms · 32 GB    │      │  journey-media   (private)       │
+       │ 11 tables · 7-day PITR    │      │  db-backups      (private)       │
+       └──────────────────────────┘      └─────────────────────────────────┘
+                                                    ▲
+                      browser PUTs photos here directly, with a 10-minute write-only SAS</div>
+
+<table class="kv">
+<tr><th style="width:24%">Component</th><th>What it is, and why</th></tr>
+<tr><td>Application</td><td>Next.js 16 on Node 22, TypeScript, Tailwind. Server components render every page; server actions handle every write, with Zod validation on the server, so no business rule depends on the browser. Deployed as the <i>standalone</i> bundle (≈ 17 MB zipped) and started with <code>node server.js</code>.</td></tr>
+<tr><td>Hosting</td><td>App Service plan <b>Basic B1</b> (1 core, 1.75 GB), Linux. Always On, HTTPS only, TLS 1.2 floor, FTPS off, container logging on. The smallest tier that keeps a process warm; the next step up is one command (§4.4).</td></tr>
+<tr><td>Database</td><td>PostgreSQL 17, <b>Burstable B1ms</b>, 32 GB storage, 7-day automated backups. The free-tier SKU for twelve months on a new account. All access is through the application's own connection pool over enforced TLS; the browser never talks to the database.</td></tr>
+<tr><td>Data access</td><td>One module, <code>src/lib/db/</code>: a <code>pg</code> pool with type parsers (<code>client.ts</code>) and a table-agnostic CRUD layer (<code>crud.ts</code>) that every data module in <code>src/lib/data/</code> is written against. Values are always bound parameters; identifiers are pattern-checked; <code>updateMany</code> and <code>deleteMany</code> refuse to run without a filter. Three hand-written statements remain, each commented as to why.</td></tr>
+<tr><td>Storage</td><td>Standard LRS, hot tier. Three private containers. Nothing is reachable without a SAS token the server mints per render, valid one hour, computed locally (an HMAC — no round trip). Deleted blobs are kept 14 days.</td></tr>
+<tr><td>Photos</td><td>Each photo is three blobs: the original (kept, never shown), a 480 px WebP <i>thumb</i> for grids and cover tiles, and a 1200 px WebP <i>medium</i> for the carousel, slideshow and share page. Both copies are made once, at upload, by sharp; pages serve them directly. The server never resizes on request.</td></tr>
+<tr><td>Uploads</td><td>Straight from the browser to Blob Storage. The server issues a write-only SAS for a path it chose; the browser PUTs; the server then reads the blob back inside the datacenter, confirms it is an image, writes the two copies and records the row. A failure at any step deletes what was written. The App Service never buffers an upload.</td></tr>
+<tr><td>Identity &amp; sessions</td><td>One administrator password (bcrypt hash in configuration); a signed, HTTP-only session cookie, 12 hours. Families are identified by name and phone, held in a signed cookie, matched to the client book by normalised phone number.</td></tr>
+<tr><td>Deployment</td><td>GitHub Actions on every push to <code>main</code>, signing in to Azure with OpenID Connect through a user-assigned managed identity that holds Contributor on the web app alone. No credential is stored anywhere.</td></tr>
+<tr><td>Development backup</td><td>Vercel, branch <code>vercel-dev</code> — the last Supabase-based commit. Not production; <code>vercel.json</code> on <code>main</code> stops Vercel building it.</td></tr>
+</table>
+
+<h3>1.1 Security model</h3>
+<ul>
+<li><b>Network.</b> The database firewall admits Azure-internal sources (the <code>0.0.0.0</code> sentinel) and the operator's IP; the public internet is refused before any password is checked. Public access can be replaced with a private endpoint (≈ ₹700/month) if a contract ever demands no public endpoint.</li>
+<li><b>Data.</b> Row-level security is enabled on every table with no policies; the application connects as the table owner, which bypasses it; any other role is denied everything.</li>
+<li><b>Media.</b> Private containers; one-hour SAS for reads; ten-minute create/write-only SAS scoped to a single server-chosen path for uploads; CORS limited to the site's origin.</li>
+<li><b>Disclosure.</b> Share links carry one of three access levels enforced field by field on the server. Finances, internal tags, Aura and Urgent markers, potential-client markers, the middleman's details and private notes are never serialised to a client page at any level.</li>
+<li><b>Secrets.</b> Live only in App Service configuration (encrypted at rest, RBAC-protected) and in the operator's git-ignored <code>azure/.env.azure</code>. Not in the repository, not in GitHub, not in CI logs.</li>
+</ul>
+
+<h3>1.2 Repository map</h3>
+<table>
+<tr><th style="width:34%">Path</th><th>Contents</th></tr>
+<tr><td><code>src/app/</code></td><td>Routes. <code>admin/(protected)/…</code> is the consultants' area; <code>share/[token]</code> and <code>browse</code> are what families see.</td></tr>
+<tr><td><code>src/lib/data/</code></td><td>One module per concern (profiles, photos, clients, share-links, shortlists, searches, followups, team-notes, journey, settings). All SQL goes through <code>src/lib/db/</code>.</td></tr>
+<tr><td><code>src/lib/actions/</code></td><td>Server actions — the only way the browser changes anything.</td></tr>
+<tr><td><code>src/lib/storage/blob.ts</code> · <code>src/lib/images.ts</code></td><td>Blob Storage and the derivative pipeline.</td></tr>
+<tr><td><code>supabase/setup.sql</code> · <code>supabase/migrations/</code></td><td>The whole schema in one re-runnable file, and the versioned history that produced it. Plain PostgreSQL; the directory name is where the project started, not where it runs.</td></tr>
+<tr><td><code>azure/</code></td><td><code>infra.sh</code> (provision), <code>deploy-local.sh</code>, <code>backup-db.sh</code>, <code>restore-db.sh</code>, <code>migrate-from-supabase.mjs</code>, <code>backfill-thumbnails.mjs</code>, and <code>README.md</code>, the runbook.</td></tr>
+<tr><td><code>.github/workflows/deploy.yml</code></td><td>Build on pull requests; build, deploy and smoke-test on pushes to <code>main</code>.</td></tr>
+<tr><td><code>docs/</code></td><td>This document, the user guide, quotation, invoice, cost comparison and competitive analysis, each as HTML and PDF.</td></tr>
+</table>
+
+<h2><span class="n">2</span>Configuration</h2>
+
+<p>The application reads everything from environment variables, so nothing about where it runs is in
+the code. In production those are App Service <i>application settings</i>; locally they are
+<code>.env.local</code>. <code>azure/infra.sh</code> writes the infrastructure-derived ones, and
+<code>azure/deploy-local.sh</code> pushes the application secrets from the operator's <code>.env.local</code>.</p>
+
+<table class="kv">
+<tr><th style="width:38%">Setting</th><th>Purpose · set by</th></tr>
+<tr><td><code>DATABASE_URL</code></td><td><code>postgresql://…?sslmode=require</code>. infra.sh (it generates the password; the only copy is <code>azure/.env.azure</code>).</td></tr>
+<tr><td><code>AZURE_STORAGE_ACCOUNT</code> · <code>AZURE_STORAGE_KEY</code></td><td>Blob Storage; the key signs every SAS. infra.sh.</td></tr>
+<tr><td><code>ADMIN_PASSWORD_HASH</code></td><td>bcrypt hash of the administrator password. deploy-local.sh, from <code>.env.local</code>. Generate with <code>node -e "console.log(require('bcryptjs').hashSync('…', 12))"</code> and escape every <code>$</code> as <code>\$</code> in <code>.env.local</code>.</td></tr>
+<tr><td><code>SESSION_SECRET</code></td><td>Signs admin and family session cookies. Rotating it signs everyone out. deploy-local.sh.</td></tr>
+<tr><td><code>NEXT_PUBLIC_SITE_URL</code></td><td>Base of every share link. <b>Read at build time</b>, not run time — change it in the GitHub variable <code>SITE_URL</code> (and <code>.env.local</code>) and redeploy; changing only the App Service setting does nothing.</td></tr>
+<tr><td><code>HOSTNAME=0.0.0.0</code></td><td>The standalone server binds to <code>process.env.HOSTNAME</code>, and App Service sets that to a machine name it cannot bind to. Without this the app starts and refuses every request. infra.sh.</td></tr>
+<tr><td><code>WEBSITES_CONTAINER_START_TIME_LIMIT=1800</code></td><td>Extracting the bundle and cold-starting Node on a B1 can exceed the 230-second default. infra.sh.</td></tr>
+<tr><td><code>SCM_DO_BUILD_DURING_DEPLOYMENT=false</code></td><td>The bundle arrives built; App Service must not try to build it again. infra.sh.</td></tr>
+<tr><td><code>PGSSL_NO_VERIFY=1</code> (optional)</td><td>Disables certificate verification for a self-hosted database. Never set on Azure.</td></tr>
+<tr><td><code>PGPOOL_MAX</code> (optional)</td><td>Connection pool size, default 10. B1ms allows a few dozen in total.</td></tr>
+</table>
+
+<p>GitHub repository <i>variables</i> (not secrets — none is confidential): <code>AZURE_CLIENT_ID</code>,
+<code>AZURE_TENANT_ID</code>, <code>AZURE_SUBSCRIPTION_ID</code>, <code>AZURE_WEBAPP_NAME</code>, <code>SITE_URL</code>.</p>
+
+<pre>az webapp config appsettings list -g anurupa-rg -n anurupa-8c72e8 -o table      # see everything
+az webapp config appsettings set  -g anurupa-rg -n anurupa-8c72e8 --settings KEY=value
+./azure/deploy-local.sh --settings-only                                           # push .env.local's secrets</pre>
+
+<p>Any change to application settings restarts the app; expect thirty seconds of unavailability.</p>
+
+<h2><span class="n">3</span>Deployment</h2>
+
+<h3>3.1 From a push to main (normal)</h3>
+<ol>
+<li>Merge or push to <code>main</code>. Pull requests only build and type-check; they never deploy.</li>
+<li>GitHub Actions, on a Linux runner: <code>npm ci</code>, generate route types, type-check, lint, <code>next build</code> as a standalone bundle with <code>NEXT_PUBLIC_SITE_URL</code> baked in, zip (under UTC), publish the artifact.</li>
+<li>The deploy job signs in with OIDC, zip-deploys to the web app, then polls <code>/browse</code> for up to ten minutes and <b>fails the run if the site does not answer</b> — App Service itself reports success as soon as the zip lands, before the container has restarted.</li>
+<li>Watch it: <code>gh run watch</code>, or <i>Actions</i> on GitHub. A deploy takes four to eight minutes end to end.</li>
+</ol>
+
+<h3>3.2 From a laptop (when GitHub is unavailable, or for a quick fix)</h3>
+<pre>./azure/deploy-local.sh                # build, push .env.local secrets, deploy, poll
+./azure/deploy-local.sh --no-build     # redeploy the last build
+./azure/deploy-local.sh --skip-settings</pre>
+<p>Identical result, except that a Mac-built bundle runs sharp on its WebAssembly fallback (slower
+resizing on upload; the CI build uses the native Linux binary). Prefer the pipeline.</p>
+
+<h3>3.3 Database changes</h3>
+<p>Schema changes are SQL files in <code>supabase/migrations/</code>, numbered and re-runnable, and are
+applied by hand with <code>psql "$DATABASE_URL" -f supabase/migrations/NNN_….sql</code> <b>before</b> the
+code that needs them is deployed. <code>supabase/setup.sql</code> is the whole schema in one file for a
+new environment, and must be kept in step. Take a backup first (§5.2).</p>
+
+<h3>3.4 Scaling</h3>
+<pre>az appservice plan update -g anurupa-rg -n anurupa-plan --sku B2            # 2 cores, 3.5 GB
+az postgres flexible-server update -g anurupa-rg -n anurupa-pg-8c72e8 \
+    --sku-name Standard_B2s --tier Burstable                                 # in place; a restart, no migration
+az postgres flexible-server update -g anurupa-rg -n anurupa-pg-8c72e8 --storage-size 64   # grows; never shrinks</pre>
+<p>At the volumes in the cost sheet none of this is needed; the figures hold to roughly 25,000 profiles.
+Storage of photographs is not a scaling concern at all — ten thousand HD photos is about 50 GB and
+about ₹100 a month.</p>
+
+<h2><span class="n">4</span>Rollback</h2>
+
+<p>Rollback means putting the previous working version back after a deploy turns out to be wrong.
+On this platform the application and the data roll back separately, and the application side is
+quick because every deploy is a complete, self-contained bundle.</p>
+
+<h3>4.1 Application — three ways, fastest first</h3>
+<table>
+<tr><th style="width:30%">Situation</th><th>Do this</th></tr>
+<tr><td>Last deploy is bad; the one before was fine, within 7 days</td><td>Re-run the previous green run's deploy job. Its artifact is still there, so nothing is rebuilt:<br><code>gh run list --branch main --limit 5</code> → note the id of the last good run →<br><code>gh run rerun &lt;id&gt;</code> (or in GitHub: the run → <i>Re-run all jobs</i>). Five minutes.</td></tr>
+<tr><td>The bad change should be undone in history too</td><td><code>git revert &lt;bad-commit&gt;</code> and push. The pipeline deploys the reverted code. This is the one to prefer when others will keep working on <code>main</code>.</td></tr>
+<tr><td>GitHub is unavailable</td><td><code>git checkout &lt;last-good-commit&gt;</code> then <code>./azure/deploy-local.sh</code>. Afterwards return to <code>main</code>.</td></tr>
+</table>
+<p>In every case, confirm with the smoke test the pipeline does: <code>curl -sI https://anurupa-8c72e8.azurewebsites.net/browse</code>
+should return <code>200</code>, and the admin should be able to sign in.</p>
+
+<h3>4.2 Configuration</h3>
+<p>A bad application setting is corrected with <code>az webapp config appsettings set</code> (§2); the app
+restarts on its own. There is no history of settings in Azure, so the values to restore are in
+<code>azure/.env.azure</code> and <code>.env.local</code> — keep those files.</p>
+
+<h3>4.3 Database</h3>
+<p>Migrations are <b>forward-only</b>: there are no down-scripts, because a column that has held data
+cannot be un-added without losing it. If a migration must be undone, write a new migration that
+reverses it. For the <i>data</i> — a bad bulk import, a cleanup that went too far — use point-in-time
+restore (§5.3), which returns the database to any minute of the last seven days.</p>
+
+<div class="note"><b>Order matters.</b> If a release included a migration, roll the application back
+<i>first</i>; the old code tolerates extra columns, but new code cannot run against the old schema.</div>
+
+<h2><span class="n">5</span>Backup &amp; restore</h2>
+
+<h3>5.1 What is protecting the data, today</h3>
+<table>
+<tr><th style="width:22%">Data</th><th style="width:38%">Protection</th><th>Recovers from</th></tr>
+<tr><td>Database</td><td><b>Point-in-time restore</b>, automatic, every minute of the last <b>7 days</b>, included with the server.</td><td>Bad import, accidental delete, bad migration — "take me back to 10:40 this morning".</td></tr>
+<tr><td>Database</td><td><b>Portable dump</b> (<code>azure/backup-db.sh</code>) to the private <code>db-backups</code> container. On demand; take one before any migration, import or cleanup.</td><td>Server deleted; moving to another server or cloud; keeping a copy older than 7 days.</td></tr>
+<tr><td>Photos &amp; media</td><td><b>Soft delete</b>, 14 days, for blobs and containers. Storage is locally redundant (three copies in the datacenter).</td><td>A photo or a whole container deleted by mistake, within 14 days.</td></tr>
+<tr><td>Code &amp; configuration</td><td>Git (GitHub); <code>azure/.env.azure</code> and <code>.env.local</code> on the operator's machine.</td><td>Anything; a whole environment can be rebuilt (§5.5).</td></tr>
+</table>
+<div class="note">Nothing here is off-site in the geographic sense: all of it is in Azure Central India. For
+a matchmaking consultancy that is the right trade; if a copy outside Azure is ever wanted, a weekly
+<code>./azure/backup-db.sh --keep-local</code> and a copy of <code>azure/backups/</code> to any drive is it.</div>
+
+<h3>5.2 Take a backup</h3>
+<pre>./azure/backup-db.sh                 # pg_dump → db-backups/anurupa-&lt;UTC time&gt;.dump, lists what is stored
+./azure/backup-db.sh --keep-local    # and keep the file in azure/backups/</pre>
+<p>Custom format, compressed, about 330 KB at today's size. Recommended cadence: before every migration
+or import, and weekly otherwise. There is no scheduler for it yet; a calendar reminder is honest about
+that.</p>
+
+<h3>5.3 Restore the database to a point in time (preferred for "undo")</h3>
+<pre># 1. a NEW server, restored to the moment you choose (UTC); 10–20 minutes
+az postgres flexible-server restore -g anurupa-rg --name anurupa-pg-restored \
+    --source-server anurupa-pg-8c72e8 --restore-time "2026-10-13T05:50:00Z"
+# 2. same firewall rules as the original (infra.sh's "Database firewall" step, or the portal)
+# 3. point the app at it, then restart
+az webapp config appsettings set -g anurupa-rg -n anurupa-8c72e8 \
+    --settings DATABASE_URL="postgresql://anurupa_admin:&lt;password&gt;@anurupa-pg-restored.postgres.database.azure.com:5432/anurupa?sslmode=require"
+# 4. update azure/.env.azure to match; delete the old server once satisfied</pre>
+<p>The restored server keeps the original's admin password. Nothing on the original is changed by this,
+so it can be compared first.</p>
+
+<h3>5.4 Restore the database from a dump</h3>
+<pre>./azure/restore-db.sh                                   # list backups
+./azure/restore-db.sh anurupa-2026-10-13T06-38-41Z.dump  # into production — asks you to type the host name
+./azure/restore-db.sh &lt;name&gt; --into "postgresql://…"    # into any other database, e.g. a rehearsal
+az webapp restart -g anurupa-rg -n anurupa-8c72e8        # afterwards, so the pool reconnects</pre>
+<p>The restore is one transaction: either the whole backup lands or nothing changes. <b>This procedure
+was rehearsed before being documented</b>: the first backup was restored into a scratch database on the
+same server and matched production row for row (2,783 profiles, 11 clients, 23 photos, 9 links).</p>
+
+<h3>5.5 Recover a deleted photo, or rebuild everything</h3>
+<pre># a photo deleted in the last 14 days (all three of its blobs)
+az storage blob undelete --account-name anurupast8c72e8 -c profile-photos -n "&lt;profile-id&gt;/&lt;uuid&gt;.jpg"
+az storage blob undelete --account-name anurupast8c72e8 -c profile-photos -n "&lt;profile-id&gt;/&lt;uuid&gt;.thumb.webp"
+az storage blob undelete --account-name anurupast8c72e8 -c profile-photos -n "&lt;profile-id&gt;/&lt;uuid&gt;.medium.webp"
+# the row in profile_photos is restored with the database (5.3 or 5.4)
+
+# a whole new environment, from nothing
+./azure/infra.sh                        # resources + schema
+./azure/restore-db.sh &lt;dump&gt;            # data
+azcopy copy "https://&lt;old&gt;.blob.core.windows.net/profile-photos?&lt;sas&gt;" \
+            "https://&lt;new&gt;.blob.core.windows.net/profile-photos?&lt;sas&gt;" --recursive   # media
+./azure/deploy-local.sh                 # application</pre>
+
+<h2><span class="n">6</span>Monitoring &amp; day to day</h2>
+<pre>az webapp log tail -g anurupa-rg -n anurupa-8c72e8                 # live application log
+az webapp restart  -g anurupa-rg -n anurupa-8c72e8
+az postgres flexible-server show -g anurupa-rg -n anurupa-pg-8c72e8 --query state
+az monitor metrics list --resource &lt;web app id&gt; --metric CpuTime,MemoryWorkingSet,Http5xx</pre>
+<ul>
+<li>The pipeline's smoke test is the first line of monitoring: a deploy that leaves the site unreachable is a red run, not a quiet outage.</li>
+<li>App Service <i>Diagnose and solve problems</i> in the portal explains most restarts without reading logs.</li>
+<li>Costs: about ₹1,350/month for the first year (database free tier), about ₹3,470 after. Check <i>Cost Management</i> in the first week to confirm the free-tier credit is being applied.</li>
+<li>The free database tier ends twelve months after the account was created; nothing changes technically, the bill does.</li>
+</ul>
+
+<h2><span class="n">7</span>Quick reference</h2>
+<table>
+<tr><th style="width:36%">I want to…</th><th>Command</th></tr>
+<tr><td>Deploy</td><td>push to <code>main</code> · or <code>./azure/deploy-local.sh</code></td></tr>
+<tr><td>Roll back the app</td><td><code>gh run rerun &lt;last good run id&gt;</code> · or <code>git revert</code> + push</td></tr>
+<tr><td>Change a setting</td><td><code>az webapp config appsettings set … --settings K=V</code></td></tr>
+<tr><td>Back up the database</td><td><code>./azure/backup-db.sh</code></td></tr>
+<tr><td>Undo data changes</td><td>point-in-time restore, §5.3</td></tr>
+<tr><td>Restore from a dump</td><td><code>./azure/restore-db.sh &lt;name&gt;</code></td></tr>
+<tr><td>Recover a deleted photo</td><td><code>az storage blob undelete …</code>, §5.5</td></tr>
+<tr><td>See logs</td><td><code>az webapp log tail -g anurupa-rg -n anurupa-8c72e8</code></td></tr>
+<tr><td>Apply a migration</td><td>backup, then <code>psql "$DATABASE_URL" -f supabase/migrations/NNN.sql</code></td></tr>
+<tr><td>Rebuild from nothing</td><td><code>./azure/infra.sh</code> → <code>restore-db.sh</code> → copy blobs → <code>deploy-local.sh</code></td></tr>
+<tr><td>Turn everything off</td><td><code>az group delete --name anurupa-rg --yes</code> — irreversible</td></tr>
+</table>
+
+<footer class="doc"><span>Ascent Intelligent Technologies Private Limited</span>
+<span>AnuRupa Matrimony · Technical &amp; Operations v1.0 · 13 October 2026</span></footer>
+</div></body></html>

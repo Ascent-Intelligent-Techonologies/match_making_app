@@ -12,7 +12,7 @@
     Survey No. 133, Gachibowli, Hyderabad – 500032</span>
   </div>
   <div class="doctitle"><h1>User Guide</h1>
-    <div class="meta">PRODUCT <b>AnuRupa Matrimony</b><br>VERSION <b>2.0</b><br>DATE <b>5 October 2026</b></div>
+    <div class="meta">PRODUCT <b>AnuRupa Matrimony</b><br>VERSION <b>2.0</b><br>DATE <b>13 October 2026</b></div>
   </div>
 </header>
 
@@ -87,8 +87,8 @@ field into the proper list of states.</p>
 <div class="shot"><img src="screenshots/guide/03-new-profile.png" alt="New profile intake form, Personal tab">
 <div class="cap">Personal — the person on the left, lineage on the right.</div></div>
 
-<p><b>Professional</b> starts with a <b>job category</b> — Doctor, Engineer, Software Engineer,
-Business or Others. That is what the job filter searches on; the free-text job field stays for the
+<p><b>Professional</b> starts with a <b>job category</b> — Doctor, Engineer, Software Engineer, Lawyer,
+Business, Start-up, Govt / Civil service, Political or Others. That is what the job filter searches on; the free-text job field stays for the
 detail, so you can record "Civil Engineer at L&amp;T" and still find them under Engineer.</p>
 <div class="shot"><img src="screenshots/guide/03b-profile-professional.png" alt="Professional tab with job category">
 <div class="cap">Job category drives the search filter.</div></div>
@@ -113,8 +113,21 @@ client.</p>
 <div class="shot"><img src="screenshots/guide/03e-profile-internal.png" alt="Internal tab with tags and Aura">
 <div class="cap">Internal — tags, Aura, and notes only you see.</div></div>
 
-<p><b>Photos:</b> click <b>Choose photos</b>, drag images onto the dotted box, or copy an image and press
-<b>⌘V</b>. The first photo is the cover; after saving you can reorder, change the cover or delete.</p>
+<p><b>Photos:</b> click <b>Add photos</b>, drag images onto the dotted box, or copy an image and press
+<b>⌘V</b>. Each photo shows its own progress bar, then <i>Resizing…</i> for a moment while the platform
+makes the smaller copies it actually shows on screen — so a grid of sixty profiles loads in a blink
+however large the originals were. Up to <b>30&nbsp;MB</b> a photo, several at a time. The first photo is
+the cover; afterwards you can reorder, change the cover or delete.</p>
+<div class="shot"><img src="screenshots/guide/07b-photo-upload.png" alt="Adding photos with a progress bar per file">
+<div class="cap">Add photos: a progress bar per file, resized on arrival.</div></div>
+
+<p><b>Bulk upload:</b> on the <b>Dashboard</b>, <b>Bulk upload</b> takes a CSV export from another
+matrimony system and creates the profiles for you. It reads the whole file first and tells you exactly
+what will happen — how many will be created, how many updated, how many arrive inactive, and which rows
+cannot be used and why — and writes nothing until you press <b>Import</b>. Running the same file again
+updates the profiles it made rather than duplicating them.</p>
+<div class="shot"><img src="screenshots/guide/23-bulk-import.png" alt="Bulk upload with the check pass before importing">
+<div class="cap">Bulk upload: check first, then import.</div></div>
 
 <p><b>Editing later:</b> open <b>All Profiles</b> to see everything on the books, newest first. Click
 a card to edit any field or photo. Urgent and Aura profiles are badged on the card.</p>
@@ -149,16 +162,19 @@ selected, so the family gets a single WhatsApp message. Choose how much they see
 <tr><td><b>Basic details</b></td><td>Name (no surname), birth details, height, job, business, native place, photos.</td></tr>
 <tr><td><b>All details</b></td><td>Everything above plus surname, caste, education, family, siblings, requirements and the family's contact.</td></tr>
 </table>
-<p>Set how many days the link stays alive, add an optional label, and generate. You get a
-<b>Copy link</b> button and a <b>Share on WhatsApp</b> button that opens WhatsApp with the message
-already written and addressed to the client by name.</p>
+<p>Add an optional label, and — if you want to say something to the family — a <b>note</b>: it appears
+at the top of the page they open, above the profiles, and you can edit it later from Share Links.
+Then generate. You get a <b>Copy link</b> button and a <b>Share on WhatsApp</b> button that opens
+WhatsApp with the message already written and addressed to the client by name. Links do not expire:
+a link works until you revoke or delete it.</p>
 <div class="note"><b>Finances, the tags, the Aura and Urgent flags and the middleman's details are
 never shared</b> — not even on "All details". They stay on your side only.</div>
 
 <h2 id="s6"><span class="n">6</span>Slideshow</h2>
 <p>After any search, press <b>Slideshow</b> to run through the results full screen, in the order they
 are on the page. It is on <b>All Profiles</b>, on <b>Search</b>, and on the public browse page.</p>
-<p>Each slide is the photo, the name, and a <b>heart</b>. It starts playing on its own and moves on
+<p>Each slide is the photo with the name, date of birth and age, height, occupation, native place and
+current location, and a <b>heart</b>. It starts playing on its own and moves on
 every few seconds; the arrows, the dots along the bottom or the left and right arrow keys move it by
 hand, which pauses it so it stops moving under you. <b>Escape</b> or <b>Close</b> ends it.</p>
 <div class="shot"><img src="screenshots/guide/21-slideshow.png" alt="Slideshow with name and shortlist button">
@@ -172,7 +188,8 @@ against.</div>
 <p><b>From a WhatsApp link:</b> the profiles you chose, at the level you chose, with a <b>heart</b> on
 each. No login, no app. If you named the client when creating the link, their hearts are recorded
 straight away. If you did not, the first heart asks for a name and mobile — links get forwarded within
-families, so this records who actually liked it.</p>
+families, so this records who actually liked it. If you wrote a note when you made the link, it sits
+at the top of the page as <i>A note from AnuRupa</i>.</p>
 <div class="shot"><img src="screenshots/guide/12-share-page.png" alt="Client view of a shared link">
 <div class="cap">A shared link on the client's side.</div></div>
 
@@ -203,9 +220,10 @@ or hearted a profile; your own calls never count as their response.</p>
 <div class="cap">The dashboard. Each name links to that client.</div></div>
 
 <p><b>Share Links</b> lists every link ever created, who it went to, how often it was opened and when
-it expires. You can <b>copy</b> it, re-send on <b>WhatsApp</b>, add <b>+3 days</b>, <b>revoke</b> it
-immediately, or <b>delete</b> it outright. Revoking keeps the row so you can still see it was sent;
-deleting is for links sent by mistake.</p>
+it was made. Each row shows the note the family sees, with <b>Edit</b>, or <b>Add a note</b> if there is
+none. You can copy the link, re-send it on WhatsApp, <b>revoke</b> it immediately, or delete it outright.
+Revoking keeps the row and turns the link off — <b>Restore</b> turns it back on; deleting is for links
+sent by mistake.</p>
 <div class="shot"><img src="screenshots/guide/11-share-links.png" alt="Share links management">
 <div class="cap">Extend, re-share, revoke or delete a link.</div></div>
 
@@ -277,12 +295,12 @@ controls stay visible on touch screens, and the filters stack rather than scroll
 </table>
 <ul>
   <li>Photos and Journey files are held in private storage and served through signed links that expire after an hour.</li>
-  <li>Share links expire on the date you set and can be revoked or deleted at any moment.</li>
+  <li>Links stay live until you revoke or delete them; either takes effect at once.</li>
   <li>A profile moved to Deleted vanishes from links already sent, immediately.</li>
   <li>The database refuses all direct access; everything goes through the application.</li>
 </ul>
 </div>
 
 <footer class="doc"><span>Ascent Intelligent Technologies Private Limited</span>
-<span>AnuRupa Matrimony · User Guide v2.0</span></footer>
+<span>AnuRupa Matrimony · User Guide v2.1</span></footer>
 </div></body></html>
