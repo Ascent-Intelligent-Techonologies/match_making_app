@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { CLIENT_SESSION_COOKIE } from "@/lib/constants";
 
 /**
@@ -13,11 +13,21 @@ import { CLIENT_SESSION_COOKIE } from "@/lib/constants";
  */
 export const dynamic = "force-dynamic";
 
-export function GET(request: NextRequest) {
+export function GET() {
   // 303 so the browser makes a clean GET of /browse and never replays this
   // from its own cache.
-  const response = NextResponse.redirect(new URL("/browse", request.url), 303);
+  //
+  // The Location is relative on purpose. Behind App Service, a route
+  // handler's `request.url` is built from the address the Node process
+  // listens on — 0.0.0.0:8080 — not the public host, so
+  // `new URL("/browse", request.url)` sent families to a server that does
+  // not exist. A relative Location is resolved by the browser against the
+  // page it asked for, which is the only origin that is guaranteed right,
+  // and it leaves nothing for a forged Host header to redirect to.
+  const response = new NextResponse(null, {
+    status: 303,
+    headers: { Location: "/browse", "Cache-Control": "no-store" },
+  });
   response.cookies.delete(CLIENT_SESSION_COOKIE);
-  response.headers.set("Cache-Control", "no-store");
   return response;
 }
