@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Phone, Users } from "lucide-react";
 import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
-import { getCoverPhotoUrls } from "@/lib/data/photos";
+import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
 import {
   getClientById,
   getSharedProfileIdsForClient,
@@ -80,8 +80,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
     city: p.city,
     state: p.state,
     country: p.country,
-    coverUrl: coverUrls.get(p.id)?.thumb,
+    coverUrl: coverTileUrl(coverUrls.get(p.id)),
     coverLargeUrl: coverUrls.get(p.id)?.medium,
+    coverFraming: coverUrls.get(p.id)?.framing,
     alreadyShared: shared.has(p.id),
     shortlisted: shortlisted.has(p.id),
   }));

@@ -7,8 +7,10 @@ import {
   finalisePhotoUpload,
   reorderProfilePhotos,
   setCoverPhoto,
+  updatePhotoFraming,
   type UploadTicket,
 } from "@/lib/data/photos";
+import { sanitizeFraming } from "@/lib/framing";
 import type { ProfilePhoto } from "@/lib/types";
 
 /**
@@ -34,13 +36,18 @@ export async function requestPhotoUploadAction(
 
 export type FinaliseResult = { photo: ProfilePhoto } | { error: string };
 
-/** Step two, after the PUT: validate, make the resized copies, record it. */
+/**
+ * Step two, after the PUT: validate, make the resized copies, record it.
+ * `framing` is what the admin chose in the framing step; anything missing or
+ * malformed is stored as null, which is the automatic framing.
+ */
 export async function finalisePhotoUploadAction(
   profileId: string,
-  path: string
+  path: string,
+  framing?: unknown
 ): Promise<FinaliseResult> {
   try {
-    const photo = await finalisePhotoUpload(profileId, path);
+    const photo = await finalisePhotoUpload(profileId, path, sanitizeFraming(framing));
     revalidatePath(`/admin/profiles/${profileId}`);
     return { photo };
   } catch (error) {
@@ -61,4 +68,17 @@ export async function reorderPhotosAction(profileId: string, orderedIds: string[
 export async function setCoverPhotoAction(profileId: string, photoId: string) {
   await setCoverPhoto(profileId, photoId);
   revalidatePath(`/admin/profiles/${profileId}`);
+}
+
+/** Re-frames a photo already on the profile. */
+export async function updatePhotoFramingAction(
+  profileId: string,
+  photoId: string,
+  framing: unknown
+): Promise<{ error?: string }> {
+  const clean = sanitizeFraming(framing);
+  if (!clean) return { error: "That framing is not valid." };
+  await updatePhotoFraming(photoId, clean);
+  revalidatePath(`/admin/profiles/${profileId}`);
+  return {};
 }

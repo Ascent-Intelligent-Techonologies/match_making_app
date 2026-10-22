@@ -154,6 +154,10 @@ create table if not exists profile_photos (
   storage_path text not null,
   sort_order smallint not null default 0,
   is_cover boolean not null default false,
+  -- Framing in the cards (see src/lib/framing.ts); null = automatic.
+  focus_x real check (focus_x between 0 and 100),
+  focus_y real check (focus_y between 0 and 100),
+  zoom    real check (zoom between 1 and 4),
   created_at timestamptz not null default now()
 );
 

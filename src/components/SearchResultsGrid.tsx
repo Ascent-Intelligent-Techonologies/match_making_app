@@ -11,6 +11,7 @@ import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
 import { toggleClientShortlistAction } from "@/lib/actions/clients";
 import { calculateAge, formatDate, formatHeight, formatLocation } from "@/lib/format";
+import { AUTO_FRAMING, framingStyle, type PhotoFraming } from "@/lib/framing";
 
 export interface SearchResult {
   id: string;
@@ -33,6 +34,8 @@ export interface SearchResult {
   coverUrl?: string;
   /** Medium, for the slideshow. */
   coverLargeUrl?: string;
+  /** How the cover is framed; the automatic framing when absent. */
+  coverFraming?: PhotoFraming;
   /** Already sent to this client in an earlier link — shown greyed out. */
   alreadyShared: boolean;
   /** This client hearted it on a share page. */
@@ -121,6 +124,7 @@ export function SearchResultsGrid({
                 { label: "Current location", value: formatLocation(r) },
               ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
               coverUrl: r.coverLargeUrl ?? r.coverUrl,
+              coverFraming: r.coverFraming,
               favorite: r.shortlisted,
             }))}
           />
@@ -186,7 +190,15 @@ export function SearchResultsGrid({
 
               <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-blush-100">
                 {r.coverUrl ? (
-                  <Image src={r.coverUrl} alt={r.full_name} fill sizes="80px" className="object-cover" unoptimized />
+                  <Image
+                    src={r.coverUrl}
+                    alt={r.full_name}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                    style={framingStyle(r.coverFraming ?? AUTO_FRAMING)}
+                    unoptimized
+                  />
                 ) : (
                   <span className="flex h-full items-center justify-center text-maroon-700/30">
                     <ImageOff size={20} strokeWidth={1.25} />

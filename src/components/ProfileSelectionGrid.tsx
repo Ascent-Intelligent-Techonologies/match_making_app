@@ -16,6 +16,7 @@ import {
   formatInrCompact,
   formatLocation,
 } from "@/lib/format";
+import { AUTO_FRAMING, framingStyle, type PhotoFraming } from "@/lib/framing";
 
 export interface SelectableProfile {
   id: string;
@@ -35,6 +36,8 @@ export interface SelectableProfile {
   coverUrl?: string;
   /** Medium, for the slideshow. */
   coverLargeUrl?: string;
+  /** How the cover is framed; the automatic framing when absent. */
+  coverFraming?: PhotoFraming;
 }
 
 
@@ -156,6 +159,7 @@ export function ProfileSelectionGrid({
                 .join(" · "),
               details: slideDetails(p),
               coverUrl: p.coverLargeUrl ?? p.coverUrl,
+              coverFraming: p.coverFraming,
             }))}
           />
           <span className="text-sm text-ink-900/60">
@@ -217,14 +221,18 @@ export function ProfileSelectionGrid({
                     checked ? "ring-2 ring-maroon-600" : ""
                   }`}
                 >
-                  <div className="relative aspect-[4/3] bg-blush-100">
+                  {/* overflow-hidden: a zoomed cover would otherwise spill over the details below. */}
+                  <div className="relative aspect-[4/3] overflow-hidden bg-blush-100">
                     {profile.coverUrl && (
                       <Image
                         src={profile.coverUrl}
                         alt={profile.full_name}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover" unoptimized />
+                        className="object-cover"
+                        style={framingStyle(profile.coverFraming ?? AUTO_FRAMING)}
+                        unoptimized
+                      />
                     )}
                   </div>
                   <div className="flex flex-col gap-3 p-4">

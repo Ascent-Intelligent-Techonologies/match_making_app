@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { AlertCircle, ArrowLeft, ArrowRight, Star, Trash2, UploadCloud, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Crop, Star, Trash2, UploadCloud, X } from "lucide-react";
 import type { ProfilePhoto } from "@/lib/types";
 import { MAX_PHOTO_BYTES } from "@/lib/constants";
+import { framingOf, framingStyle, type PhotoFraming } from "@/lib/framing";
+import { PhotoFramer } from "@/components/PhotoFramer";
 import {
   deletePhotoAction,
   finalisePhotoUploadAction,
   reorderPhotosAction,
   requestPhotoUploadAction,
   setCoverPhotoAction,
+  updatePhotoFramingAction,
 } from "@/lib/actions/photos";
 
 /**
@@ -23,6 +26,10 @@ import {
  * resized copies, record the row). Three files are in flight at a time —
  * enough to keep a connection busy, few enough that one slow photo cannot
  * hold the rest of a batch hostage.
+ *
+ * Before any of that, each photo goes through the framing step: the admin
+ * drags and zooms it into the shape the cards show, or skips for the
+ * automatic framing. The choice rides along with the finalise call.
  */
 
 type JobStatus = "queued" | "uploading" | "finalising" | "done" | "error";
@@ -37,6 +44,33 @@ interface UploadJob {
 }
 
 const CONCURRENCY = 3;
+
+interface QueuedFile {
+  id: string;
+  file: File;
+  /** For the framing preview only. */
+  url: string;
+}
+
+/**
+ * At most `max` tasks at once. A finished task hands its slot straight to the
+ * next waiter, so the count never dips below the work available.
+ */
+function createLimiter(max: number) {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  return async function run<T>(task: () => Promise<T>): Promise<T> {
+    if (active >= max) await new Promise<void>((resolve) => waiting.push(resolve));
+    else active++;
+    try {
+      return await task();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else active--;
+    }
+  };
+}
 
 /** A PUT that reports progress, which fetch() still cannot do for uploads. */
 function putBlob(url: string, file: File, onProgress: (fraction: number) => void) {
@@ -71,6 +105,10 @@ export function PhotoManager({
   const [isPending, startTransition] = useTransition();
   const [isDragging, setIsDragging] = useState(false);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
+  // Files waiting for the admin to frame them, one dialog at a time.
+  const [framingQueue, setFramingQueue] = useState<QueuedFile[]>([]);
+  const [adjusting, setAdjusting] = useState<ProfilePhoto | null>(null);
+  const [limit] = useState(() => createLimiter(CONCURRENCY));
   const inputRef = useRef<HTMLInputElement>(null);
 
   const patchJob = useCallback((id: string, patch: Partial<UploadJob>) => {
@@ -78,7 +116,7 @@ export function PhotoManager({
   }, []);
 
   const uploadOne = useCallback(
-    async (job: UploadJob, file: File) => {
+    async (job: UploadJob, file: File, framing: PhotoFraming | null) => {
       try {
         patchJob(job.id, { status: "uploading", progress: 0 });
         const ticket = await requestPhotoUploadAction(profileId, {
@@ -93,7 +131,7 @@ export function PhotoManager({
         );
 
         patchJob(job.id, { status: "finalising", progress: 1 });
-        const result = await finalisePhotoUploadAction(profileId, ticket.ticket.path);
+        const result = await finalisePhotoUploadAction(profileId, ticket.ticket.path, framing);
         if ("error" in result) throw new Error(result.error);
 
         patchJob(job.id, { status: "done" });
@@ -110,43 +148,73 @@ export function PhotoManager({
     [patchJob, profileId, router]
   );
 
-  const uploadFiles = useCallback(
-    (files: FileList | File[]) => {
-      const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      if (images.length === 0) return;
+  /** Runs one file's upload (when a slot is free), with the framing already chosen. */
+  const startUpload = useCallback(
+    (file: File, framing: PhotoFraming | null) => {
+      const job: UploadJob = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        status: "queued",
+        progress: 0,
+      };
+      setJobs((prev) => [...prev, job]);
+      void limit(() => uploadOne(job, file, framing));
+    },
+    [limit, uploadOne]
+  );
 
-      const batch = images.map((file) => ({
-        file,
-        job: {
-          id: crypto.randomUUID(),
-          name: file.name,
-          status: "queued" as JobStatus,
-          progress: 0,
-          // Caught here so an oversized file fails instantly, not after a
-          // 30 MB upload the server then refuses.
-          error:
-            file.size > MAX_PHOTO_BYTES
-              ? `Over the ${MAX_PHOTO_BYTES / 1_048_576} MB limit.`
-              : undefined,
-        },
-      }));
+  const uploadFiles = useCallback((files: FileList | File[]) => {
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+
+    // Caught here so an oversized file fails instantly, not after a 30 MB
+    // upload the server then refuses.
+    const tooBig = images.filter((f) => f.size > MAX_PHOTO_BYTES);
+    if (tooBig.length > 0) {
       setJobs((prev) => [
         ...prev,
-        ...batch.map(({ job }) => (job.error ? { ...job, status: "error" as JobStatus } : job)),
+        ...tooBig.map((f) => ({
+          id: crypto.randomUUID(),
+          name: f.name,
+          status: "error" as JobStatus,
+          progress: 0,
+          error: `Over the ${MAX_PHOTO_BYTES / 1_048_576} MB limit.`,
+        })),
       ]);
+    }
 
-      const runnable = batch.filter(({ job }) => !job.error);
-      let next = 0;
-      const worker = async () => {
-        while (next < runnable.length) {
-          const { file, job } = runnable[next++];
-          await uploadOne(job, file);
-        }
-      };
-      void Promise.all(Array.from({ length: Math.min(CONCURRENCY, runnable.length) }, worker));
-    },
-    [uploadOne]
-  );
+    const accepted = images.filter((f) => f.size <= MAX_PHOTO_BYTES);
+    setFramingQueue((prev) => [
+      ...prev,
+      ...accepted.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        url: URL.createObjectURL(file),
+      })),
+    ]);
+  }, []);
+
+  const framingFile = framingQueue[0];
+
+  function frameCurrent(framing: PhotoFraming | null) {
+    if (!framingFile) return;
+    startUpload(framingFile.file, framing);
+    URL.revokeObjectURL(framingFile.url);
+    setFramingQueue((queue) => queue.slice(1));
+  }
+
+  function skipRemaining() {
+    framingQueue.forEach((queued) => {
+      startUpload(queued.file, null);
+      URL.revokeObjectURL(queued.url);
+    });
+    setFramingQueue([]);
+  }
+
+  function cancelFraming() {
+    framingQueue.forEach((queued) => URL.revokeObjectURL(queued.url));
+    setFramingQueue([]);
+  }
 
   // Finished jobs leave the list on their own; failures stay until dismissed.
   useEffect(() => {
@@ -223,7 +291,7 @@ export function PhotoManager({
             />
           </label>
           <span className="text-xs text-ink-900/40">
-            or drag photos here, or paste one · up to {MAX_PHOTO_BYTES / 1_048_576} MB each
+            or drag photos here, or paste one · you will frame each one · up to {MAX_PHOTO_BYTES / 1_048_576} MB each
           </span>
         </div>
 
@@ -279,7 +347,9 @@ export function PhotoManager({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {photos.map((photo, index) => {
-            const src = photo.thumbUrl ?? photo.signedUrl;
+            // A zoomed photo is drawn from the larger copy so it stays sharp.
+            const src =
+              (photo.zoom && photo.zoom > 1 ? photo.mediumUrl : photo.thumbUrl) ?? photo.signedUrl;
             return (
               <div
                 key={photo.id}
@@ -292,6 +362,7 @@ export function PhotoManager({
                     fill
                     sizes="220px"
                     className="object-cover"
+                    style={framingStyle(framingOf(photo))}
                     unoptimized
                   />
                 )}
@@ -309,6 +380,15 @@ export function PhotoManager({
                     className="cursor-pointer rounded-full bg-white/90 p-1.5 text-ink-900"
                   >
                     <ArrowLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    title="Adjust framing"
+                    disabled={isPending}
+                    onClick={() => setAdjusting(photo)}
+                    className="cursor-pointer rounded-full bg-white/90 p-1.5 text-ink-900"
+                  >
+                    <Crop size={14} />
                   </button>
                   <button
                     type="button"
@@ -342,6 +422,40 @@ export function PhotoManager({
             );
           })}
         </div>
+      )}
+
+      {framingFile && (
+        <PhotoFramer
+          key={framingFile.id}
+          src={framingFile.url}
+          title={framingFile.file.name}
+          position={framingQueue.length > 1 ? `${framingQueue.length} photos to frame` : undefined}
+          onConfirm={frameCurrent}
+          onSkip={() => frameCurrent(null)}
+          onSkipAll={framingQueue.length > 1 ? skipRemaining : undefined}
+          onCancel={cancelFraming}
+          // A format this browser cannot draw: upload it as it is and let the
+          // server decide whether it is a readable image.
+          onUnreadable={() => frameCurrent(null)}
+        />
+      )}
+
+      {adjusting && (adjusting.mediumUrl ?? adjusting.signedUrl) && (
+        <PhotoFramer
+          key={adjusting.id}
+          src={(adjusting.mediumUrl ?? adjusting.signedUrl)!}
+          title="Photo already on this profile"
+          initial={framingOf(adjusting)}
+          confirmLabel="Save framing"
+          onConfirm={(framing) => {
+            const photo = adjusting;
+            setAdjusting(null);
+            startTransition(async () => {
+              await updatePhotoFramingAction(profileId, photo.id, framing);
+            });
+          }}
+          onCancel={() => setAdjusting(null)}
+        />
       )}
     </div>
   );

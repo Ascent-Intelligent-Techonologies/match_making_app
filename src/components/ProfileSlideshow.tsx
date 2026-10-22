@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { AUTO_FRAMING, framingStyle, type PhotoFraming } from "@/lib/framing";
 
 export interface SlideshowDetail {
   label: string;
@@ -26,6 +27,8 @@ export interface SlideshowProfile {
   /** The basics: height, occupation, native place, current location. */
   details?: SlideshowDetail[];
   coverUrl?: string;
+  /** How the cover is framed; the automatic framing when absent. */
+  coverFraming?: PhotoFraming;
   favorite?: boolean;
 }
 
@@ -174,6 +177,7 @@ export function ProfileSlideshow({
             src={current.coverUrl}
             alt={current.full_name}
             className="h-full w-full object-cover"
+            style={framingStyle(current.coverFraming ?? AUTO_FRAMING)}
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-maroon-700/30">

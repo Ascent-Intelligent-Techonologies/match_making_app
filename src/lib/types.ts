@@ -10,6 +10,10 @@ export interface ProfilePhoto {
   storage_path: string;
   sort_order: number;
   is_cover: boolean;
+  /** Framing in the cards: focal point (percent) and zoom. All null = automatic. */
+  focus_x: number | null;
+  focus_y: number | null;
+  zoom: number | null;
   created_at: string;
   /** Populated at render time, never stored. The original; never shown. */
   signedUrl?: string;

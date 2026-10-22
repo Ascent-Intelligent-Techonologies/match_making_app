@@ -5,7 +5,7 @@ import {
   listProfileBirthYears,
   PROFILE_PAGE_SIZE,
 } from "@/lib/data/profiles";
-import { getCoverPhotoUrls } from "@/lib/data/photos";
+import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
 import { listClientsForPicker } from "@/lib/data/clients";
 import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
@@ -59,8 +59,9 @@ export default async function AdminDashboardPage({
     caste: p.caste,
     height_cm: p.height_cm,
     annual_income_inr: p.annual_income_inr,
-    coverUrl: coverUrls.get(p.id)?.thumb,
+    coverUrl: coverTileUrl(coverUrls.get(p.id)),
     coverLargeUrl: coverUrls.get(p.id)?.medium,
+    coverFraming: coverUrls.get(p.id)?.framing,
   }));
 
   return (

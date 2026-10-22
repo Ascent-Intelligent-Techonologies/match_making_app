@@ -3,7 +3,8 @@ import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
-import { getCoverPhotoUrls } from "@/lib/data/photos";
+import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
+import { AUTO_FRAMING, framingStyle } from "@/lib/framing";
 import { getShortlistedProfileIds } from "@/lib/data/shortlists";
 import { getBrowsingClientId } from "@/lib/auth/client-session";
 import { PublicSearchFilterBar } from "@/components/PublicSearchFilterBar";
@@ -108,6 +109,7 @@ export default async function BrowseProfilesPage({
                 { label: "Current location", value: formatLocation(p) },
               ].filter((d): d is { label: string; value: string } => Boolean(d.value)),
               coverUrl: coverUrls.get(p.id)?.medium,
+              coverFraming: coverUrls.get(p.id)?.framing,
               favorite: shortlisted.has(p.id),
             }))}
           />
@@ -122,7 +124,7 @@ export default async function BrowseProfilesPage({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {profiles.map((profile) => {
             const age = calculateAge(profile.dob);
-            const coverUrl = coverUrls.get(profile.id)?.thumb;
+            const coverUrl = coverTileUrl(coverUrls.get(profile.id));
             return (
               <div key={profile.id} className="relative">
                 <BrowseShortlistButton
@@ -131,7 +133,7 @@ export default async function BrowseProfilesPage({
                 />
                 <Link href={`/browse/${profile.id}`}>
                   <Card className="overflow-hidden transition-transform hover:-translate-y-0.5">
-                    <div className="relative flex aspect-[4/5] items-center justify-center bg-blush-100">
+                    <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-blush-100">
                       {coverUrl ? (
                         <Image
                           src={coverUrl}
@@ -139,6 +141,7 @@ export default async function BrowseProfilesPage({
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover"
+                          style={framingStyle(coverUrls.get(profile.id)?.framing ?? AUTO_FRAMING)}
                           unoptimized
                         />
                       ) : (

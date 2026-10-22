@@ -9,6 +9,7 @@ import {
   selectOne,
   selectOneOrThrow,
   transaction,
+  updateMany,
 } from "@/lib/db";
 import {
   deleteBlobs,
@@ -26,6 +27,7 @@ import {
   PROFILE_PHOTOS_CONTAINER,
   SIGNED_URL_TTL_SECONDS,
 } from "@/lib/constants";
+import { framingOf, type PhotoFraming } from "@/lib/framing";
 import type { ProfilePhoto } from "@/lib/types";
 
 // ------------------------------------------------------------------ urls --
@@ -123,7 +125,8 @@ export async function beginPhotoUpload(
 
 export async function finalisePhotoUpload(
   profileId: string,
-  path: string
+  path: string,
+  framing: PhotoFraming | null = null
 ): Promise<ProfilePhoto & PhotoUrls> {
   // Only a path this server would have issued, for this profile. Anything
   // else is a client trying to register a blob it should not be able to.
@@ -164,6 +167,10 @@ export async function finalisePhotoUpload(
     storage_path: path,
     sort_order: existingCount,
     is_cover: existingCount === 0,
+    // Undefined is dropped, which leaves the columns null: automatic framing.
+    focus_x: framing?.x,
+    focus_y: framing?.y,
+    zoom: framing?.zoom,
   });
   return withPhotoUrls(row);
 }
@@ -247,19 +254,39 @@ export async function setCoverPhoto(profileId: string, photoId: string): Promise
   });
 }
 
+export async function updatePhotoFraming(photoId: string, framing: PhotoFraming): Promise<void> {
+  await updateMany(
+    "profile_photos",
+    { focus_x: framing.x, focus_y: framing.y, zoom: framing.zoom },
+    { id: photoId }
+  );
+}
+
 export interface CoverUrls {
   thumb: string;
   medium: string;
+  framing: PhotoFraming;
+}
+
+/**
+ * The copy a small tile should draw. Zooming in magnifies the image, so a
+ * zoomed cover is drawn from the larger copy to stay sharp.
+ */
+export function coverTileUrl(cover: CoverUrls | undefined): string | undefined {
+  if (!cover) return undefined;
+  return cover.framing.zoom > 1 ? cover.medium : cover.thumb;
 }
 
 /** Signed cover URLs per profile: thumb for the grid, medium for the slideshow. */
 export async function getCoverPhotoUrls(profileIds: string[]): Promise<Map<string, CoverUrls>> {
   if (profileIds.length === 0) return new Map();
 
-  const covers = await selectMany<{ profile_id: string; storage_path: string }>(
+  const covers = await selectMany<
+    { profile_id: string; storage_path: string } & Pick<ProfilePhoto, "focus_x" | "focus_y" | "zoom">
+  >(
     "profile_photos",
     {
-      columns: "profile_id, storage_path",
+      columns: "profile_id, storage_path, focus_x, focus_y, zoom",
       where: { profile_id: anyOf(profileIds, "uuid"), is_cover: true },
     }
   );
@@ -267,7 +294,7 @@ export async function getCoverPhotoUrls(profileIds: string[]): Promise<Map<strin
   return new Map(
     covers.map((c) => {
       const urls = photoUrls(c.storage_path);
-      return [c.profile_id, { thumb: urls.thumbUrl, medium: urls.mediumUrl }];
+      return [c.profile_id, { thumb: urls.thumbUrl, medium: urls.mediumUrl, framing: framingOf(c) }];
     })
   );
 }

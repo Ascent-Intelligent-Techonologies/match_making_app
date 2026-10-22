@@ -5,13 +5,21 @@ import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { clsx } from "clsx";
+import { framingOf, framingStyle } from "@/lib/framing";
 
 export function ProfilePhotoCarousel({
   photos,
   alt,
 }: {
   /** Rendered from `mediumUrl`; `signedUrl` (the original) is only a fallback. */
-  photos: { id: string; mediumUrl?: string; signedUrl?: string }[];
+  photos: {
+    id: string;
+    mediumUrl?: string;
+    signedUrl?: string;
+    focus_x?: number | null;
+    focus_y?: number | null;
+    zoom?: number | null;
+  }[];
   alt: string;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: photos.length > 1 });
@@ -44,7 +52,8 @@ export function ProfilePhotoCarousel({
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
           {photos.map((photo, i) => (
-            <div key={photo.id} className="relative aspect-[4/5] w-full flex-[0_0_100%]">
+            // overflow-hidden: a zoomed photo would otherwise spill into the next slide.
+            <div key={photo.id} className="relative aspect-[4/5] w-full flex-[0_0_100%] overflow-hidden">
               {(photo.mediumUrl ?? photo.signedUrl) && (
                 <Image
                   src={photo.mediumUrl ?? photo.signedUrl!}
@@ -52,6 +61,7 @@ export function ProfilePhotoCarousel({
                   fill
                   sizes="(max-width: 768px) 100vw, 480px"
                   className="object-cover"
+                  style={framingStyle(framingOf(photo))}
                   priority={i === 0}
                   unoptimized
                 />
