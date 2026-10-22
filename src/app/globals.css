@@ -64,7 +64,13 @@ body {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Highlighted text. Built from the primary only, never from two theme slots:
+   the old gold-on-deep-blue pair painted text and fill the same colour as soon
+   as the admin gave those two slots matching values. A 60% mix with white is
+   always light, so the dark ink on top of it is legible for any primary. The
+   plain tint is the fallback for browsers without color-mix(). */
 ::selection {
-  background: var(--color-gold-400);
-  color: var(--color-maroon-800);
+  background: var(--color-blush-300);
+  background: color-mix(in srgb, var(--color-maroon-600) 40%, white);
+  color: var(--color-ink-900);
 }
