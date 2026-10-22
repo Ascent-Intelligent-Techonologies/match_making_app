@@ -64,6 +64,8 @@ export interface Profile {
   gotram: string | null;
   sub_caste: string | null;
   native_place: string | null;
+  /** Free text on the Personal tab. Admin-only: on no client-visible list. */
+  additional_details: string | null;
   school: string | null;
   business: string | null;
   salary: string | null;
@@ -260,6 +262,7 @@ export const FULL_ONLY_FIELDS = [
 export const ADMIN_ONLY_FIELDS = [
   "net_worth_notes",
   "owner_private_notes",
+  "additional_details",
   "middlemen_contact_number",
   "annual_income_inr",
   "tags",

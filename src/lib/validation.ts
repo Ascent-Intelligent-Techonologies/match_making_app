@@ -22,6 +22,14 @@ export const profileSchema = z.object({
   caste: optionalString,
   sub_caste: optionalString,
   native_place: optionalString,
+  // Unlike the other optional strings, a blank box becomes null rather than
+  // undefined. The save step drops undefined (a blank field keeps its stored
+  // value), but this one is free text and has to be erasable; null is what
+  // clears a column.
+  additional_details: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? null : val),
+    z.string().trim().nullable().optional()
+  ),
   mother_tongue: optionalString,
   surname: optionalString,
   rasi: optionalString,

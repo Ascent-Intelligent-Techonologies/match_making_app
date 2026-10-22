@@ -228,6 +228,17 @@ export function ProfileForm({
                 defaultValue={profile?.native_place ?? ""}
               />
             </Field>
+            <Field
+              label="Additional details"
+              htmlFor="additional_details"
+              hint="Anything else worth noting. For your reference; clients never see it."
+            >
+              <Textarea
+                id="additional_details"
+                name="additional_details"
+                defaultValue={profile?.additional_details ?? ""}
+              />
+            </Field>
           </div>
 
           <div className="flex flex-col gap-5">

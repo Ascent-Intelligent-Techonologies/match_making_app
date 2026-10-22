@@ -43,6 +43,7 @@ create table if not exists profiles (
   birth_place text,
   height_cm smallint,                 -- stored in cm, entered and shown in ft/in
   native_place text,
+  additional_details text,           -- free text, admin-only
 
   caste text,
   sub_caste text,
