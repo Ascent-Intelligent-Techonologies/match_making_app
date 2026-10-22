@@ -16,29 +16,48 @@ export function isUsablePhone(raw: string): boolean {
   return normalizePhone(raw).length >= 10;
 }
 
-/** Shown in front of every number typed into the browse form. */
-export const COUNTRY_CODE = "+91";
+export interface PhoneRegion {
+  id: string;
+  label: string;
+  /** null where one region spans many calling codes: the visitor types theirs. */
+  code: string | null;
+  /** Digits wanted after the code, trunk zero not counted. */
+  minDigits: number;
+  placeholder: string;
+}
+
+/** Where the families we serve are most likely to be dialling from. */
+export const PHONE_REGIONS: PhoneRegion[] = [
+  { id: "in", label: "+91 India", code: "+91", minDigits: 10, placeholder: "98765 43210" },
+  { id: "us", label: "+1 USA/Canada", code: "+1", minDigits: 10, placeholder: "415 555 0132" },
+  { id: "eu", label: "Europe", code: null, minDigits: 0, placeholder: "+44 7911 123456" },
+  { id: "af", label: "Africa", code: null, minDigits: 0, placeholder: "+27 82 123 4567" },
+  { id: "au", label: "+61 Australia", code: "+61", minDigits: 9, placeholder: "412 345 678" },
+];
+
+export const DEFAULT_PHONE_REGION = PHONE_REGIONS[0];
 
 /**
- * The prefix and what was typed, as one string for the server.
+ * The region's code and what was typed, as one string for the server.
  *
- * A number that already starts with "+" is taken as complete, so pasting
- * "+91 98765 43210" does not come out doubled, and a leading trunk zero
- * ("098765 43210") is dropped.
+ * Europe and Africa each cover many calling codes, so for those the number is
+ * typed in full, starting with "+". A number that starts with "+" is taken as
+ * complete in every region, so pasting "+91 98765 43210" does not come out
+ * doubled; otherwise a leading trunk zero ("098765 43210") is dropped.
  */
-export function joinPhone(typed: string): string {
+export function joinPhone(region: PhoneRegion, typed: string): string {
   const number = typed.trim();
   if (!number) return "";
-  if (number.startsWith("+")) return number;
-  return `${COUNTRY_CODE} ${number.replace(/^0+/, "")}`;
+  if (number.startsWith("+") || !region.code) return number;
+  return `${region.code} ${number.replace(/^0+/, "")}`;
 }
 
 /**
  * Why a half-typed number is not enough yet, or null. Counted without the
- * prefix: the server's ten-digit check also counts the code's two digits, so
- * on its own it would let an eight-digit number through.
+ * code: the server's ten-digit check also counts the code's own digits, so on
+ * its own it would let an eight-digit Indian number through.
  */
-export function phoneProblem(typed: string): string | null {
+export function phoneProblem(region: PhoneRegion, typed: string): string | null {
   const number = typed.trim();
   if (!number) return null; // `required` already covers empty
   const digits = number.replace(/\D/g, "");
@@ -46,5 +65,8 @@ export function phoneProblem(typed: string): string | null {
   if (number.startsWith("+")) {
     return digits.length >= 10 ? null : "Enter the full number, including its + code.";
   }
-  return digits.replace(/^0+/, "").length >= 10 ? null : "Enter the 10-digit mobile number.";
+  if (!region.code) return "Start with your country code, for example +44.";
+  return digits.replace(/^0+/, "").length >= region.minDigits
+    ? null
+    : `Enter the ${region.minDigits}-digit mobile number.`;
 }

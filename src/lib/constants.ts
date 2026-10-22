@@ -1,6 +1,5 @@
 export const RELIGIONS = [
   "Hindu",
-  "Muslim",
   "Christian",
   "Sikh",
   "Jain",
@@ -34,8 +33,31 @@ export const ACCESS_LEVEL_OPTIONS: { value: string; label: string; description: 
   },
 ];
 
-/** Castes offered in the search filter, per the intake sheet. */
-export const CASTE_OPTIONS = ["Reddy", "Kamma", "Velama"] as const;
+/**
+ * Castes offered in the profile form and the search filters: the four main
+ * ones, then every other value already on file (most common first), then the
+ * catch-all. "Velama" is the spelling the existing profiles use, so filtering
+ * and matching depend on it.
+ */
+export const CASTE_OPTIONS = [
+  "Reddy",
+  "Kamma",
+  "Velama",
+  "Kapu",
+  "Raju",
+  "Vysya",
+  "Balija",
+  "Brahmin",
+  "Goud",
+  "Yadava",
+  "BC",
+  "SC",
+  "Iyer",
+  "Christian",
+  "Hindi",
+  "Gujarati",
+  "Others",
+] as const;
 
 /** Internal classification from the intake sheet. */
 export const TAG_OPTIONS = ["AM", "AMP", "AMO"] as const;

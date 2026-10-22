@@ -235,18 +235,20 @@ export function ProfileForm({
               <Input id="surname" name="surname" defaultValue={profile?.surname ?? ""} />
             </Field>
             <Field label="Caste" htmlFor="caste">
-              <Input
-                id="caste"
-                name="caste"
-                list="caste-options"
-                defaultValue={profile?.caste ?? ""}
-              />
+              <Select id="caste" name="caste" defaultValue={profile?.caste ?? ""}>
+                <option value="">Select</option>
+                {/* A value outside the list (an import can bring one) stays
+                    selectable, so editing the profile does not quietly blank it. */}
+                {profile?.caste && !(CASTE_OPTIONS as readonly string[]).includes(profile.caste) && (
+                  <option value={profile.caste}>{profile.caste}</option>
+                )}
+                {CASTE_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
             </Field>
-            <datalist id="caste-options">
-              {CASTE_OPTIONS.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
             <Field label="Sub-Caste" htmlFor="sub_caste">
               <Input id="sub_caste" name="sub_caste" defaultValue={profile?.sub_caste ?? ""} />
             </Field>
