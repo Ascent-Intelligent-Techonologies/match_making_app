@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { ComponentProps, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { clsx } from "clsx";
 
 const fieldBase =
@@ -36,7 +36,8 @@ export function FieldLabel(props: LabelHTMLAttributes<HTMLLabelElement>) {
   );
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+// ComponentProps rather than InputHTMLAttributes so `ref` is accepted (React 19 passes it as a prop).
+export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={clsx(fieldBase, className)} {...props} />;
 }
 

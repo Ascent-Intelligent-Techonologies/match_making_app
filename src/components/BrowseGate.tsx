@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Image from "next/image";
 import { Field, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { PhoneInput } from "@/components/PhoneInput";
 import { startBrowsingAction, type BrowseGateState } from "@/lib/actions/browse";
 
 /** Shown before any profiles are visible, so browsing is always attributed. */
@@ -36,16 +37,10 @@ export function BrowseGate() {
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
           <Field label="Your name" htmlFor="fullName">
-            <Input id="fullName" name="fullName" required autoFocus placeholder="e.g. Rao family" />
+            <Input id="fullName" name="fullName" required autoFocus placeholder="e.g. Reddy Family" />
           </Field>
           <Field label="Phone number" htmlFor="phone">
-            <Input
-              id="phone"
-              name="phone"
-              required
-              inputMode="tel"
-              placeholder="e.g. +91 98765 43210"
-            />
+            <PhoneInput id="phone" name="phone" />
           </Field>
 
           {state.error && <p className="text-sm text-red-700">{state.error}</p>}
