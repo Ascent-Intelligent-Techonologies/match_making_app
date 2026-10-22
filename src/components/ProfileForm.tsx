@@ -1,6 +1,14 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +42,52 @@ type ActionFn = (
   formData: FormData
 ) => Promise<ProfileFormState>;
 
+/**
+ * A save that could not be sent is kept here, per profile, until the page is
+ * back. Short on purpose: it is for the reload that follows straight away, and
+ * should not resurface the next time someone opens the profile.
+ */
+const DRAFT_MAX_AGE_MS = 10 * 60 * 1000;
+
+function draftKey(profileId?: string) {
+  return `profile-form-draft:${profileId ?? "new"}`;
+}
+
+/** Stashes what was typed. Strings only: a chosen photo file cannot survive a reload. */
+function saveDraft(key: string, data: FormData) {
+  try {
+    const entries: [string, string][] = [];
+    data.forEach((value, name) => {
+      if (typeof value === "string") entries.push([name, value]);
+    });
+    sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), entries }));
+  } catch {
+    // Storage can be full or blocked; the message still tells the admin what happened.
+  }
+}
+
+/** Sets a field the way typing would, so React's own handlers (the country list) hear it. */
+function setFieldValue(
+  el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  value: string
+) {
+  const proto =
+    el instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : el instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(proto, "value")?.set?.call(el, value);
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/** "contact_email" → "Contact email", for naming a field whose tab is not the one showing. */
+function fieldLabel(name: string) {
+  const words = name.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function ProfileForm({
   profile,
   action,
@@ -43,10 +97,111 @@ export function ProfileForm({
   action: ActionFn;
   submitLabel: string;
 }) {
+  const key = draftKey(profile?.id);
+
+  // A page opened before a deploy still holds the old build's action ids, and
+  // the new server rejects them. Next throws for that, which used to take the
+  // whole page down with whatever had been typed. Here it becomes a message,
+  // and what was submitted is kept so a reload can put it back.
+  const guardedAction = async (
+    previous: ProfileFormState,
+    formData: FormData
+  ): Promise<ProfileFormState> => {
+    try {
+      return await action(previous, formData);
+    } catch (error) {
+      if (!unstable_isUnrecognizedActionError(error)) throw error;
+      saveDraft(key, formData);
+      return {
+        siteUpdated: true,
+        error:
+          "The site was updated while this page was open, so this save did not go through. Nothing you typed is lost: reload the page and your changes will be put back.",
+      };
+    }
+  };
+
   const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
-    action,
+    guardedAction,
     {}
   );
+  const [, startTransition] = useTransition();
+  // False while the page is still being made interactive, true afterwards.
+  // Until then nothing handles a submit, and the browser would send the form
+  // itself; the Save button stays disabled so that cannot happen.
+  const ready = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Submitting through a function action makes React empty every field once
+  // the action finishes, whatever it returned, so a save that failed
+  // validation wiped the form. Sending the data ourselves leaves the fields
+  // as the admin left them.
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    startTransition(() => formAction(data));
+  }
+
+  // After a reload, put back what a failed save stashed.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    let entries: [string, string][];
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { at: number; entries: [string, string][] };
+      if (Date.now() - draft.at > DRAFT_MAX_AGE_MS) {
+        sessionStorage.removeItem(key);
+        return;
+      }
+      entries = draft.entries;
+    } catch {
+      return;
+    }
+
+    const values = new Map<string, string[]>();
+    for (const [name, value] of entries) values.set(name, [...(values.get(name) ?? []), value]);
+
+    const fields = () =>
+      Array.from(form.elements).filter(
+        (el): el is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement =>
+          (el instanceof HTMLInputElement ||
+            el instanceof HTMLSelectElement ||
+            el instanceof HTMLTextAreaElement) &&
+          Boolean(el.name) &&
+          !["file", "submit", "button"].includes(el.type)
+      );
+    const apply = (pass: "everything-but-state" | "state") => {
+      for (const el of fields()) {
+        if ((el.name === "state") !== (pass === "state")) continue;
+        const saved = values.get(el.name);
+        if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
+          el.checked = saved?.includes(el.value) ?? false;
+        } else if (saved) {
+          setFieldValue(el, saved[0]);
+        }
+      }
+    };
+
+    // The state list depends on the country, so it is set once the country
+    // has been put back and the list has re-rendered. The saved copy is only
+    // deleted at the very end: in development React runs effects twice, and
+    // cancels the first run's timer, so deleting earlier would leave the
+    // second run with nothing to restore.
+    apply("everything-but-state");
+    const later = setTimeout(() => {
+      apply("state");
+      sessionStorage.removeItem(key);
+      setRestored(true);
+    }, 60);
+    return () => clearTimeout(later);
+  }, [key]);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Personal");
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -82,7 +237,7 @@ export function ProfileForm({
     activeTab === tab ? "flex flex-col gap-5" : "hidden";
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form ref={formRef} method="post" onSubmit={onSubmit} className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-1 rounded-2xl bg-blush-100 p-1.5">
         {TABS.map((tab) => (
           <button
@@ -100,10 +255,43 @@ export function ProfileForm({
         ))}
       </div>
 
-      {state.error && (
-        <p className="rounded-lg bg-red-700/10 px-4 py-2.5 text-sm text-red-700">
-          {state.error}
+      {restored && (
+        <p
+          role="status"
+          className="rounded-lg bg-olive-600/10 px-4 py-2.5 text-sm text-olive-600"
+        >
+          Your unsaved changes from before the page was reloaded have been put back.
+          Check them, then save.
         </p>
+      )}
+
+      {state.error && (
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-lg bg-red-700/10 px-4 py-2.5 text-sm text-red-700"
+        >
+          <p>
+            {state.error}
+            {!state.siteUpdated && Object.keys(errors).length > 0 && (
+              <>
+                {" "}
+                Check: {Object.keys(errors).map(fieldLabel).join(", ")}.
+              </>
+            )}
+          </p>
+          {state.siteUpdated && (
+            <div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => window.location.reload()}
+              >
+                Reload now
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {!profile && (
@@ -700,7 +888,7 @@ export function ProfileForm({
       </div>
 
       <div className="flex justify-end border-t border-blush-200 pt-5">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || !ready}>
           {pending ? "Saving…" : submitLabel}
         </Button>
       </div>

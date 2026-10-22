@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
 import { getThemeColors } from "@/lib/data/settings";
 import { isDefaultTheme, themeCssVars } from "@/lib/theme";
+import { StaleDeployNotice } from "@/components/StaleDeployNotice";
 import "./globals.css";
 
 const fontHeading = Playfair_Display({
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-blush-50 text-ink-900">
         {children}
+        <StaleDeployNotice />
       </body>
     </html>
   );

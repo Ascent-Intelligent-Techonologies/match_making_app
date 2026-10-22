@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Link href="/admin" className="flex items-center gap-2.5">
             <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
-              <Image src="/logo-anurupa.jpg" alt="" fill sizes="36px" className="object-cover" />
+              <Image src="/logo-anurupa-v1-400.webp" alt="" fill sizes="36px" className="object-cover" unoptimized />
             </span>
             <span className="font-serif text-xl font-semibold text-olive-500">
               AnuRupa{" "}

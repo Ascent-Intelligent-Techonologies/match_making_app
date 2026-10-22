@@ -154,10 +154,33 @@ export async function getBlobInfo(
 // ---------------------------------------------------------------- signing --
 
 /**
- * A read-only URL for one blob, valid for `ttlSeconds`.
+ * How long a signed URL for a given blob stays exactly the same.
  *
- * Starts five minutes in the past so a small clock difference between this
- * server and Azure's cannot produce a token that is not valid yet.
+ * A browser caches an image by its full URL, token included. A token that
+ * carried the current millisecond made every render's URL new, so every page,
+ * filter change and heart tap downloaded every photo again. Start and expiry
+ * are instead snapped to the start of this window, so every render inside it
+ * produces the identical URL and the browser's cached copy is reused. A
+ * revoked link's photo URLs can outlive the revocation by at most one window
+ * plus the TTL.
+ */
+export const SIGNED_URL_BUCKET_SECONDS = 6 * 60 * 60;
+
+/**
+ * Sent with every photo response (as a SAS response-header override, so it
+ * also covers blobs uploaded before it existed). A photo's path never serves
+ * different bytes, which is what `immutable` promises; `private` keeps shared
+ * caches out of it.
+ */
+const BLOB_CACHE_CONTROL = "private, max-age=604800, immutable";
+
+/**
+ * A read-only URL for one blob, valid for at least `ttlSeconds` from now.
+ *
+ * The same blob signed twice inside one window gives the same string (see
+ * SIGNED_URL_BUCKET_SECONDS). Starts five minutes before the window so a
+ * small clock difference between this server and Azure's cannot produce a
+ * token that is not valid yet.
  */
 export function signedUrl(
   container: ContainerName,
@@ -165,15 +188,19 @@ export function signedUrl(
   ttlSeconds: number
 ): string {
   const { credential } = config();
-  const now = Date.now();
+  const windowMs = SIGNED_URL_BUCKET_SECONDS * 1000;
+  const windowStart = Math.floor(Date.now() / windowMs) * windowMs;
 
   const sas = generateBlobSASQueryParameters(
     {
       containerName: container,
       blobName: path,
       permissions: BlobSASPermissions.parse("r"),
-      startsOn: new Date(now - 5 * 60_000),
-      expiresOn: new Date(now + ttlSeconds * 1000),
+      startsOn: new Date(windowStart - 5 * 60_000),
+      // Whenever inside the window this is called, "now + ttl" is no later
+      // than this, so the URL always has at least the full TTL left.
+      expiresOn: new Date(windowStart + windowMs + ttlSeconds * 1000),
+      cacheControl: BLOB_CACHE_CONTROL,
       protocol: SASProtocol.Https,
     },
     credential

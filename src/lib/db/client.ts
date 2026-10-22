@@ -62,7 +62,16 @@ function createPool(): Pool {
     // A Burstable B1ms server allows a few dozen connections in total, and a
     // single App Service instance should not try to own all of them.
     max: Number(process.env.PGPOOL_MAX ?? 10),
-    idleTimeoutMillis: 30_000,
+    // Connections used to be closed after 30 s idle, so the first request
+    // after any quiet spell paid for a new TCP + TLS + password handshake
+    // (about 100 ms more than a warm one, from outside the region). Keep them
+    // for ten minutes instead.
+    idleTimeoutMillis: 10 * 60_000,
+    // Azure drops connections that go silent for about four minutes. Probing
+    // every 30 s keeps an idle one alive, so the next query does not find a
+    // dead socket and fail.
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
 }

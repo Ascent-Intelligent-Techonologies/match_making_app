@@ -16,6 +16,8 @@ import { storeProfilePhoto } from "@/lib/data/photos";
 export interface ProfileFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** Set by the form itself, never the server: the page is older than the site. */
+  siteUpdated?: boolean;
 }
 
 function parseProfileFormData(formData: FormData) {

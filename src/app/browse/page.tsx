@@ -66,12 +66,13 @@ export default async function BrowseProfilesPage({
           mark competing with the filters. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 opacity-[0.12]">
         <Image
-          src="/logo-anurupa.jpg"
+          src="/logo-anurupa-v1-1000.webp"
           alt=""
           fill
           priority
           sizes="100vw"
           className="object-cover"
+          unoptimized
         />
       </div>
 

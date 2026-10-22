@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { LinkPending } from "@/components/LinkPending";
 
 /**
  * Previous / next over a filtered list.
@@ -53,7 +54,7 @@ export function Pager({
         <div className="flex items-center gap-2">
           {page > 1 ? (
             <Link href={href(page - 1)} className={linkClass}>
-              <ChevronLeft size={15} /> Previous
+              <ChevronLeft size={15} /> Previous <LinkPending />
             </Link>
           ) : (
             <span className={disabledClass}>
@@ -65,7 +66,7 @@ export function Pager({
           </span>
           {page < lastPage ? (
             <Link href={href(page + 1)} className={linkClass}>
-              Next <ChevronRight size={15} />
+              Next <ChevronRight size={15} /> <LinkPending />
             </Link>
           ) : (
             <span className={disabledClass}>

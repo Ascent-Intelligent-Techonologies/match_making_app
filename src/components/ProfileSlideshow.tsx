@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AUTO_FRAMING, framingStyle, type PhotoFraming } from "@/lib/framing";
+import { noteIfSiteUpdated } from "@/lib/stale-deploy";
 
 export interface SlideshowDetail {
   label: string;
@@ -124,9 +125,13 @@ export function ProfileSlideshow({
       } else if (typeof result.shortlisted === "boolean") {
         setFavorites((f) => ({ ...f, [id]: result.shortlisted as boolean }));
       }
-    } catch {
+    } catch (error) {
       setFavorites((f) => ({ ...f, [id]: !optimistic }));
-      setFavoriteError("Could not save that. Please try again.");
+      setFavoriteError(
+        noteIfSiteUpdated(error)
+          ? "This page is out of date."
+          : "Could not save that. Please try again."
+      );
     } finally {
       setSavingFavorite(false);
     }

@@ -59,8 +59,11 @@ export async function toggleShortlist(input: {
   profileId: string;
   shareLinkId: string | null;
 }): Promise<boolean> {
-  const shortlisted = await toggle(input.clientId, input.profileId, input.shareLinkId);
-  await touchClientActivity(input.clientId);
+  // Independent writes, so one round trip's wait rather than two.
+  const [shortlisted] = await Promise.all([
+    toggle(input.clientId, input.profileId, input.shareLinkId),
+    touchClientActivity(input.clientId),
+  ]);
   return shortlisted;
 }
 

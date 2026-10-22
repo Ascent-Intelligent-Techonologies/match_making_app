@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { describeActionError } from "@/lib/stale-deploy";
 
 /**
  * A delete control that asks once before it acts.
@@ -71,9 +72,7 @@ export function ConfirmDeleteButton({
                 // A redirect from the action surfaces here as a thrown control
                 // signal, so only real failures are reported.
                 if (e && typeof e === "object" && "digest" in e) throw e;
-                setError(
-                  e instanceof Error ? e.message : "Could not delete that.",
-                );
+                setError(describeActionError(e, "Could not delete that."));
                 setArmed(false);
               }
             })

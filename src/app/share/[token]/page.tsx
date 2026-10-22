@@ -47,11 +47,12 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
       <header className="flex flex-col items-center gap-2 text-center">
         <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-2xl shadow-sm sm:max-w-[180px]">
           <Image
-            src="/logo-anurupa.jpg"
+            src="/logo-anurupa-v1-400.webp"
             alt="AnuRupa Matrimony — Where destiny aligns"
             fill
             sizes="(max-width: 640px) 120px, 180px"
             className="object-cover"
+            unoptimized
           />
         </div>
         <p className="max-w-sm text-sm text-ink-900/60">

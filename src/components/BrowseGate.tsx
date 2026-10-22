@@ -19,12 +19,13 @@ export function BrowseGate() {
       <div className="w-full max-w-sm rounded-2xl border border-gold-400/25 bg-white/70 p-8 shadow-lg backdrop-blur-sm">
         <div className="relative mx-auto aspect-square w-full max-w-[160px] overflow-hidden rounded-2xl">
           <Image
-            src="/logo-anurupa.jpg"
+            src="/logo-anurupa-v1-400.webp"
             alt="AnuRupa Matrimony"
             fill
             sizes="160px"
             className="object-cover"
             priority
+            unoptimized
           />
         </div>
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { describeActionError } from "@/lib/stale-deploy";
 
 /**
  * Delete control for records that can be recovered: profiles and clients.
@@ -43,7 +44,7 @@ export function DeleteChoiceButton({
       } catch (e) {
         // A redirect from the action arrives here as a control signal.
         if (e && typeof e === "object" && "digest" in e) throw e;
-        setError(e instanceof Error ? e.message : "Could not delete that.");
+        setError(describeActionError(e, "Could not delete that."));
         setArmed(false);
       }
     });

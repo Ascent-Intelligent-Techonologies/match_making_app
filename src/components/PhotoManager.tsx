@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { describeActionError } from "@/lib/stale-deploy";
 import Image from "next/image";
 import { AlertCircle, ArrowLeft, ArrowRight, Crop, Star, Trash2, UploadCloud, X } from "lucide-react";
 import type { ProfilePhoto } from "@/lib/types";
@@ -101,7 +101,6 @@ export function PhotoManager({
   profileId: string;
   photos: ProfilePhoto[];
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDragging, setIsDragging] = useState(false);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
@@ -134,18 +133,19 @@ export function PhotoManager({
         const result = await finalisePhotoUploadAction(profileId, ticket.ticket.path, framing);
         if ("error" in result) throw new Error(result.error);
 
+        // The server component owns the photo list, and finalise revalidates
+        // the page, so the new tile arrives with that call's own response.
+        // (A separate router.refresh() here rendered the whole editor a
+        // second time for every photo.)
         patchJob(job.id, { status: "done" });
-        // The server component owns the photo list; refreshing it is what
-        // makes the new tile appear, in order, with its real URLs.
-        router.refresh();
       } catch (error) {
         patchJob(job.id, {
           status: "error",
-          error: error instanceof Error ? error.message : "Upload failed.",
+          error: describeActionError(error, "Upload failed."),
         });
       }
     },
-    [patchJob, profileId, router]
+    [patchJob, profileId]
   );
 
   /** Runs one file's upload (when a slot is free), with the framing already chosen. */

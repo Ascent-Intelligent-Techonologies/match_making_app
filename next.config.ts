@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "25mb",
     },
   },
+  async headers() {
+    return [
+      {
+        // The logo files carry their version in the name (-v1-), so a changed
+        // logo is a new file and these can be kept for a year without checking.
+        source: "/logo-anurupa-v1-:size.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
   images: {
     // Photos come from a private Blob container as SAS URLs, which carry the
     // token in the query string; next/image keys its cache on the full URL,

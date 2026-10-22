@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useRef, useTransition } from "react";
 import { Search, X } from "lucide-react";
 import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { PendingBar } from "@/components/PendingBar";
 import { HeightRangeFilter } from "@/components/HeightRangeFilter";
 import { CASTE_OPTIONS, GENDER_OPTIONS } from "@/lib/constants";
 
@@ -56,12 +57,14 @@ export function PublicSearchFilterBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Held in a transition so the panel can show that a new list is on its way.
+  const [isPending, startTransition] = useTransition();
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
   function onDebouncedChange(key: string, value: string) {
@@ -72,7 +75,11 @@ export function PublicSearchFilterBar() {
   const hasFilters = Array.from(searchParams.keys()).length > 0;
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-gold-400/25 bg-white/60 p-4">
+    <div
+      aria-busy={isPending}
+      className="relative flex flex-col gap-4 rounded-2xl border border-gold-400/25 bg-white/60 p-4"
+    >
+      {isPending && <PendingBar />}
       <div className="relative">
         <Search
           size={16}
@@ -156,7 +163,7 @@ export function PublicSearchFilterBar() {
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => router.push(pathname)}
+            onClick={() => startTransition(() => router.push(pathname))}
           >
             <X size={14} /> Clear filters
           </Button>
