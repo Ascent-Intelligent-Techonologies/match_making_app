@@ -42,6 +42,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
   const [{ profiles, total }, sharedIds, shortlistedIds] = await Promise.all([
     listProfilePage({
       search: getStr(params.search),
+      includeSurname: true,
       gender: getStr(params.gender),
       caste: getStr(params.caste),
       tags: getStr(params.tags)?.split(",").filter(Boolean),

@@ -63,7 +63,7 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-900/40"
         />
         <Input
-          placeholder="Search by name, city or profession…"
+          placeholder="Search by name, surname, city or profession…"
           defaultValue={get("search")}
           onChange={(e) => onDebouncedChange("search", e.target.value)}
           className="pl-10"

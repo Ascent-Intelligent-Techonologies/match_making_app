@@ -24,6 +24,12 @@ import type { ProfileFormValues } from "@/lib/validation";
 
 export interface ProfileFilters {
   search?: string;
+  /**
+   * Let the search text match the surname too, including "name surname" typed
+   * together. Admin screens only: clients browsing never see a surname, so
+   * letting them search by one would reveal which profiles share it.
+   */
+  includeSurname?: boolean;
   gender?: string;
   city?: string;
   religion?: string;
@@ -78,7 +84,11 @@ function profileFilters(filters: ProfileFilters): Filters {
   if (filters.search) {
     const term = `%${filters.search.trim()}%`;
     where.$or = [
-      { full_name: ilike(term) },
+      // Matched against "name surname" as the admin screens show it, so either
+      // part or both together find the profile.
+      filters.includeSurname
+        ? { $raw: [{ sql: "concat_ws(' ', full_name, surname) ilike ?", params: [term] }] }
+        : { full_name: ilike(term) },
       { city: ilike(term) },
       { profession: ilike(term) },
       { religion: ilike(term) },

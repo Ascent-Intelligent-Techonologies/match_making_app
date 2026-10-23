@@ -23,6 +23,7 @@ export default async function AdminDashboardPage({
   const [{ profiles, total }, clients, birthYears] = await Promise.all([
     listProfilePage({
       search: getStr(params.search),
+      includeSurname: true,
       gender,
       religion: getStr(params.religion),
       caste: getStr(params.caste),
@@ -47,7 +48,8 @@ export default async function AdminDashboardPage({
 
   const selectableProfiles = profiles.map((p) => ({
     id: p.id,
-    full_name: p.full_name,
+    // The surname is searchable here, so a match has to be able to show it.
+    full_name: [p.full_name, p.surname].filter(Boolean).join(" "),
     dob: p.dob,
     is_active: p.is_active,
     profession: p.profession,
