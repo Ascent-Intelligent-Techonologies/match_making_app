@@ -76,6 +76,8 @@ jobs:
       # inlines NEXT_PUBLIC_* into the client bundle. Setting it only in App
       # Service would leave the browser with the wrong base URL for share
       # links. AZURE_BUILD switches next.config.ts to standalone output.
+      # NEXT_PUBLIC_BUILD_SHA is what /api/version reports, which the deploy
+      # waits on to know this commit is the one being served.
       #
       # Building here, on Linux, also means sharp's native linux-x64 binary is
       # what gets traced into the bundle, rather than the WebAssembly fallback
@@ -86,6 +88,7 @@ jobs:
           AZURE_BUILD: "1"
           NEXT_TELEMETRY_DISABLED: "1"
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
+          NEXT_PUBLIC_BUILD_SHA: ${{ github.sha }}
 
       # Standalone traces only the files the server needs. `static` and
       # `public` are served rather than imported, so Next.js leaves them out
@@ -150,19 +153,36 @@ jobs:
           package: anurupa.zip
 
       # App Service reports success as soon as the zip lands, which is before
-      # the container has restarted. Without this a broken build shows up as a
-      # green run and a dead site.
-      - name: Smoke test
+      # the new version is serving: the old container keeps answering until
+      # the new one has started, a minute or more later. So "the site
+      # responds" proves nothing here. This waits until the site says it is
+      # running this commit, then checks a page that reads the database, so a
+      # broken build or a bad setting shows up as a red run, not a green one.
+      - name: Wait for this commit to be live
         env:
           SITE_URL: ${{ vars.SITE_URL }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          for i in $(seq 1 40); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$SITE_URL/browse" || echo 000)
-            case "$code" in
-              200|302|307) echo "HTTP $code after $((i * 15))s"; exit 0 ;;
-            esac
-            sleep 15
+          set -uo pipefail
+          SECONDS=0
+          live=""
+          for i in $(seq 1 60); do
+            live=$(curl -s --max-time 15 "$SITE_URL/api/version" | jq -r '.sha // empty' 2>/dev/null || true)
+            if [ "$live" = "$EXPECTED_SHA" ]; then
+              echo "Running $EXPECTED_SHA after ${SECONDS}s"
+              break
+            fi
+            sleep 10
           done
-          echo "::error::Site never came back; last status ${code:-none}"
+          if [ "$live" != "$EXPECTED_SHA" ]; then
+            echo "::error::Still serving ${live:-nothing} after 10 minutes; expected $EXPECTED_SHA"
+            exit 1
+          fi
+
+          for i in $(seq 1 6); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$SITE_URL/browse" || echo 000)
+            if [ "$code" = "200" ]; then echo "/browse answered 200"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::/browse answered ${code:-nothing} on the new version"
           exit 1
