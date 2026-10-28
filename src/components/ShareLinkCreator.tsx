@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { Check, Copy, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ClientPicker } from "@/components/ClientPicker";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { ACCESS_LEVEL_OPTIONS } from "@/lib/constants";
 import { createShareLinkAction, type ShareLinkFormState } from "@/lib/actions/share-links";
@@ -182,24 +183,16 @@ export function ShareLinkCreator({
           </p>
           {existingClients.length > 0 && (
             <Field label="Pick an existing client (optional)" htmlFor="existingClient">
-              <Select
+              <ClientPicker
                 id="existingClient"
-                value=""
-                onChange={(e) => {
-                  const match = existingClients.find((c) => c.id === e.target.value);
-                  if (match) {
-                    setClientName(match.full_name);
-                    setClientPhone(match.phone_display ?? match.phone);
-                  }
+                clients={existingClients}
+                placeholder="Search by name or number…"
+                clearOnSelect
+                onSelect={(c) => {
+                  setClientName(c.full_name);
+                  setClientPhone(c.phone_display ?? c.phone);
                 }}
-              >
-                <option value="">New client…</option>
-                {existingClients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name} · {c.phone_display ?? c.phone}
-                  </option>
-                ))}
-              </Select>
+              />
             </Field>
           )}
           <div className="grid gap-4 sm:grid-cols-2">

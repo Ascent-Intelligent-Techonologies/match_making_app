@@ -1,16 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
-import { Field, Input, Select } from "@/components/ui/Field";
+import { Field, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { ClientPicker } from "@/components/ClientPicker";
 import { startSearchForClientAction, type ClientFormState } from "@/lib/actions/clients";
 import type { ClientOption } from "@/components/ShareLinkCreator";
 
 /** Every search runs on behalf of a client, so we pick one before searching. */
 export function ClientChooser({ existingClients }: { existingClients: ClientOption[] }) {
   const router = useRouter();
+  const [opening, startOpening] = useTransition();
   const [state, formAction, pending] = useActionState<ClientFormState, FormData>(
     startSearchForClientAction,
     {}
@@ -28,21 +30,18 @@ export function ClientChooser({ existingClients }: { existingClients: ClientOpti
       </div>
 
       {existingClients.length > 0 && (
-        <Field label="Existing client" htmlFor="existing">
-          <Select
+        <Field
+          label="Existing client"
+          htmlFor="existing"
+          hint={opening ? "Opening their search…" : undefined}
+        >
+          <ClientPicker
             id="existing"
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) router.push(`/admin/search?client=${e.target.value}`);
-            }}
-          >
-            <option value="">Select a client…</option>
-            {existingClients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.full_name} · {c.phone_display ?? c.phone}
-              </option>
-            ))}
-          </Select>
+            clients={existingClients}
+            placeholder="Search by name or number…"
+            disabled={opening}
+            onSelect={(c) => startOpening(() => router.push(`/admin/search?client=${c.id}`))}
+          />
         </Field>
       )}
 
