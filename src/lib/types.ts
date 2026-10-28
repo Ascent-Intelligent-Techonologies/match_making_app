@@ -166,6 +166,8 @@ export interface Client {
   last_activity_at: string | null;
   /** Set when soft-deleted; hidden everywhere but the Deleted page. */
   deleted_at?: string | null;
+  /** Filters last set on the admin Search page, reapplied when it is opened. */
+  search_filters?: unknown;
 }
 
 /** A client plus the engagement counts shown in admin lists. */

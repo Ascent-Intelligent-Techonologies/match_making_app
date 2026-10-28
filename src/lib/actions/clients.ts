@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import {
   deleteClient,
   restoreClient,
+  saveClientSearchFilters,
   softDeleteClient,
   upsertClientByPhone,
 } from "@/lib/data/clients";
 import { removeShortlist, toggleShortlistForAdmin } from "@/lib/data/shortlists";
 import { isUsablePhone } from "@/lib/phone";
+import { sanitizeFilters } from "@/lib/search-filters";
 
 export interface ClientFormState {
   error?: string;
@@ -30,6 +32,25 @@ export async function startSearchForClientAction(
   revalidatePath("/admin/clients");
 
   redirect(`/admin/search?client=${client.id}`);
+}
+
+/**
+ * Keeps the filters on screen for this client, to come back each time their
+ * search is opened. An empty set removes them.
+ *
+ * No revalidation: the Search page is dynamic already, and re-rendering the
+ * results just to store a few words would only make the button slow.
+ */
+export async function saveSearchFiltersAction(
+  clientId: string,
+  filters: unknown
+): Promise<{ error?: string }> {
+  try {
+    await saveClientSearchFilters(clientId, sanitizeFilters(filters));
+    return {};
+  } catch {
+    return { error: "Could not save these filters." };
+  }
 }
 
 function revalidateClientLists() {

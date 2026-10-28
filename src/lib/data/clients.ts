@@ -2,6 +2,7 @@ import "server-only";
 import {
   deleteMany,
   ilike,
+  insertMany,
   notNull,
   selectMany,
   selectOne,
@@ -10,7 +11,8 @@ import {
   type Filters,
   type SelectOptions,
 } from "@/lib/db";
-import { normalizePhone } from "@/lib/phone";
+import { isUsablePhone, normalizePhone } from "@/lib/phone";
+import type { SavedFilters } from "@/lib/search-filters";
 import type { Client, ClientSummary } from "@/lib/types";
 
 /** Days of silence after which we consider a client to have gone quiet. */
@@ -76,6 +78,35 @@ export async function upsertClientByPhone(input: {
   );
 }
 
+/**
+ * Puts a profile's name and contact number on the client list, so that family
+ * can be searched for and shared with without typing them in again.
+ *
+ * Only ever adds. A number that is already a client, deleted or not, is left
+ * exactly as it is, so this can neither rename a client nor bring back one who
+ * was removed on purpose. Does nothing for a profile without a name and a
+ * usable number. Returns whether a client was added.
+ */
+export async function ensureClientForProfile(profile: {
+  full_name: string;
+  surname?: string | null;
+  contact_phone?: string | null;
+}): Promise<boolean> {
+  const name = [profile.full_name, profile.surname]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const phone = profile.contact_phone?.trim() ?? "";
+  if (!name || !isUsablePhone(phone)) return false;
+
+  const added = await insertMany(
+    "clients",
+    [{ full_name: name, phone: normalizePhone(phone), phone_display: phone }],
+    { conflict: { onConflict: "phone" } }
+  );
+  return added > 0;
+}
+
 export async function listClientSummaries(search?: string): Promise<ClientSummary[]> {
   // Soft-deleted clients are hidden from every list but the Deleted page.
   const where: Filters = { "c.deleted_at": null };
@@ -95,6 +126,20 @@ export async function listClientSummaries(search?: string): Promise<ClientSummar
 
 export async function getClientById(id: string): Promise<Client | null> {
   return selectOne<Client>("clients", { where: { id } });
+}
+
+/**
+ * Keeps the filters just set on the Search page for this client; an empty set
+ * clears them. Not a client "activity": it must not touch last_activity_at,
+ * which is reserved for the client's own actions.
+ */
+export async function saveClientSearchFilters(
+  clientId: string,
+  filters: SavedFilters
+): Promise<void> {
+  const saved = Object.keys(filters).length > 0 ? JSON.stringify(filters) : null;
+  const rows = await updateMany("clients", { search_filters: saved }, { id: clientId });
+  if (rows.length === 0) throw new Error("That client no longer exists.");
 }
 
 /** Lightweight list used to autocomplete the client fields when sharing. */

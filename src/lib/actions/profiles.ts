@@ -12,6 +12,7 @@ import {
   restoreProfile,
 } from "@/lib/data/profiles";
 import { storeProfilePhoto } from "@/lib/data/photos";
+import { ensureClientForProfile } from "@/lib/data/clients";
 
 export interface ProfileFormState {
   error?: string;
@@ -63,6 +64,14 @@ export async function createProfileAction(
   }
 
   const profile = await createProfile(parsed.data);
+
+  // The family goes on the client list too.
+  try {
+    if (await ensureClientForProfile(profile)) revalidatePath("/admin/clients");
+  } catch {
+    // The profile is already saved, so this must not undo it; the client can
+    // be added by hand.
+  }
 
   const photos = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   for (const photo of photos) {

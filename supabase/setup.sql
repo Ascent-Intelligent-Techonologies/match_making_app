@@ -182,7 +182,10 @@ create table if not exists clients (
   -- profile. Our own outreach deliberately does NOT touch this, or the
   -- "no response in 30+ days" list would count us as them.
   last_activity_at timestamptz,
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  -- Filters last set on the admin Search page for this client, reapplied each
+  -- time their search is opened. Null when nothing is saved.
+  search_filters jsonb
 );
 
 create index if not exists clients_deleted_at_idx on clients (deleted_at);

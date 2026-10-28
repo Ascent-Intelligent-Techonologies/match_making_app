@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Phone, Users } from "lucide-react";
+import { sanitizeFilters } from "@/lib/search-filters";
 import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { feetInchesToCm } from "@/lib/format";
 import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
@@ -36,6 +38,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
         <ClientChooser existingClients={clients} />
       </div>
     );
+  }
+
+  // Opening a client's search with nothing else in the address brings back the
+  // filters saved for them. Clearing adds an "unfiltered" marker to the address
+  // (see SearchFilterBar), so this cannot undo a clear.
+  const saved = sanitizeFilters(client.search_filters);
+  if (Object.keys(params).every((key) => key === "client") && Object.keys(saved).length > 0) {
+    redirect(`/admin/search?${new URLSearchParams({ client: client.id, ...saved })}`);
   }
 
   const page = pageFromParams(params.page);
@@ -114,7 +124,12 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
         </Link>
       </div>
 
-      <SearchFilterBar />
+      <SearchFilterBar
+        key={client.id}
+        clientId={client.id}
+        clientName={client.full_name}
+        savedFilters={saved}
+      />
 
       <Pager
         page={page}
