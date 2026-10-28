@@ -43,7 +43,9 @@ export interface ProfileFilters {
   maxHeight?: number;
   minFinances?: number;
   maxFinances?: number;
-  birthYear?: number;
+  /** Born in or after / in or before this year. */
+  minBirthYear?: number;
+  maxBirthYear?: number;
   professionCategory?: string;
   urgent?: boolean;
   /** Profiles with a sibling marked as a potential client of our own. */
@@ -113,16 +115,19 @@ function profileFilters(filters: ProfileFilters): Filters {
   if (filters.tags?.length) where.tags = overlaps(filters.tags);
 
   // Older DOB = older age, so maxAge bounds the earliest birthdate and minAge
-  // the latest. Both ends can apply at once, as can a birth year, so they go
-  // in as fragments rather than fighting over the one `dob` key.
+  // the latest. Both ends can apply at once, as can a birth year range, so they
+  // go in as fragments rather than fighting over the one `dob` key.
   if (filters.minAge) {
     and.push({ sql: "dob <= ?", params: [dobFromAge(filters.minAge)] });
   }
   if (filters.maxAge) {
     and.push({ sql: "dob >= ?", params: [dobFromAge(filters.maxAge)] });
   }
-  if (filters.birthYear) {
-    and.push({ sql: "extract(year from dob) = ?", params: [filters.birthYear] });
+  if (filters.minBirthYear) {
+    and.push({ sql: "extract(year from dob) >= ?", params: [filters.minBirthYear] });
+  }
+  if (filters.maxBirthYear) {
+    and.push({ sql: "extract(year from dob) <= ?", params: [filters.maxBirthYear] });
   }
 
   if (filters.potentialClient) {
@@ -274,23 +279,6 @@ export async function getDistinctCities(): Promise<string[]> {
     where: { city: notNull() },
     orderBy: "city",
   } as never);
-}
-
-/** Birth years present in the book, newest first, for the All Profiles filter. */
-export async function listProfileBirthYears(gender?: string): Promise<number[]> {
-  // Grouped in the database rather than by reading every dob into memory and
-  // de-duplicating here, which is what the thousand-row page cap used to force.
-  const rows = await selectMany<{ year: number }>("profiles", {
-    columns: "distinct extract(year from dob)::int as year",
-    where: {
-      is_active: true,
-      deleted_at: null,
-      dob: notNull(),
-      ...(gender ? { gender } : {}),
-    },
-    orderBy: "year desc",
-  });
-  return rows.map((r) => r.year);
 }
 
 export interface BulkUpsertResult {

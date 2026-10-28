@@ -48,6 +48,8 @@ export function RangePair({
   maxKey,
   minValue,
   maxValue,
+  minPlaceholder = "More than",
+  maxPlaceholder = "Less than",
   onChange,
 }: {
   label: string;
@@ -55,6 +57,8 @@ export function RangePair({
   maxKey: string;
   minValue: string;
   maxValue: string;
+  minPlaceholder?: string;
+  maxPlaceholder?: string;
   onChange: (key: string, value: string) => void;
 }) {
   return (
@@ -63,13 +67,13 @@ export function RangePair({
       <div className="flex items-center gap-2">
         <Input
           type="number"
-          placeholder="More than"
+          placeholder={minPlaceholder}
           defaultValue={minValue}
           onChange={(e) => onChange(minKey, e.target.value)}
         />
         <Input
           type="number"
-          placeholder="Less than"
+          placeholder={maxPlaceholder}
           defaultValue={maxValue}
           onChange={(e) => onChange(maxKey, e.target.value)}
         />

@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import {
-  listProfilePage,
-  listProfileBirthYears,
-  PROFILE_PAGE_SIZE,
-} from "@/lib/data/profiles";
+import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
 import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
 import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
@@ -17,30 +13,25 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const getStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  const gender = getStr(params.gender);
   const page = pageFromParams(params.page);
-  const [{ profiles, total }, birthYears] = await Promise.all([
-    listProfilePage({
-      search: getStr(params.search),
-      includeSurname: true,
-      gender,
-      religion: getStr(params.religion),
-      caste: getStr(params.caste),
-      tags: getStr(params.tags)?.split(",").filter(Boolean),
-      anurupaAura: getStr(params.anurupaAura) === "1",
-      minAge: params.minAge ? Number(getStr(params.minAge)) : undefined,
-      maxAge: params.maxAge ? Number(getStr(params.maxAge)) : undefined,
-      minHeight: params.minHeight ? Number(getStr(params.minHeight)) : undefined,
-      maxHeight: params.maxHeight ? Number(getStr(params.maxHeight)) : undefined,
-      minFinances: params.minFinances ? Number(getStr(params.minFinances)) : undefined,
-      maxFinances: params.maxFinances ? Number(getStr(params.maxFinances)) : undefined,
-      birthYear: params.birthYear ? Number(getStr(params.birthYear)) : undefined,
-      professionCategory: getStr(params.professionCategory),
-      urgent: getStr(params.urgent) === "1",
-      potentialClient: getStr(params.potentialClient) === "1",
-    }, page),
-    listProfileBirthYears(gender),
-  ]);
+  const { profiles, total } = await listProfilePage({
+    search: getStr(params.search),
+    includeSurname: true,
+    gender: getStr(params.gender),
+    religion: getStr(params.religion),
+    caste: getStr(params.caste),
+    tags: getStr(params.tags)?.split(",").filter(Boolean),
+    anurupaAura: getStr(params.anurupaAura) === "1",
+    minBirthYear: params.minBirthYear ? Number(getStr(params.minBirthYear)) : undefined,
+    maxBirthYear: params.maxBirthYear ? Number(getStr(params.maxBirthYear)) : undefined,
+    minHeight: params.minHeight ? Number(getStr(params.minHeight)) : undefined,
+    maxHeight: params.maxHeight ? Number(getStr(params.maxHeight)) : undefined,
+    minFinances: params.minFinances ? Number(getStr(params.minFinances)) : undefined,
+    maxFinances: params.maxFinances ? Number(getStr(params.maxFinances)) : undefined,
+    professionCategory: getStr(params.professionCategory),
+    urgent: getStr(params.urgent) === "1",
+    potentialClient: getStr(params.potentialClient) === "1",
+  }, page);
 
   const coverUrls = await getCoverPhotoUrls(profiles.map((p) => p.id));
 
@@ -80,7 +71,7 @@ export default async function AdminDashboardPage({
         </Link>
       </div>
 
-      <ProfilesFilterBar birthYears={birthYears} />
+      <ProfilesFilterBar />
 
       <Pager
         page={page}

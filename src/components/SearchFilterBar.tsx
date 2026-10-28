@@ -210,11 +210,13 @@ export function SearchFilterBar({
           onChange={(next) => setParam("tags", next.join(","))}
         />
         <RangePair
-          label="Age (years)"
-          minKey="minAge"
-          maxKey="maxAge"
-          minValue={searchParams.get("minAge") ?? ""}
-          maxValue={searchParams.get("maxAge") ?? ""}
+          label="Year of birth"
+          minKey="minBirthYear"
+          maxKey="maxBirthYear"
+          minValue={searchParams.get("minBirthYear") ?? ""}
+          maxValue={searchParams.get("maxBirthYear") ?? ""}
+          minPlaceholder="From 1990"
+          maxPlaceholder="To 1999"
           onChange={onDebouncedChange}
         />
         <HeightRangeFilter

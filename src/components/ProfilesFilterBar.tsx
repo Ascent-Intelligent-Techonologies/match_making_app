@@ -23,11 +23,10 @@ import {
 /**
  * All Profiles filters.
  *
- * Everything is on screen at once. Boy/girl used to gate the year list, which
- * meant the only way to see a filter was to commit to a prior one; now the
- * year list simply covers whatever is on the books and nothing is hidden.
+ * Everything is on screen at once; no filter has to be chosen before another
+ * one shows up.
  */
-export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
+export function ProfilesFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -79,13 +78,6 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
           onChange={(v) => setParam("gender", v)}
         />
         <FilterSelect
-          label="Year of birth"
-          value={get("birthYear")}
-          placeholder="Any year"
-          options={birthYears.map(String)}
-          onChange={(v) => setParam("birthYear", v)}
-        />
-        <FilterSelect
           label="Caste"
           value={get("caste")}
           placeholder="All caste"
@@ -106,11 +98,13 @@ export function ProfilesFilterBar({ birthYears }: { birthYears: number[] }) {
           onChange={(next) => setParam("tags", next.join(","))}
         />
         <RangePair
-          label="Age (years)"
-          minKey="minAge"
-          maxKey="maxAge"
-          minValue={get("minAge")}
-          maxValue={get("maxAge")}
+          label="Year of birth"
+          minKey="minBirthYear"
+          maxKey="maxBirthYear"
+          minValue={get("minBirthYear")}
+          maxValue={get("maxBirthYear")}
+          minPlaceholder="From 1990"
+          maxPlaceholder="To 1999"
           onChange={onDebouncedChange}
         />
         <HeightRangeFilter
