@@ -47,7 +47,7 @@ export function SearchResultsGrid({
   client,
 }: {
   results: SearchResult[];
-  client: { id: string; full_name: string; phone: string };
+  client: { id: string; full_name: string; phone: string | null };
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
@@ -162,7 +162,7 @@ export function SearchResultsGrid({
             city: null,
           }))}
           preselectedIds={selectedIdList}
-          fixedClient={{ full_name: client.full_name, phone: client.phone }}
+          fixedClient={{ id: client.id, full_name: client.full_name, phone: client.phone }}
           lockSelection
         />
       )}

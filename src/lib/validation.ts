@@ -102,6 +102,9 @@ export const shareLinkSchema = z.object({
   // Optional: name the client here and the link is attributed to them. Leave
   // both blank and whoever opens the link is asked before they can shortlist.
   clientName: optionalString,
+  // A client already on the list, picked or searched for: the link goes to
+  // them as they are, which is the only way to reach one with no number.
+  clientId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
   clientPhone: z.preprocess(
     emptyToUndefined,
     z.string().trim().refine(isUsablePhone, "Enter a valid phone number").optional()

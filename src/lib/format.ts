@@ -95,3 +95,11 @@ export function formatLocation(parts: {
   }
   return seen.size > 0 ? Array.from(seen).join(", ") : null;
 }
+
+/** A client's number as it is shown. They may have none: it is optional. */
+export function formatClientPhone(client: {
+  phone_display?: string | null;
+  phone?: string | null;
+}): string | null {
+  return client.phone_display ?? client.phone ?? null;
+}

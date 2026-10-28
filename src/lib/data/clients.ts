@@ -1,9 +1,11 @@
 import "server-only";
 import {
+  countRows,
   deleteMany,
   ilike,
   insertMany,
   notNull,
+  query,
   selectMany,
   selectOne,
   updateMany,
@@ -49,8 +51,13 @@ const SUMMARY_QUERY: SelectOptions = {
               from client_shortlists cs
              where cs.client_id = c.id
           ) h on true`,
-  orderBy: "c.created_at desc",
+  // The id breaks ties: profiles imported together share a created_at, and a
+  // page boundary inside a tie would repeat some clients and skip others.
+  orderBy: "c.created_at desc, c.id",
 };
+
+/** How many clients the Clients page shows at once. */
+export const CLIENT_PAGE_SIZE = 50;
 
 /**
  * Finds the client with this phone number, or creates one. Phone is the
@@ -79,15 +86,20 @@ export async function upsertClientByPhone(input: {
 }
 
 /**
- * Puts a profile's name and contact number on the client list, so that family
- * can be searched for and shared with without typing them in again.
+ * Puts a profile's family on the client list, so they can be searched for and
+ * shared with without typing them in again. Every profile gets one client,
+ * with a phone number or without.
  *
- * Only ever adds. A number that is already a client, deleted or not, is left
- * exactly as it is, so this can neither rename a client nor bring back one who
- * was removed on purpose. Does nothing for a profile without a name and a
- * usable number. Returns whether a client was added.
+ * Only ever adds or fills in. The client is named like the profile and linked
+ * to it, which is what stops a second save adding a second client. The number
+ * goes on the client when the profile has a usable one that no other client
+ * holds, and a number added to the profile later fills in a client that had
+ * none. An existing client is never renamed, and one that was deleted stays
+ * deleted (it still counts as the profile's client). Returns whether a client
+ * was added.
  */
 export async function ensureClientForProfile(profile: {
+  id: string;
   full_name: string;
   surname?: string | null;
   contact_phone?: string | null;
@@ -96,18 +108,42 @@ export async function ensureClientForProfile(profile: {
     .map((part) => part?.trim())
     .filter(Boolean)
     .join(" ");
-  const phone = profile.contact_phone?.trim() ?? "";
-  if (!name || !isUsablePhone(phone)) return false;
+  if (!name) return false;
 
-  const added = await insertMany(
-    "clients",
-    [{ full_name: name, phone: normalizePhone(phone), phone_display: phone }],
-    { conflict: { onConflict: "phone" } }
-  );
-  return added > 0;
+  const typed = profile.contact_phone?.trim() ?? "";
+  const digits = isUsablePhone(typed) ? normalizePhone(typed) : null;
+
+  const [existing, holder] = await Promise.all([
+    selectOne<Pick<Client, "id" | "phone">>("clients", {
+      columns: "id, phone",
+      where: { profile_id: profile.id },
+    }),
+    digits
+      ? selectOne<Pick<Client, "id">>("clients", { columns: "id", where: { phone: digits } })
+      : null,
+  ]);
+
+  if (existing) {
+    if (!existing.phone && digits && !holder) {
+      await updateMany("clients", { phone: digits, phone_display: typed }, { id: existing.id });
+    }
+    return false;
+  }
+
+  await insertMany("clients", [
+    {
+      full_name: name,
+      // A number someone else already holds is kept for reference only.
+      phone: holder ? null : digits,
+      phone_display: digits ? typed : null,
+      profile_id: profile.id,
+    },
+  ]);
+  return true;
 }
 
-export async function listClientSummaries(search?: string): Promise<ClientSummary[]> {
+/** The filters behind the client lists: not deleted, and matching the search. */
+function summaryFilters(search?: string): Filters {
   // Soft-deleted clients are hidden from every list but the Deleted page.
   const where: Filters = { "c.deleted_at": null };
 
@@ -120,8 +156,54 @@ export async function listClientSummaries(search?: string): Promise<ClientSummar
       ...(digits ? [{ "c.phone": ilike(`%${digits}%`) }] : []),
     ];
   }
+  return where;
+}
 
+/**
+ * Clients with their counts.
+ *
+ * `engagedOnly` leaves out clients made from a profile that nobody has
+ * dealt with yet: nothing shared with them, nothing shortlisted, no activity
+ * of their own. They are on the list so they can be picked, but they are not
+ * part of the work analytics describes.
+ */
+export async function listClientSummaries(
+  search?: string,
+  options: { engagedOnly?: boolean } = {}
+): Promise<ClientSummary[]> {
+  const where = summaryFilters(search);
+  if (options.engagedOnly) {
+    where.$raw = [
+      {
+        sql: "c.profile_id is null or c.last_activity_at is not null or s.links > 0 or h.shortlists > 0",
+      },
+    ];
+  }
   return selectMany<ClientSummary>("clients", { ...SUMMARY_QUERY, where });
+}
+
+export interface ClientPage {
+  clients: ClientSummary[];
+  /** Matching the search, not just on this page. */
+  total: number;
+}
+
+/** One page of the Clients list, plus how many clients match in all. */
+export async function listClientSummaryPage(
+  search: string | undefined,
+  page: number
+): Promise<ClientPage> {
+  const where = summaryFilters(search);
+  const [clients, total] = await Promise.all([
+    selectMany<ClientSummary>("clients", {
+      ...SUMMARY_QUERY,
+      where,
+      limit: CLIENT_PAGE_SIZE,
+      offset: Math.max(0, page - 1) * CLIENT_PAGE_SIZE,
+    }),
+    countRows("clients c", where),
+  ]);
+  return { clients, total };
 }
 
 export async function getClientById(id: string): Promise<Client | null> {
@@ -142,15 +224,41 @@ export async function saveClientSearchFilters(
   if (rows.length === 0) throw new Error("That client no longer exists.");
 }
 
-/** Lightweight list used to autocomplete the client fields when sharing. */
-export async function listClientsForPicker(): Promise<
-  Pick<Client, "id" | "full_name" | "phone_display" | "phone">[]
-> {
-  return selectMany("clients", {
-    columns: "id, full_name, phone_display, phone",
-    where: { deleted_at: null },
-    orderBy: "full_name",
-  });
+export type ClientMatch = Pick<Client, "id" | "full_name" | "phone_display" | "phone">;
+
+/** How many matches the client picker shows before asking for more typing. */
+export const CLIENT_PICKER_LIMIT = 50;
+
+/**
+ * Clients matching what was typed in a client picker, by name or by number,
+ * names that start with it first. The picker asks as you type rather than
+ * loading every client, because that list is as long as the profile book.
+ */
+export async function searchClients(
+  text: string
+): Promise<{ clients: ClientMatch[]; more: boolean }> {
+  const term = text.trim().slice(0, 100);
+  const digits = term.replace(/\D/g, "");
+
+  const rows = await query<ClientMatch>(
+    `select id, full_name, phone_display, phone
+       from clients
+      where deleted_at is null
+        and ($1 = ''
+             or full_name ilike '%' || $2 || '%'
+             or ($3 <> '' and regexp_replace(coalesce(phone, phone_display, ''), '\\D', '', 'g')
+                              like '%' || $3 || '%'))
+      order by (full_name ilike $2 || '%') desc, full_name
+      limit ${CLIENT_PICKER_LIMIT + 1}`,
+    [
+      term,
+      // % and _ typed by the admin mean themselves, not "anything".
+      term.replace(/[\\%_]/g, "\\$&"),
+      // A few digits are enough to look someone up by number; fewer match everyone.
+      digits.length >= 3 ? digits : "",
+    ]
+  );
+  return { clients: rows.slice(0, CLIENT_PICKER_LIMIT), more: rows.length > CLIENT_PICKER_LIMIT };
 }
 
 /** Records that a client engaged (opened a link or shortlisted a profile). */
@@ -162,8 +270,6 @@ export interface ClientAnalytics {
   recentlyContacted: ClientSummary[];
   goneQuiet: ClientSummary[];
   neverOpened: ClientSummary[];
-  /** Details were taken but nothing was ever sent to them. */
-  neverContacted: ClientSummary[];
   totalClients: number;
   totalShortlists: number;
 }
@@ -176,7 +282,7 @@ export interface ClientAnalytics {
  * opening a link or hearting a profile.
  */
 export async function getClientAnalytics(): Promise<ClientAnalytics> {
-  const summaries = await listClientSummaries();
+  const summaries = await listClientSummaries(undefined, { engagedOnly: true });
   const now = Date.now();
   const recentCutoff = now - RECENT_CONTACT_DAYS * 86_400_000;
   const staleCutoff = now - STALE_CLIENT_DAYS * 86_400_000;
@@ -203,18 +309,10 @@ export async function getClientAnalytics(): Promise<ClientAnalytics> {
     .filter((c) => c.last_activity_at === null && c.linkCount > 0)
     .sort((a, b) => contactedAt(a) - contactedAt(b));
 
-  // Distinct from "never opened": nothing was ever sent to these people at
-  // all. Usually details taken down on a call and then forgotten about, so
-  // the oldest are the ones most worth chasing.
-  const neverContacted = summaries
-    .filter((c) => c.linkCount === 0)
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
   return {
     recentlyContacted,
     goneQuiet,
     neverOpened,
-    neverContacted,
     totalClients: summaries.length,
     totalShortlists: summaries.reduce((n, c) => n + c.shortlistedCount, 0),
   };

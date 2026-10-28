@@ -13,6 +13,7 @@ import {
 } from "@/lib/data/profiles";
 import { storeProfilePhoto } from "@/lib/data/photos";
 import { ensureClientForProfile } from "@/lib/data/clients";
+import type { Profile } from "@/lib/types";
 
 export interface ProfileFormState {
   error?: string;
@@ -51,6 +52,19 @@ function parseProfileFormData(formData: FormData) {
   };
 }
 
+/**
+ * The family goes on the client list too, once the profile has a name and a
+ * number. Only ever adds (see ensureClientForProfile).
+ */
+async function addToClients(profile: Profile) {
+  try {
+    if (await ensureClientForProfile(profile)) revalidatePath("/admin/clients");
+  } catch {
+    // The profile is already saved, so this must not undo it; the client can
+    // be added by hand.
+  }
+}
+
 export async function createProfileAction(
   _prevState: ProfileFormState,
   formData: FormData
@@ -65,13 +79,7 @@ export async function createProfileAction(
 
   const profile = await createProfile(parsed.data);
 
-  // The family goes on the client list too.
-  try {
-    if (await ensureClientForProfile(profile)) revalidatePath("/admin/clients");
-  } catch {
-    // The profile is already saved, so this must not undo it; the client can
-    // be added by hand.
-  }
+  await addToClients(profile);
 
   const photos = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   for (const photo of photos) {
@@ -99,7 +107,8 @@ export async function updateProfileAction(
     };
   }
 
-  await updateProfile(profileId, parsed.data);
+  // Saved here too, so a number added to a profile later makes the client.
+  await addToClients(await updateProfile(profileId, parsed.data));
   revalidatePath("/admin");
   revalidatePath(`/admin/profiles/${profileId}`);
   return { error: undefined };

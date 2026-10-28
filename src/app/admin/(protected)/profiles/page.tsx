@@ -6,7 +6,6 @@ import {
   PROFILE_PAGE_SIZE,
 } from "@/lib/data/profiles";
 import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
-import { listClientsForPicker } from "@/lib/data/clients";
 import { ProfilesFilterBar } from "@/components/ProfilesFilterBar";
 import { ProfileSelectionGrid } from "@/components/ProfileSelectionGrid";
 import { Pager, pageFromParams } from "@/components/Pager";
@@ -20,7 +19,7 @@ export default async function AdminDashboardPage({
 
   const gender = getStr(params.gender);
   const page = pageFromParams(params.page);
-  const [{ profiles, total }, clients, birthYears] = await Promise.all([
+  const [{ profiles, total }, birthYears] = await Promise.all([
     listProfilePage({
       search: getStr(params.search),
       includeSurname: true,
@@ -40,7 +39,6 @@ export default async function AdminDashboardPage({
       urgent: getStr(params.urgent) === "1",
       potentialClient: getStr(params.potentialClient) === "1",
     }, page),
-    listClientsForPicker(),
     listProfileBirthYears(gender),
   ]);
 
@@ -92,10 +90,7 @@ export default async function AdminDashboardPage({
         params={params}
       />
 
-      <ProfileSelectionGrid
-        profiles={selectableProfiles}
-        existingClients={clients}
-      />
+      <ProfileSelectionGrid profiles={selectableProfiles} />
 
       <Pager
         page={page}

@@ -7,10 +7,9 @@ import { Field, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { ClientPicker } from "@/components/ClientPicker";
 import { startSearchForClientAction, type ClientFormState } from "@/lib/actions/clients";
-import type { ClientOption } from "@/components/ShareLinkCreator";
 
 /** Every search runs on behalf of a client, so we pick one before searching. */
-export function ClientChooser({ existingClients }: { existingClients: ClientOption[] }) {
+export function ClientChooser() {
   const router = useRouter();
   const [opening, startOpening] = useTransition();
   const [state, formAction, pending] = useActionState<ClientFormState, FormData>(
@@ -29,21 +28,18 @@ export function ClientChooser({ existingClients }: { existingClients: ClientOpti
         </p>
       </div>
 
-      {existingClients.length > 0 && (
-        <Field
-          label="Existing client"
-          htmlFor="existing"
-          hint={opening ? "Opening their search…" : undefined}
-        >
-          <ClientPicker
-            id="existing"
-            clients={existingClients}
-            placeholder="Search by name or number…"
-            disabled={opening}
-            onSelect={(c) => startOpening(() => router.push(`/admin/search?client=${c.id}`))}
-          />
-        </Field>
-      )}
+      <Field
+        label="Existing client"
+        htmlFor="existing"
+        hint={opening ? "Opening their search…" : undefined}
+      >
+        <ClientPicker
+          id="existing"
+          placeholder="Search by name or number…"
+          disabled={opening}
+          onSelect={(c) => startOpening(() => router.push(`/admin/search?client=${c.id}`))}
+        />
+      </Field>
 
       <form action={formAction} className="flex flex-col gap-4 border-t border-blush-200 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-maroon-700/80">

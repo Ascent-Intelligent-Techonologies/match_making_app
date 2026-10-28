@@ -1,15 +1,10 @@
 import { listShareLinks } from "@/lib/data/share-links";
 import { listProfiles } from "@/lib/data/profiles";
-import { listClientsForPicker } from "@/lib/data/clients";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { ShareLinkRow } from "@/components/ShareLinkRow";
 
 export default async function ShareLinksPage() {
-  const [links, profiles, clients] = await Promise.all([
-    listShareLinks(),
-    listProfiles({}),
-    listClientsForPicker(),
-  ]);
+  const [links, profiles] = await Promise.all([listShareLinks(), listProfiles({})]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
@@ -27,7 +22,6 @@ export default async function ShareLinksPage() {
         <h2 className="mb-4 font-serif text-xl font-semibold text-maroon-700">New share link</h2>
         <ShareLinkCreator
           allProfiles={profiles.map((p) => ({ id: p.id, full_name: p.full_name, city: p.city }))}
-          existingClients={clients}
         />
       </section>
 

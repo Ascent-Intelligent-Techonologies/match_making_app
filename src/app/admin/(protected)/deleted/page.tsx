@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { purgeProfileAction, restoreProfileAction } from "@/lib/actions/profiles";
 import { purgeClientAction, restoreClientAction } from "@/lib/actions/clients";
-import { calculateAge, formatDate, formatRelativeDays } from "@/lib/format";
+import { calculateAge, formatClientPhone, formatDate, formatRelativeDays } from "@/lib/format";
 
 export const metadata = { title: "Deleted | AnuRupa Admin" };
 
@@ -120,7 +120,7 @@ export default async function DeletedPage() {
                   <span className="text-sm font-medium text-maroon-700">{c.full_name}</span>
                   <span className="flex items-center gap-1.5 text-xs text-ink-900/50">
                     <Phone size={11} />
-                    {c.phone_display ?? c.phone} · added {formatDate(c.created_at)} · deleted{" "}
+                    {formatClientPhone(c) ?? "No number"} · added {formatDate(c.created_at)} · deleted{" "}
                     {formatRelativeDays(c.deleted_at ?? null)}
                   </span>
                 </span>

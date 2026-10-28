@@ -18,7 +18,7 @@ import { deleteFollowUpAction } from "@/lib/actions/followups";
 import { deleteShareLinkAction } from "@/lib/actions/share-links";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatDate, formatRelativeDays } from "@/lib/format";
+import { formatClientPhone, formatDate, formatRelativeDays } from "@/lib/format";
 
 export default async function ClientDetailPage({ params }: PageProps<"/admin/clients/[id]">) {
   const { id } = await params;
@@ -54,7 +54,7 @@ export default async function ClientDetailPage({ params }: PageProps<"/admin/cli
           <h1 className="font-serif text-3xl font-semibold text-maroon-700">{client.full_name}</h1>
           <p className="flex items-center gap-1.5 text-sm text-ink-900/60">
             <Phone size={14} />
-            {client.phone_display ?? client.phone}
+            {formatClientPhone(client) ?? "No number"}
           </p>
         </div>
         <DeleteChoiceButton

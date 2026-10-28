@@ -9,7 +9,7 @@ export interface ClientFollowup {
 }
 
 export interface FollowupWithClient extends ClientFollowup {
-  client: { id: string; full_name: string; phone_display: string | null; phone: string } | null;
+  client: { id: string; full_name: string; phone_display: string | null; phone: string | null } | null;
 }
 
 export async function addFollowup(input: {

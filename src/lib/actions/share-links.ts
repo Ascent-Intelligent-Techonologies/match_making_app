@@ -10,7 +10,7 @@ import {
   updateShareLinkAccessLevel,
   updateShareLinkNotes,
 } from "@/lib/data/share-links";
-import { upsertClientByPhone } from "@/lib/data/clients";
+import { getClientById, upsertClientByPhone } from "@/lib/data/clients";
 import type { AccessLevel } from "@/lib/types";
 
 export interface ShareLinkFormState {
@@ -18,6 +18,12 @@ export interface ShareLinkFormState {
   createdUrl?: string;
   /** Echoed back so the share message can greet the client by name. */
   clientName?: string;
+}
+
+/** A client who is still on the list, as they are; deleted ones do not count. */
+async function findClient(id: string) {
+  const client = await getClientById(id);
+  return client && !client.deleted_at ? client : null;
 }
 
 export async function createShareLinkAction(
@@ -31,6 +37,7 @@ export async function createShareLinkAction(
     label: formData.get("label") ?? undefined,
     notes: formData.get("notes") ?? undefined,
     clientName: formData.get("clientName"),
+    clientId: formData.get("clientId"),
     clientPhone: formData.get("clientPhone"),
   });
 
@@ -41,13 +48,17 @@ export async function createShareLinkAction(
   // If the admin named the client, the link is attributed to them and the
   // recipient is never asked. Otherwise client_id stays null and whoever opens
   // the link identifies themselves before they can shortlist.
-  const client =
-    parsed.data.clientName && parsed.data.clientPhone
+  const client = parsed.data.clientId
+    ? await findClient(parsed.data.clientId)
+    : parsed.data.clientName && parsed.data.clientPhone
       ? await upsertClientByPhone({
           fullName: parsed.data.clientName,
           phone: parsed.data.clientPhone,
         })
       : null;
+  if (parsed.data.clientId && !client) {
+    return { error: "That client is no longer on the list. Pick them again." };
+  }
 
   const link = await createShareLink({ ...parsed.data, clientId: client?.id ?? null });
   revalidatePath("/admin/links");

@@ -3,12 +3,11 @@ import { redirect } from "next/navigation";
 import { Phone, Users } from "lucide-react";
 import { sanitizeFilters } from "@/lib/search-filters";
 import { listProfilePage, PROFILE_PAGE_SIZE } from "@/lib/data/profiles";
-import { feetInchesToCm } from "@/lib/format";
+import { feetInchesToCm, formatClientPhone } from "@/lib/format";
 import { coverTileUrl, getCoverPhotoUrls } from "@/lib/data/photos";
 import {
   getClientById,
   getSharedProfileIdsForClient,
-  listClientsForPicker,
 } from "@/lib/data/clients";
 import { getShortlistedProfileIds } from "@/lib/data/shortlists";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
@@ -26,7 +25,6 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
   const client = clientId ? await getClientById(clientId) : null;
 
   if (!client) {
-    const clients = await listClientsForPicker();
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -35,7 +33,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
             Searches are tracked per client, so we know who has seen what.
           </p>
         </div>
-        <ClientChooser existingClients={clients} />
+        <ClientChooser />
       </div>
     );
   }
@@ -110,10 +108,12 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
                 {client.full_name}
               </Link>
             </span>
-            <span className="flex items-center gap-1.5">
-              <Phone size={13} />
-              {client.phone_display ?? client.phone}
-            </span>
+            {formatClientPhone(client) && (
+              <span className="flex items-center gap-1.5">
+                <Phone size={13} />
+                {formatClientPhone(client)}
+              </span>
+            )}
           </p>
         </div>
         <Link
@@ -144,7 +144,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/admin/sea
         client={{
           id: client.id,
           full_name: client.full_name,
-          phone: client.phone_display ?? client.phone,
+          phone: formatClientPhone(client),
         }}
       />
 

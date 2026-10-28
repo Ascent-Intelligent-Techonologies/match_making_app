@@ -152,14 +152,17 @@ export interface ShareLink {
   view_count: number;
 }
 
-/** A person we are shortlisting for, identified by phone number. */
+/**
+ * A person we are shortlisting for. Identified by phone number when they have
+ * one; a client made from a profile may have none.
+ */
 export interface Client {
   id: string;
   created_at: string;
   updated_at: string;
   full_name: string;
-  /** Normalised digits used as the identity key. */
-  phone: string;
+  /** Normalised digits, unique among clients. Null when there is no number. */
+  phone: string | null;
   /** Exactly what the admin typed. */
   phone_display: string | null;
   notes: string | null;
@@ -168,6 +171,8 @@ export interface Client {
   deleted_at?: string | null;
   /** Filters last set on the admin Search page, reapplied when it is opened. */
   search_filters?: unknown;
+  /** The profile this client was made from, if any. */
+  profile_id?: string | null;
 }
 
 /** A client plus the engagement counts shown in admin lists. */

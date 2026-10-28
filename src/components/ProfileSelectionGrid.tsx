@@ -7,7 +7,7 @@ import { Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { ShareLinkCreator, type ClientOption } from "@/components/ShareLinkCreator";
+import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { SlideshowButton } from "@/components/ProfileSlideshow";
 import {
   calculateAge,
@@ -73,10 +73,8 @@ function CardDetail({ label, value }: { label: string; value?: string | null }) 
 
 export function ProfileSelectionGrid({
   profiles,
-  existingClients = [],
 }: {
   profiles: SelectableProfile[];
-  existingClients?: ClientOption[];
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
@@ -190,7 +188,6 @@ export function ProfileSelectionGrid({
             city: p.city,
           }))}
           preselectedIds={selectedVisibleIds}
-          existingClients={existingClients}
           lockSelection
         />
       )}

@@ -1,29 +1,31 @@
 import Link from "next/link";
 import { Heart, Phone, Send } from "lucide-react";
-import { listClientSummaries } from "@/lib/data/clients";
+import { CLIENT_PAGE_SIZE, listClientSummaryPage } from "@/lib/data/clients";
 import { ClientSearchBar } from "@/components/ClientSearchBar";
+import { Pager, pageFromParams } from "@/components/Pager";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatDate, formatRelativeDays } from "@/lib/format";
+import { formatClientPhone, formatDate, formatRelativeDays } from "@/lib/format";
 
 export default async function ClientsPage({ searchParams }: PageProps<"/admin/clients">) {
   const params = await searchParams;
   const search = Array.isArray(params.search) ? params.search[0] : params.search;
-  const clients = await listClientSummaries(search);
+  const page = pageFromParams(params.page);
+  const { clients, total } = await listClientSummaryPage(search, page);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-serif text-3xl font-semibold text-maroon-700">Clients</h1>
         <p className="text-sm text-ink-900/60">
-          {clients.length} client{clients.length === 1 ? "" : "s"}
+          {total.toLocaleString()} client{total === 1 ? "" : "s"}
           {search ? ` matching “${search}”` : ""}
         </p>
       </div>
 
       <ClientSearchBar />
 
-      {clients.length === 0 ? (
+      {total === 0 ? (
         <p className="rounded-xl border border-dashed border-gold-400/40 bg-white/40 p-10 text-center text-sm text-ink-900/50">
           {search
             ? "No clients match that search."
@@ -41,7 +43,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/cl
                     </h2>
                     <p className="flex items-center gap-1.5 text-sm text-ink-900/60">
                       <Phone size={13} />
-                      {client.phone_display ?? client.phone}
+                      {formatClientPhone(client) ?? "No number"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -62,6 +64,14 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/cl
           ))}
         </div>
       )}
+
+      <Pager
+        page={page}
+        pageSize={CLIENT_PAGE_SIZE}
+        total={total}
+        basePath="/admin/clients"
+        params={params}
+      />
     </div>
   );
 }

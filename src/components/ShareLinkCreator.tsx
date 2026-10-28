@@ -6,28 +6,27 @@ import { Button } from "@/components/ui/Button";
 import { ClientPicker } from "@/components/ClientPicker";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { ACCESS_LEVEL_OPTIONS } from "@/lib/constants";
+import { formatClientPhone } from "@/lib/format";
 import { createShareLinkAction, type ShareLinkFormState } from "@/lib/actions/share-links";
 
 export interface ClientOption {
   id: string;
   full_name: string;
   phone_display: string | null;
-  phone: string;
+  /** Clients made from a profile may have no number. */
+  phone: string | null;
 }
 
 export function ShareLinkCreator({
   allProfiles,
   preselectedIds = [],
   lockSelection = false,
-  existingClients = [],
   fixedClient,
 }: {
   allProfiles: { id: string; full_name: string; city: string | null }[];
   preselectedIds?: string[];
-  /** Lets the admin reuse a client instead of retyping their details. */
-  existingClients?: ClientOption[];
   /** When the client is already decided (e.g. searching on their behalf). */
-  fixedClient?: { full_name: string; phone: string };
+  fixedClient?: { id: string; full_name: string; phone: string | null };
   /**
    * When true the profile picker is hidden and `preselectedIds` is the
    * definitive selection — used when profiles were already chosen elsewhere
@@ -43,6 +42,9 @@ export function ShareLinkCreator({
   const [copied, setCopied] = useState(false);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  // Set when the client was picked from the list, so the link goes to that
+  // client as they are. Editing the name or number below makes it a new client.
+  const [clientId, setClientId] = useState("");
 
   // In locked mode the parent owns the selection, so read it straight from
   // props — otherwise it would go stale as the parent's selection changes.
@@ -167,10 +169,12 @@ export function ShareLinkCreator({
             Sharing on behalf of
           </p>
           <p className="text-sm text-ink-900">
-            {fixedClient.full_name} · {fixedClient.phone}
+            {fixedClient.full_name}
+            {fixedClient.phone ? ` · ${fixedClient.phone}` : ""}
           </p>
+          <input type="hidden" name="clientId" value={fixedClient.id} />
           <input type="hidden" name="clientName" value={fixedClient.full_name} />
-          <input type="hidden" name="clientPhone" value={fixedClient.phone} />
+          <input type="hidden" name="clientPhone" value={fixedClient.phone ?? ""} />
         </div>
       ) : (
         <div className="flex flex-col gap-3 rounded-lg border border-blush-200 bg-blush-100/40 p-3">
@@ -181,27 +185,29 @@ export function ShareLinkCreator({
             Leave blank and whoever opens the link is asked for their name and number
             before they can shortlist.
           </p>
-          {existingClients.length > 0 && (
-            <Field label="Pick an existing client (optional)" htmlFor="existingClient">
-              <ClientPicker
-                id="existingClient"
-                clients={existingClients}
-                placeholder="Search by name or number…"
-                clearOnSelect
-                onSelect={(c) => {
-                  setClientName(c.full_name);
-                  setClientPhone(c.phone_display ?? c.phone);
-                }}
-              />
-            </Field>
-          )}
+          <Field label="Pick an existing client (optional)" htmlFor="existingClient">
+            <ClientPicker
+              id="existingClient"
+              placeholder="Search by name or number…"
+              clearOnSelect
+              onSelect={(c) => {
+                setClientId(c.id);
+                setClientName(c.full_name);
+                setClientPhone(formatClientPhone(c) ?? "");
+              }}
+            />
+          </Field>
+          <input type="hidden" name="clientId" value={clientId} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Client name" htmlFor="clientName">
               <Input
                 id="clientName"
                 name="clientName"
                 value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
+                onChange={(e) => {
+                  setClientName(e.target.value);
+                  setClientId("");
+                }}
                 placeholder="e.g. Sharma family"
               />
             </Field>
@@ -211,7 +217,10 @@ export function ShareLinkCreator({
                 name="clientPhone"
                 inputMode="tel"
                 value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
+                onChange={(e) => {
+                  setClientPhone(e.target.value);
+                  setClientId("");
+                }}
                 placeholder="e.g. +91 98765 43210"
               />
             </Field>

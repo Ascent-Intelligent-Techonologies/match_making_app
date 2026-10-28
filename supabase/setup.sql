@@ -173,8 +173,9 @@ create table if not exists clients (
 
   full_name text not null,
   -- Normalised digits (the last 10), used as the identity key so that
-  -- "+91 98765 43210" and "9876543210" resolve to the same client.
-  phone text not null unique,
+  -- "+91 98765 43210" and "9876543210" resolve to the same client. Optional:
+  -- a client made from a profile may have no number (unique when there is one).
+  phone text unique,
   -- Exactly what the admin typed, for display.
   phone_display text,
   notes text,
@@ -185,10 +186,15 @@ create table if not exists clients (
   deleted_at timestamptz,
   -- Filters last set on the admin Search page for this client, reapplied each
   -- time their search is opened. Null when nothing is saved.
-  search_filters jsonb
+  search_filters jsonb,
+  -- The profile this client was made from. Every profile has one client, and
+  -- this is what stops a profile being added twice.
+  profile_id uuid references profiles(id) on delete set null
 );
 
 create index if not exists clients_deleted_at_idx on clients (deleted_at);
+create unique index if not exists clients_profile_id_key
+  on clients (profile_id) where profile_id is not null;
 
 -- -----------------------------------------------------------------
 -- share_links — links sent to a client
