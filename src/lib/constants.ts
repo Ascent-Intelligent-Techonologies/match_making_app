@@ -59,8 +59,11 @@ export const CASTE_OPTIONS = [
   "Others",
 ] as const;
 
-/** Internal classification from the intake sheet. */
-export const TAG_OPTIONS = ["AM", "AMP", "AMO"] as const;
+/**
+ * Internal classification: AM / AMP / AMO from the intake sheet, plus Divorcee.
+ * Admin-only (see ADMIN_ONLY_FIELDS); the form and both filter bars read this list.
+ */
+export const TAG_OPTIONS = ["AM", "AMP", "AMO", "Divorcee"] as const;
 
 export const ADMIN_SESSION_COOKIE = "aura_admin_session";
 

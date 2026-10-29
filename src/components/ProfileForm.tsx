@@ -824,7 +824,7 @@ export function ProfileForm({
           These fields are always admin-only and are never shown to clients, even with an
           &ldquo;All details&rdquo; share link.
         </p>
-        {/* Checkboxes rather than a multi-select list: there are only three,
+        {/* Checkboxes rather than a multi-select list: there are only a few,
             and every one is visible without opening anything. */}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <FieldLabel>Anurupa tag</FieldLabel>

@@ -112,7 +112,7 @@ create table if not exists profiles (
   hobbies text[],
 
   -- Internal. None of this is ever shown to a client.
-  tags text[] not null default '{}',  -- any of AM / AMP / AMO
+  tags text[] not null default '{}',  -- any of AM / AMP / AMO / Divorcee
   anurupa_aura boolean not null default false,
   urgent boolean not null default false,
   net_worth_notes text,
