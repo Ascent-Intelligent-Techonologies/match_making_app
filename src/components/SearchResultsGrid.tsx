@@ -103,12 +103,13 @@ export function SearchResultsGrid({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Runs through the results in the order they appear below, so the
-              slideshow shows exactly what was searched for. */}
+              slideshow shows exactly what was searched for. With some ticked
+              it shows only those. */}
           <SlideshowButton
             onToggleFavorite={(profileId) =>
               toggleClientShortlistAction(client.id, profileId)
             }
-            profiles={results.map((r) => ({
+            profiles={(selected.length > 0 ? selected : results).map((r) => ({
               id: r.id,
               full_name: [r.full_name, r.surname].filter(Boolean).join(" "),
               subtitle: [

@@ -144,9 +144,10 @@ export function ProfileSelectionGrid({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* No favourite here: All Profiles is not scoped to a client, so a
-              shortlist would have nobody to belong to. */}
+              shortlist would have nobody to belong to. With some ticked the
+              slideshow shows only those. */}
           <SlideshowButton
-            profiles={profiles.map((p) => ({
+            profiles={(selectedVisible.length > 0 ? selectedVisible : profiles).map((p) => ({
               id: p.id,
               full_name: p.full_name,
               subtitle: [
