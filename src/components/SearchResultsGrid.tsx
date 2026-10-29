@@ -189,7 +189,10 @@ export function SearchResultsGrid({
                 />
               </label>
 
-              <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-blush-100">
+              <Link
+                href={`/admin/profiles/${r.id}`}
+                className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-blush-100"
+              >
                 {r.coverUrl ? (
                   <Image
                     src={r.coverUrl}
@@ -205,13 +208,15 @@ export function SearchResultsGrid({
                     <ImageOff size={20} strokeWidth={1.25} />
                   </span>
                 )}
-              </div>
+              </Link>
 
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-serif text-lg font-semibold text-maroon-700">
-                    {r.full_name}
-                    {r.surname ? ` ${r.surname}` : ""}
+                    <Link href={`/admin/profiles/${r.id}`} className="hover:underline">
+                      {r.full_name}
+                      {r.surname ? ` ${r.surname}` : ""}
+                    </Link>
                   </h3>
                   {r.shortlisted && (
                     <Badge tone="maroon">

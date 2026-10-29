@@ -8,6 +8,7 @@ import type { ProfilePhoto } from "@/lib/types";
 import { MAX_PHOTO_BYTES } from "@/lib/constants";
 import { framingOf, framingStyle, type PhotoFraming } from "@/lib/framing";
 import { PhotoFramer } from "@/components/PhotoFramer";
+import { PhotoLightbox } from "@/components/PhotoLightbox";
 import {
   deletePhotoAction,
   finalisePhotoUploadAction,
@@ -107,6 +108,8 @@ export function PhotoManager({
   // Files waiting for the admin to frame them, one dialog at a time.
   const [framingQueue, setFramingQueue] = useState<QueuedFile[]>([]);
   const [adjusting, setAdjusting] = useState<ProfilePhoto | null>(null);
+  // The photo shown enlarged. Held by id so a re-order cannot swap it underneath.
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const [limit] = useState(() => createLimiter(CONCURRENCY));
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -252,6 +255,13 @@ export function PhotoManager({
 
   const active = jobs.filter((j) => j.status === "uploading" || j.status === "finalising");
 
+  // What the enlarged view steps through: the photos that have a large copy.
+  const viewable = photos.flatMap((p) => {
+    const url = p.mediumUrl ?? p.signedUrl;
+    return url ? [{ id: p.id, url }] : [];
+  });
+  const viewingIndex = viewingId ? viewable.findIndex((p) => p.id === viewingId) : -1;
+
   return (
     <div className="flex flex-col gap-5">
       <div
@@ -366,12 +376,25 @@ export function PhotoManager({
                     unoptimized
                   />
                 )}
+                {/* Covers the whole tile; the badge and the buttons below are
+                    later siblings, so they sit above it and stay clickable. */}
+                {(photo.mediumUrl ?? photo.signedUrl) && (
+                  <button
+                    type="button"
+                    aria-label="View this photo larger"
+                    title="Click to enlarge"
+                    onClick={() => setViewingId(photo.id)}
+                    className="absolute inset-0 cursor-zoom-in"
+                  />
+                )}
                 {photo.is_cover && (
-                  <span className="absolute left-2 top-2 rounded-full bg-maroon-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-blush-50">
+                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-maroon-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-blush-50">
                     Cover
                   </span>
                 )}
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                {/* The strip lets clicks through, so only the buttons on it act
+                    and the gaps between them still open the photo. */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 [&>button]:pointer-events-auto">
                   <button
                     type="button"
                     title="Move left"
@@ -422,6 +445,15 @@ export function PhotoManager({
             );
           })}
         </div>
+      )}
+
+      {viewingIndex >= 0 && (
+        <PhotoLightbox
+          photos={viewable}
+          index={viewingIndex}
+          onIndexChange={(i) => setViewingId(viewable[i].id)}
+          onClose={() => setViewingId(null)}
+        />
       )}
 
       {framingFile && (
