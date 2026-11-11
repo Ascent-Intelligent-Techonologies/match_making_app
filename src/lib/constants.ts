@@ -9,8 +9,8 @@ export const RELIGIONS = [
 ] as const;
 
 export const GENDER_OPTIONS: { value: string; label: string }[] = [
-  { value: "male", label: "Groom" },
-  { value: "female", label: "Bride" },
+  { value: "male", label: "Boy" },
+  { value: "female", label: "Girl" },
 ];
 
 export const ACCESS_LEVEL_OPTIONS: { value: string; label: string; description: string }[] = [
