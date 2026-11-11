@@ -142,3 +142,16 @@ export const TEAM_MEMBERS = [
 ] as const;
 
 export const JOURNEY_MEDIA_CONTAINER = "journey-media";
+
+/**
+ * The public self-onboarding form (/onboard). Tighter than the admin limits:
+ * anyone on the internet can reach it, so what one visitor can store is capped.
+ */
+export const SELF_ONBOARD_MAX_PHOTOS = 6;
+export const SELF_ONBOARD_MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+/** How long the person has, from pressing submit, to finish uploading photos. */
+export const SELF_ONBOARD_TOKEN_TTL_SECONDS = 3 * 60 * 60;
+/** Most new self-onboarded profiles accepted in any 24 hours, across everyone. */
+export const SELF_ONBOARD_DAILY_CAP = 200;
+/** A draft nobody finished is deleted after this long. */
+export const SELF_ONBOARD_DRAFT_TTL_HOURS = 48;

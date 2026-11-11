@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   BarChart3,
   Camera,
+  ClipboardCheck,
   LayoutGrid,
   Link2,
   NotebookPen,
@@ -12,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { countPendingProfiles } from "@/lib/data/profiles";
 
 const SECTIONS = [
   {
@@ -59,11 +62,37 @@ const SECTIONS = [
 ];
 
 const SECONDARY = [
+  { href: "/admin/approvals", title: "Approvals", Icon: ClipboardCheck },
   { href: "/admin/clients", title: "Clients", Icon: Users },
   { href: "/admin/links", title: "Share Links", Icon: Link2 },
   { href: "/admin/settings", title: "Settings", Icon: Palette },
   { href: "/admin/deleted", title: "Deleted", Icon: Trash2 },
 ];
+
+/**
+ * Shown only when people have signed themselves up and are waiting. Streamed
+ * in on its own so the cards below it do not wait for the count, and a failed
+ * count just leaves it out.
+ */
+async function PendingApprovalsNotice() {
+  const waiting = await countPendingProfiles().catch(() => 0);
+  if (waiting === 0) return null;
+
+  return (
+    <Link
+      href="/admin/approvals"
+      className="flex items-center justify-between gap-3 rounded-xl border border-gold-400/50 bg-gold-400/10 px-5 py-4 text-maroon-700 hover:bg-gold-400/20"
+    >
+      <span className="flex items-center gap-3">
+        <ClipboardCheck size={20} />
+        <span className="font-medium">
+          {waiting} profile{waiting === 1 ? "" : "s"} waiting for your approval
+        </span>
+      </span>
+      <span className="text-sm font-medium">Review →</span>
+    </Link>
+  );
+}
 
 export default function AdminHomePage() {
   return (
@@ -72,6 +101,10 @@ export default function AdminHomePage() {
         <h1 className="font-serif text-3xl font-semibold text-maroon-700">AnuRupa Matrimony</h1>
         <p className="text-sm text-ink-900/60">Where would you like to start?</p>
       </div>
+
+      <Suspense fallback={null}>
+        <PendingApprovalsNotice />
+      </Suspense>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map(({ href, title, description, Icon, accent }) => (

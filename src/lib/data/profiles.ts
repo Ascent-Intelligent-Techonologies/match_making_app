@@ -9,6 +9,7 @@ import {
   insertOne,
   notNull,
   overlaps,
+  query,
   selectColumn,
   selectMany,
   selectOne,
@@ -19,7 +20,8 @@ import {
 import { deleteBlobs } from "@/lib/storage/blob";
 import { photoBlobPaths, withPhotoUrls } from "@/lib/data/photos";
 import { PROFILE_PHOTOS_CONTAINER } from "@/lib/constants";
-import type { Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
+import { normalizePhone } from "@/lib/phone";
+import type { ApprovalStatus, Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
 import type { ProfileFormValues } from "@/lib/validation";
 
 export interface ProfileFilters {
@@ -80,6 +82,10 @@ function profileFilters(filters: ProfileFilters): Filters {
     // Soft-deleted profiles are invisible to every list; the Deleted page has
     // its own query rather than a flag threaded through this one.
     deleted_at: null,
+    // Nor does anything show a profile that is still waiting for an admin (or
+    // was declined). Every list that reaches clients, and every admin list
+    // except Approvals, comes through here.
+    approval_status: "approved",
   };
   const and: Filters["$raw"] = [];
 
@@ -197,12 +203,17 @@ export async function getProfileWithPhotos(id: string): Promise<ProfileWithPhoto
   return { ...profile, photos: attachSignedPhotoUrls(photos) };
 }
 
-/** The same profile, but never a soft-deleted one — used by the public pages. */
+/**
+ * The same profile, but never a soft-deleted one, nor one that has not been
+ * approved — used by the public pages.
+ */
 export async function getPublicProfileWithPhotos(
   id: string
 ): Promise<ProfileWithPhotos | null> {
   const profile = await getProfileWithPhotos(id);
-  return profile && !profile.deleted_at ? profile : null;
+  return profile && !profile.deleted_at && profile.approval_status === "approved"
+    ? profile
+    : null;
 }
 
 export async function getManyProfilesWithPhotos(
@@ -212,7 +223,7 @@ export async function getManyProfilesWithPhotos(
 
   const [profiles, photos] = await Promise.all([
     selectMany<Profile>("profiles", {
-      where: { deleted_at: null, id: anyOf(ids, "uuid") },
+      where: { deleted_at: null, approval_status: "approved", id: anyOf(ids, "uuid") },
     }),
     selectMany<ProfilePhoto>("profile_photos", {
       where: { profile_id: anyOf(ids, "uuid") },
@@ -276,9 +287,80 @@ export async function deleteProfile(id: string): Promise<void> {
 export async function getDistinctCities(): Promise<string[]> {
   return selectColumn<string>("profiles", "city", {
     columns: "distinct city",
-    where: { city: notNull() },
+    where: { city: notNull(), deleted_at: null, approval_status: "approved" },
     orderBy: "city",
   } as never);
+}
+
+// ------------------------------------------------------------- approvals --
+//
+// Self-onboarded profiles wait here. Nothing above this line ever returns one:
+// the lists add `approval_status = 'approved'`, and the single-profile reads
+// for clients check it. The admin editor reads a profile by id whatever its
+// status, which is how it is reviewed.
+
+/** Profiles waiting for a decision ("pending") or turned down ("rejected"), newest first. */
+export async function listProfilesByApproval(
+  status: Extract<ApprovalStatus, "pending" | "rejected">
+): Promise<Profile[]> {
+  return selectMany<Profile>("profiles", {
+    where: { approval_status: status, deleted_at: null },
+    orderBy: "coalesce(reviewed_at, submitted_at, created_at) desc",
+  });
+}
+
+/** How many are waiting for an admin; the badge on the Approvals card. */
+export async function countPendingProfiles(): Promise<number> {
+  return countRows("profiles", { approval_status: "pending", deleted_at: null });
+}
+
+/**
+ * Approves or declines a profile that is waiting (or was declined earlier and
+ * is being reconsidered). Null when the profile is not in a state that allows
+ * it, so a stale page cannot approve something twice or revive a draft.
+ */
+export async function setProfileApproval(
+  id: string,
+  status: Extract<ApprovalStatus, "approved" | "rejected">
+): Promise<Profile | null> {
+  const now = new Date().toISOString();
+  const allowedFrom = status === "approved" ? ["pending", "rejected"] : ["pending"];
+  const rows = await updateMany<Profile>(
+    "profiles",
+    { approval_status: status, reviewed_at: now, updated_at: now },
+    { id, approval_status: anyOf(allowedFrom), deleted_at: null }
+  );
+  return rows[0] ?? null;
+}
+
+export interface PhoneMatch {
+  id: string;
+  full_name: string;
+  surname: string | null;
+}
+
+/**
+ * Live profiles that already have this phone number, so a reviewer can tell a
+ * duplicate sign-up (or someone who is already on the books) at a glance.
+ * Compared the way clients are keyed: digits only, last ten.
+ */
+export async function findLiveProfilesWithPhone(
+  phone: string | null | undefined,
+  excludeId: string
+): Promise<PhoneMatch[]> {
+  const digits = normalizePhone(phone ?? "");
+  if (digits.length < 10) return [];
+  return query<PhoneMatch>(
+    `select id, full_name, surname
+       from profiles
+      where deleted_at is null
+        and approval_status = 'approved'
+        and id <> $1
+        and right(regexp_replace(coalesce(contact_phone, ''), '\\D', '', 'g'), 10) = $2
+      order by created_at
+      limit 5`,
+    [excludeId, digits]
+  );
 }
 
 export interface BulkUpsertResult {

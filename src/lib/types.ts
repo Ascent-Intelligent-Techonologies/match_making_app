@@ -4,6 +4,13 @@ export type Gender = "male" | "female";
 
 export type AccessLevel = "photos_only" | "partial" | "full";
 
+/**
+ * Where a profile is in the self-onboarding flow. "draft" is a form whose
+ * photos are still uploading; "pending" is waiting for an admin; every profile
+ * that was not self-onboarded is "approved" from the start.
+ */
+export type ApprovalStatus = "draft" | "pending" | "approved" | "rejected";
+
 export interface ProfilePhoto {
   id: string;
   profile_id: string;
@@ -109,6 +116,16 @@ export interface Profile {
 
   /** Set when soft-deleted; the row is hidden everywhere but the Deleted page. */
   deleted_at: string | null;
+
+  // --- self-onboarding (see supabase/migrations/016_*.sql) ---
+  /** Only "approved" profiles appear in search, All Profiles, browse and share links. */
+  approval_status: ApprovalStatus;
+  /** Submitted through the public /onboard form rather than added by an admin. */
+  self_onboarded: boolean;
+  /** When the person finished the form; null for profiles an admin added. */
+  submitted_at: string | null;
+  /** When an admin last approved or rejected it. */
+  reviewed_at: string | null;
 
   is_active: boolean;
 }
@@ -271,6 +288,10 @@ export const FULL_ONLY_FIELDS = [
 
 /** Never exposed to clients, whatever the access level. */
 export const ADMIN_ONLY_FIELDS = [
+  "approval_status",
+  "self_onboarded",
+  "submitted_at",
+  "reviewed_at",
   "net_worth_notes",
   "owner_private_notes",
   "additional_details",

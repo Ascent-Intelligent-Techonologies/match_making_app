@@ -88,17 +88,22 @@ export interface UploadTicket {
   expiresInSeconds: number;
 }
 
+/**
+ * `maxBytes` is the admin limit unless the caller is stricter: the public
+ * self-onboarding form passes its own, lower one.
+ */
 export async function beginPhotoUpload(
   profileId: string,
-  file: { name: string; type: string; size: number }
+  file: { name: string; type: string; size: number },
+  maxBytes = MAX_PHOTO_BYTES
 ): Promise<UploadTicket> {
   if (!file.type.startsWith("image/")) {
     throw new Error(`${file.name} is not an image.`);
   }
   if (file.size <= 0) throw new Error(`${file.name} is empty.`);
-  if (file.size > MAX_PHOTO_BYTES) {
+  if (file.size > maxBytes) {
     throw new Error(
-      `${file.name} is ${(file.size / 1_048_576).toFixed(0)} MB; the limit is ${MAX_PHOTO_BYTES / 1_048_576} MB.`
+      `${file.name} is ${(file.size / 1_048_576).toFixed(0)} MB; the limit is ${maxBytes / 1_048_576} MB.`
     );
   }
 
@@ -126,7 +131,8 @@ export async function beginPhotoUpload(
 export async function finalisePhotoUpload(
   profileId: string,
   path: string,
-  framing: PhotoFraming | null = null
+  framing: PhotoFraming | null = null,
+  maxBytes = MAX_PHOTO_BYTES
 ): Promise<ProfilePhoto & PhotoUrls> {
   // Only a path this server would have issued, for this profile. Anything
   // else is a client trying to register a blob it should not be able to.
@@ -135,9 +141,9 @@ export async function finalisePhotoUpload(
 
   const info = await getBlobInfo(PROFILE_PHOTOS_CONTAINER, path);
   if (!info || info.size === 0) throw new Error("The upload did not arrive.");
-  if (info.size > MAX_PHOTO_BYTES) {
+  if (info.size > maxBytes) {
     await deleteBlobs(PROFILE_PHOTOS_CONTAINER, [path]);
-    throw new Error(`That file is over the ${MAX_PHOTO_BYTES / 1_048_576} MB limit.`);
+    throw new Error(`That file is over the ${maxBytes / 1_048_576} MB limit.`);
   }
 
   // Already registered — a retried finalise after a slow network, say.

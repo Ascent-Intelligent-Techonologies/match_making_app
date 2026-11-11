@@ -33,6 +33,11 @@ export default function Home() {
               Browse Profiles
             </Button>
           </Link>
+          <Link href="/onboard">
+            <Button size="lg" variant="secondary">
+              Create your profile
+            </Button>
+          </Link>
           <Link href="/admin/login">
             <Button size="lg">Admin Login</Button>
           </Link>

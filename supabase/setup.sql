@@ -127,6 +127,17 @@ create table if not exists profiles (
   -- which is the only place it can be restored or removed for good.
   deleted_at timestamptz,
 
+  -- Self-onboarding. Profiles an admin adds, and every profile that predates
+  -- the public form, are 'approved'. The form creates 'draft' rows (photos
+  -- still uploading), moves them to 'pending' once a photo is attached, and an
+  -- admin approves or rejects from there. Only 'approved' rows appear in
+  -- search, All Profiles, public browse and share links.
+  approval_status text not null default 'approved'
+    check (approval_status in ('draft', 'pending', 'approved', 'rejected')),
+  self_onboarded boolean not null default false,
+  submitted_at timestamptz,
+  reviewed_at timestamptz,
+
   is_active boolean not null default true
 );
 
@@ -143,6 +154,8 @@ create index if not exists profiles_search_idx on profiles
 -- Supports the "has any of these tags" filter.
 create index if not exists profiles_tags_idx on profiles using gin (tags);
 create index if not exists profiles_deleted_at_idx on profiles (deleted_at);
+create index if not exists profiles_approval_status_idx
+  on profiles (approval_status) where approval_status <> 'approved';
 create unique index if not exists profiles_source_id_key on profiles (source_id);
 
 -- -----------------------------------------------------------------

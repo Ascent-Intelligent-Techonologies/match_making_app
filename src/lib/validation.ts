@@ -93,6 +93,69 @@ export const profileSchema = z.object({
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
+/** A real calendar date (YYYY-MM-DD) between 1900 and today. */
+function isRealPastDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value &&
+    value >= "1900-01-01" &&
+    parsed.getTime() <= Date.now()
+  );
+}
+
+/**
+ * What the public self-onboarding form may set: the profile form minus
+ * everything internal. The omitted keys are exactly the admin-only fields of
+ * ADMIN_ONLY_FIELDS that the form has (plus is_active), so a request that
+ * posts one anyway has it dropped here rather than stored; it does not matter
+ * that the page never showed it.
+ *
+ * Name and phone are required (an admin can leave either blank). Photos are
+ * required too, but they are not part of this form data: the submission is
+ * not accepted until one has been uploaded (see completeOnboarding).
+ *
+ * Stricter than the admin schema where a stranger is typing: bounded lengths,
+ * a real date of birth, a plausible height.
+ */
+export const selfOnboardingSchema = profileSchema
+  .omit({
+    net_worth_notes: true,
+    owner_private_notes: true,
+    additional_details: true,
+    middlemen_contact_number: true,
+    middlemen_contact_name: true,
+    annual_income_inr: true,
+    tags: true,
+    anurupa_aura: true,
+    urgent: true,
+    sibling1_potential_client: true,
+    sibling2_potential_client: true,
+    is_active: true,
+  })
+  .extend({
+    full_name: z.string().trim().min(1, "Please enter your name").max(200),
+    contact_phone: z
+      .string()
+      .trim()
+      .min(1, "Please enter your phone number")
+      .refine(isUsablePhone, "Enter a valid phone number"),
+    // The admin form makes the person pick one; here only name, phone and a
+    // photo are required, so an untouched "Select" has to be allowed through.
+    gender: z.preprocess(emptyToUndefined, z.enum(["male", "female"]).optional()),
+    dob: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().refine(isRealPastDate, "Enter a valid date of birth").optional()
+    ),
+    height_cm: z.preprocess(
+      (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
+      z.number().min(90, "Check the height").max(250, "Check the height").optional()
+    ),
+  });
+
+export type SelfOnboardingValues = z.infer<typeof selfOnboardingSchema>;
+
 export const shareLinkSchema = z.object({
   profileIds: z.array(z.string().uuid()).min(1, "Select at least one profile"),
   accessLevel: z.enum(["photos_only", "partial", "full"]),

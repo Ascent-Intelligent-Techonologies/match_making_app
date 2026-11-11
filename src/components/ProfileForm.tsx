@@ -12,12 +12,14 @@ import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { Field, FieldLabel, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { PhoneInput } from "@/components/PhoneInput";
 import {
   CASTE_OPTIONS,
   COUNTRY_OPTIONS,
   GENDER_OPTIONS,
   PROFESSION_CATEGORIES,
   RELIGIONS,
+  SELF_ONBOARD_MAX_PHOTOS,
   SIBLING_STATUS_OPTIONS,
   STATES_BY_COUNTRY,
   TAG_OPTIONS,
@@ -92,12 +94,24 @@ export function ProfileForm({
   profile,
   action,
   submitLabel,
+  audience = "admin",
 }: {
   profile?: Profile;
   action: ActionFn;
   submitLabel: string;
+  /**
+   * "self" is the public sign-up form: the same form with everything internal
+   * left out entirely (not merely hidden), the phone number asked for up front,
+   * and a photo required. The server enforces all of that again; see
+   * selfOnboardingSchema.
+   */
+  audience?: "admin" | "self";
 }) {
-  const key = draftKey(profile?.id);
+  const self = audience === "self";
+  // The tabs the person can see. Internal is admin-only, so for the public form
+  // it is not rendered at all, and its fields are not in the page to be found.
+  const tabs = self ? TABS.filter((tab) => tab !== "Internal") : TABS;
+  const key = draftKey(self ? "self" : profile?.id);
 
   // A page opened before a deploy still holds the old build's action ids, and
   // the new server rejects them. Next throws for that, which used to take the
@@ -214,7 +228,9 @@ export function ProfileForm({
   const states = STATES_BY_COUNTRY[country];
 
   function applyFiles(files: FileList | File[]) {
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const images = Array.from(files)
+      .filter((f) => f.type.startsWith("image/"))
+      .slice(0, self ? SELF_ONBOARD_MAX_PHOTOS : undefined);
     if (images.length === 0) return;
 
     const dt = new DataTransfer();
@@ -238,8 +254,17 @@ export function ProfileForm({
 
   return (
     <form ref={formRef} method="post" onSubmit={onSubmit} className="flex flex-col gap-6">
+      {self && (
+        // A trap for scripts that fill in every box: a person never sees it.
+        <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+          <label>
+            Leave this empty
+            <input name="nickname_alt" tabIndex={-1} autoComplete="off" />
+          </label>
+        </div>
+      )}
       <div className="flex flex-wrap gap-1 rounded-2xl bg-blush-100 p-1.5">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             type="button"
             key={tab}
@@ -312,7 +337,7 @@ export function ProfileForm({
               : "border-gold-400/50 bg-blush-100/60"
           }`}
         >
-          <FieldLabel htmlFor="photos">Photos (optional)</FieldLabel>
+          <FieldLabel htmlFor="photos">{self ? "Photos (required)" : "Photos (optional)"}</FieldLabel>
           <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-maroon-700">
             <UploadCloud size={18} />
             <span>Choose photos to upload on save, or drag them here</span>
@@ -323,6 +348,7 @@ export function ProfileForm({
               name="photos"
               accept="image/*"
               multiple
+              required={self}
               className="sr-only"
               onChange={(e) => applyFiles(e.target.files ?? [])}
             />
@@ -341,8 +367,9 @@ export function ProfileForm({
             </div>
           )}
           <p className="text-xs text-ink-900/50">
-            The first photo becomes the cover. You can add more, reorder and manage them
-            after saving.
+            {self
+              ? `Add at least one clear, recent photo, and up to ${SELF_ONBOARD_MAX_PHOTOS}. The first is shown first.`
+              : "The first photo becomes the cover. You can add more, reorder and manage them after saving."}
           </p>
         </div>
       )}
@@ -369,6 +396,19 @@ export function ProfileForm({
             <Field label="Name" htmlFor="full_name" error={errors.full_name}>
               <Input id="full_name" name="full_name" defaultValue={profile?.full_name} required />
             </Field>
+            {/* Asked here rather than on the Contact tab: it is required, and a
+                required field on a tab that is not showing blocks the submit
+                without the person being able to see why. */}
+            {self && (
+              <Field
+                label="Phone number"
+                htmlFor="contact_phone"
+                error={errors.contact_phone}
+                hint="Our team will use this number to reach you."
+              >
+                <PhoneInput id="contact_phone" name="contact_phone" />
+              </Field>
+            )}
             <Field label="Date of Birth" htmlFor="dob">
               <Input id="dob" name="dob" type="date" defaultValue={profile?.dob ?? ""} />
             </Field>
@@ -408,7 +448,7 @@ export function ProfileForm({
             <Field
               label="Native place"
               htmlFor="native_place"
-              hint="Shared at every level, per the intake sheet."
+              hint={self ? undefined : "Shared at every level, per the intake sheet."}
             >
               <Input
                 id="native_place"
@@ -416,17 +456,19 @@ export function ProfileForm({
                 defaultValue={profile?.native_place ?? ""}
               />
             </Field>
-            <Field
-              label="Additional details"
-              htmlFor="additional_details"
-              hint="Anything else worth noting. For your reference; clients never see it."
-            >
-              <Textarea
-                id="additional_details"
-                name="additional_details"
-                defaultValue={profile?.additional_details ?? ""}
-              />
-            </Field>
+            {!self && (
+              <Field
+                label="Additional details"
+                htmlFor="additional_details"
+                hint="Anything else worth noting. For your reference; clients never see it."
+              >
+                <Textarea
+                  id="additional_details"
+                  name="additional_details"
+                  defaultValue={profile?.additional_details ?? ""}
+                />
+              </Field>
+            )}
           </div>
 
           <div className="flex flex-col gap-5">
@@ -551,7 +593,7 @@ export function ProfileForm({
         <Field
           label="Job category"
           htmlFor="profession_category"
-          hint="Drives the job filter in search."
+          hint={self ? undefined : "Drives the job filter in search."}
         >
           <Select
             id="profession_category"
@@ -581,18 +623,20 @@ export function ProfileForm({
         <Field label="Citizenship" htmlFor="citizenship">
           <Input id="citizenship" name="citizenship" defaultValue={profile?.citizenship ?? ""} />
         </Field>
-        <Field
-          label="Finances (annual, INR)"
-          htmlFor="annual_income_inr"
-          hint="Used for the finances search filter. Never shown to clients."
-        >
-          <Input
-            id="annual_income_inr"
-            name="annual_income_inr"
-            type="number"
-            defaultValue={profile?.annual_income_inr ?? ""}
-          />
-        </Field>
+        {!self && (
+          <Field
+            label="Finances (annual, INR)"
+            htmlFor="annual_income_inr"
+            hint="Used for the finances search filter. Never shown to clients."
+          >
+            <Input
+              id="annual_income_inr"
+              name="annual_income_inr"
+              type="number"
+              defaultValue={profile?.annual_income_inr ?? ""}
+            />
+          </Field>
+        )}
       </div>
 
       {/* --- Family --- */}
@@ -673,15 +717,17 @@ export function ProfileForm({
                     ))}
                   </Select>
                 </Field>
-                <label className="flex items-center gap-2 text-sm text-ink-900/70">
-                  <input
-                    type="checkbox"
-                    name={`sibling${n}_potential_client`}
-                    defaultChecked={potential}
-                    className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
-                  />
-                  Potential client
-                </label>
+                {!self && (
+                  <label className="flex items-center gap-2 text-sm text-ink-900/70">
+                    <input
+                      type="checkbox"
+                      name={`sibling${n}_potential_client`}
+                      defaultChecked={potential}
+                      className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+                    />
+                    Potential client
+                  </label>
+                )}
               </div>
 
               <Field label={`Sibling ${n} details`} htmlFor={`sibling${n}_details`}>
@@ -741,39 +787,43 @@ export function ProfileForm({
             </Field>
           </div>
 
-          <Field label="Primary contact number" htmlFor="contact_phone">
-            <Input
-              id="contact_phone"
-              name="contact_phone"
-              defaultValue={profile?.contact_phone ?? ""}
-            />
-          </Field>
+          {!self && (
+            <Field label="Primary contact number" htmlFor="contact_phone">
+              <Input
+                id="contact_phone"
+                name="contact_phone"
+                defaultValue={profile?.contact_phone ?? ""}
+              />
+            </Field>
+          )}
         </div>
 
-        <div className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-2">
-          <Field
-            label="Middlemen contact name"
-            htmlFor="middlemen_contact_name"
-            hint="Admin-only. Never shown to clients."
-          >
-            <Input
-              id="middlemen_contact_name"
-              name="middlemen_contact_name"
-              defaultValue={profile?.middlemen_contact_name ?? ""}
-            />
-          </Field>
-          <Field
-            label="Middlemen contact number"
-            htmlFor="middlemen_contact_number"
-            hint="Admin-only. Never shown to clients."
-          >
-            <Input
-              id="middlemen_contact_number"
-              name="middlemen_contact_number"
-              defaultValue={profile?.middlemen_contact_number ?? ""}
-            />
-          </Field>
-        </div>
+        {!self && (
+          <div className="grid gap-5 border-t border-blush-200 pt-5 sm:grid-cols-2">
+            <Field
+              label="Middlemen contact name"
+              htmlFor="middlemen_contact_name"
+              hint="Admin-only. Never shown to clients."
+            >
+              <Input
+                id="middlemen_contact_name"
+                name="middlemen_contact_name"
+                defaultValue={profile?.middlemen_contact_name ?? ""}
+              />
+            </Field>
+            <Field
+              label="Middlemen contact number"
+              htmlFor="middlemen_contact_number"
+              hint="Admin-only. Never shown to clients."
+            >
+              <Input
+                id="middlemen_contact_number"
+                name="middlemen_contact_number"
+                defaultValue={profile?.middlemen_contact_number ?? ""}
+              />
+            </Field>
+          </div>
+        )}
 
         <div className="sm:max-w-md">
           <Field label="Contact Email" htmlFor="contact_email" error={errors.contact_email}>
@@ -792,7 +842,11 @@ export function ProfileForm({
         <Field
           label="Requirements"
           htmlFor="partner_expectations"
-          hint="Shown in search results and on shared profiles."
+          hint={
+            self
+              ? "What you are looking for in a partner."
+              : "Shown in search results and on shared profiles."
+          }
         >
           <Textarea
             id="partner_expectations"
@@ -801,91 +855,96 @@ export function ProfileForm({
           />
         </Field>
 
-        <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
-          <input
-            type="checkbox"
-            name="urgent"
-            defaultChecked={profile?.urgent ?? false}
-            className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
-          />
-          <span>
-            <span className="font-semibold">Urgent</span>
-            <span className="block text-xs text-ink-900/60">
-              Marks this profile as a priority. Filterable in All Profiles and search;
-              never shown to clients.
+        {!self && (
+          <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="urgent"
+              defaultChecked={profile?.urgent ?? false}
+              className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+            />
+            <span>
+              <span className="font-semibold">Urgent</span>
+              <span className="block text-xs text-ink-900/60">
+                Marks this profile as a priority. Filterable in All Profiles and search;
+                never shown to clients.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        )}
       </div>
 
       {/* --- Internal --- */}
-      <div className={show("Internal")}>
-        <p className="text-xs text-ink-900/50 sm:col-span-2">
-          These fields are always admin-only and are never shown to clients, even with an
-          &ldquo;All details&rdquo; share link.
-        </p>
-        {/* Checkboxes rather than a multi-select list: there are only a few,
-            and every one is visible without opening anything. */}
-        <div className="flex flex-col gap-1.5 sm:col-span-2">
-          <FieldLabel>Anurupa tag</FieldLabel>
-          <div className="flex flex-wrap gap-2">
-            {TAG_OPTIONS.map((t) => (
-              <label
-                key={t}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm text-ink-900/80"
-              >
-                <input
-                  type="checkbox"
-                  name="tags"
-                  value={t}
-                  defaultChecked={(profile?.tags ?? []).includes(t)}
-                  className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
-                />
-                {t}
-              </label>
-            ))}
+      {/* Not rendered at all on the public form, not just hidden. */}
+      {!self && (
+        <div className={show("Internal")}>
+          <p className="text-xs text-ink-900/50 sm:col-span-2">
+            These fields are always admin-only and are never shown to clients, even with an
+            &ldquo;All details&rdquo; share link.
+          </p>
+          {/* Checkboxes rather than a multi-select list: there are only a few,
+              and every one is visible without opening anything. */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <FieldLabel>Anurupa tag</FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {TAG_OPTIONS.map((t) => (
+                <label
+                  key={t}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-blush-200 bg-white/60 px-3 py-2 text-sm text-ink-900/80"
+                >
+                  <input
+                    type="checkbox"
+                    name="tags"
+                    value={t}
+                    defaultChecked={(profile?.tags ?? []).includes(t)}
+                    className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+                  />
+                  {t}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-ink-900/50">Select one or more.</p>
           </div>
-          <p className="text-xs text-ink-900/50">Select one or more.</p>
-        </div>
 
-        <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
-          <input
-            type="checkbox"
-            name="anurupa_aura"
-            defaultChecked={profile?.anurupa_aura ?? false}
-            className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
-          />
-          <span>
-            <span className="font-semibold">Anurupa Aura</span>
-            <span className="block text-xs text-ink-900/60">
-              Filterable in All Profiles and search. Never shown to clients.
+          <label className="flex items-start gap-2 self-start rounded-xl border border-gold-400/40 bg-gold-400/10 p-3 text-sm text-ink-900/80 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="anurupa_aura"
+              defaultChecked={profile?.anurupa_aura ?? false}
+              className="mt-0.5 h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+            />
+            <span>
+              <span className="font-semibold">Anurupa Aura</span>
+              <span className="block text-xs text-ink-900/60">
+                Filterable in All Profiles and search. Never shown to clients.
+              </span>
             </span>
-          </span>
-        </label>
-        <Field label="Net Worth / Assets Notes" htmlFor="net_worth_notes">
-          <Textarea
-            id="net_worth_notes"
-            name="net_worth_notes"
-            defaultValue={profile?.net_worth_notes ?? ""}
-          />
-        </Field>
-        <Field label="Private Admin Notes" htmlFor="owner_private_notes">
-          <Textarea
-            id="owner_private_notes"
-            name="owner_private_notes"
-            defaultValue={profile?.owner_private_notes ?? ""}
-          />
-        </Field>
-        <label className="flex items-center gap-2 text-sm text-ink-900/70 sm:col-span-2">
-          <input
-            type="checkbox"
-            name="is_active"
-            defaultChecked={profile?.is_active ?? true}
-            className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
-          />
-          Active (visible in dashboard search)
-        </label>
-      </div>
+          </label>
+          <Field label="Net Worth / Assets Notes" htmlFor="net_worth_notes">
+            <Textarea
+              id="net_worth_notes"
+              name="net_worth_notes"
+              defaultValue={profile?.net_worth_notes ?? ""}
+            />
+          </Field>
+          <Field label="Private Admin Notes" htmlFor="owner_private_notes">
+            <Textarea
+              id="owner_private_notes"
+              name="owner_private_notes"
+              defaultValue={profile?.owner_private_notes ?? ""}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm text-ink-900/70 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              defaultChecked={profile?.is_active ?? true}
+              className="h-4 w-4 rounded border-blush-300 text-maroon-600 focus:ring-maroon-600"
+            />
+            Active (visible in dashboard search)
+          </label>
+        </div>
+      )}
 
       <div className="flex justify-end border-t border-blush-200 pt-5">
         <Button type="submit" disabled={pending || !ready}>
