@@ -142,6 +142,52 @@ export async function ensureClientForProfile(profile: {
   return true;
 }
 
+/**
+ * The live client holding this phone number, with their counts, or null. The
+ * number is the client's identity, so there is at most one.
+ */
+export async function findClientSummaryByPhone(
+  phone: string | null | undefined
+): Promise<ClientSummary | null> {
+  const digits = normalizePhone(phone ?? "");
+  if (digits.length < 10) return null;
+  const rows = await selectMany<ClientSummary>("clients", {
+    ...SUMMARY_QUERY,
+    where: { "c.phone": digits, "c.deleted_at": null },
+    limit: 1,
+  });
+  return rows[0] ?? null;
+}
+
+/**
+ * Makes an existing client the client of a profile that has just been
+ * approved, instead of adding a second client with the same number. Their
+ * shortlists, share links and history stay exactly where they are; only the
+ * link to the profile, and optionally the name, change.
+ *
+ * Only a client with no live profile of their own can be linked (one whose
+ * profile was deleted counts as having none). Returns false when the client is
+ * not free to link, and the caller falls back to the usual add.
+ */
+export async function linkClientToProfile(
+  clientId: string,
+  profileId: string,
+  name: string
+): Promise<boolean> {
+  const rows = await query<{ id: string }>(
+    `update clients
+        set profile_id = $2, full_name = $3, updated_at = now()
+      where id = $1
+        and deleted_at is null
+        and (profile_id is null
+             or profile_id in (select id from profiles where deleted_at is not null))
+        and not exists (select 1 from clients where profile_id = $2)
+      returning id`,
+    [clientId, profileId, name.trim()]
+  );
+  return rows.length > 0;
+}
+
 /** The filters behind the client lists: not deleted, and matching the search. */
 function summaryFilters(search?: string): Filters {
   // Soft-deleted clients are hidden from every list but the Deleted page.

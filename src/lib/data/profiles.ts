@@ -9,7 +9,6 @@ import {
   insertOne,
   notNull,
   overlaps,
-  query,
   selectColumn,
   selectMany,
   selectOne,
@@ -20,7 +19,6 @@ import {
 import { deleteBlobs } from "@/lib/storage/blob";
 import { photoBlobPaths, withPhotoUrls } from "@/lib/data/photos";
 import { PROFILE_PHOTOS_CONTAINER } from "@/lib/constants";
-import { normalizePhone } from "@/lib/phone";
 import type { ApprovalStatus, Profile, ProfilePhoto, ProfileWithPhotos } from "@/lib/types";
 import type { ProfileFormValues } from "@/lib/validation";
 
@@ -331,36 +329,6 @@ export async function setProfileApproval(
     { id, approval_status: anyOf(allowedFrom), deleted_at: null }
   );
   return rows[0] ?? null;
-}
-
-export interface PhoneMatch {
-  id: string;
-  full_name: string;
-  surname: string | null;
-}
-
-/**
- * Live profiles that already have this phone number, so a reviewer can tell a
- * duplicate sign-up (or someone who is already on the books) at a glance.
- * Compared the way clients are keyed: digits only, last ten.
- */
-export async function findLiveProfilesWithPhone(
-  phone: string | null | undefined,
-  excludeId: string
-): Promise<PhoneMatch[]> {
-  const digits = normalizePhone(phone ?? "");
-  if (digits.length < 10) return [];
-  return query<PhoneMatch>(
-    `select id, full_name, surname
-       from profiles
-      where deleted_at is null
-        and approval_status = 'approved'
-        and id <> $1
-        and right(regexp_replace(coalesce(contact_phone, ''), '\\D', '', 'g'), 10) = $2
-      order by created_at
-      limit 5`,
-    [excludeId, digits]
-  );
 }
 
 export interface BulkUpsertResult {

@@ -1,11 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ImageOff, MapPin, Phone, TriangleAlert } from "lucide-react";
-import {
-  findLiveProfilesWithPhone,
-  listProfilesByApproval,
-  type PhoneMatch,
-} from "@/lib/data/profiles";
+import { listProfilesByApproval } from "@/lib/data/profiles";
+import { findApprovalMatches, hasMatches, type ApprovalMatches } from "@/lib/data/duplicates";
 import { coverTileUrl, getCoverPhotoUrls, type CoverUrls } from "@/lib/data/photos";
 import { approveProfileAction, rejectProfileAction } from "@/lib/actions/approvals";
 import { ApprovalButtons } from "@/components/ApprovalButtons";
@@ -20,14 +17,15 @@ export const metadata = { title: "Approvals | AnuRupa Admin" };
 function ApprovalRow({
   profile,
   cover,
-  sameNumber,
+  matches,
   declined,
 }: {
   profile: Profile;
   cover: CoverUrls | undefined;
-  sameNumber: PhoneMatch[];
+  matches: ApprovalMatches;
   declined?: boolean;
 }) {
+  const onFile = hasMatches(matches);
   const name = [profile.full_name, profile.surname].filter(Boolean).join(" ");
   const age = calculateAge(profile.dob);
   const location = formatLocation(profile);
@@ -90,16 +88,25 @@ function ApprovalRow({
             : `Submitted ${formatRelativeDays(profile.submitted_at)}`}
         </p>
 
-        {sameNumber.length > 0 && (
-          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-red-700">
-            <TriangleAlert size={13} />
-            This number is already on {sameNumber.length === 1 ? "a profile" : "profiles"}:
-            {sameNumber.map((m) => (
-              <Link key={m.id} href={`/admin/profiles/${m.id}`} className="font-medium underline">
-                {[m.full_name, m.surname].filter(Boolean).join(" ")}
-              </Link>
+        {onFile && (
+          <div className="mt-1 flex flex-col gap-0.5 text-xs text-red-700">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <TriangleAlert size={13} /> This number is already on file
+            </p>
+            {matches.client && (
+              <p>
+                Client: <span className="font-medium">{matches.client.full_name}</span>
+              </p>
+            )}
+            {matches.profiles.map((m) => (
+              <p key={m.id}>
+                Profile:{" "}
+                <Link href={`/admin/profiles/${m.id}`} className="font-medium underline">
+                  {[m.full_name, m.surname].filter(Boolean).join(" ")}
+                </Link>
+              </p>
             ))}
-          </p>
+          </div>
         )}
       </div>
 
@@ -108,10 +115,10 @@ function ApprovalRow({
           href={href}
           className="text-sm font-medium text-maroon-700 hover:underline"
         >
-          Review all details
+          {onFile ? "Review, choose and approve" : "Review all details"}
         </Link>
         <ApprovalButtons
-          approve={approveProfileAction.bind(null, profile.id)}
+          approve={onFile ? undefined : approveProfileAction.bind(null, profile.id)}
           reject={declined ? undefined : rejectProfileAction.bind(null, profile.id)}
           approveLabel={declined ? "Approve instead" : "Approve"}
         />
@@ -126,9 +133,10 @@ export default async function ApprovalsPage() {
     listProfilesByApproval("rejected"),
   ]);
 
-  const [covers, matches] = await Promise.all([
+  const [covers, matches, declinedMatches] = await Promise.all([
     getCoverPhotoUrls([...pending, ...declined].map((p) => p.id)),
-    Promise.all(pending.map((p) => findLiveProfilesWithPhone(p.contact_phone, p.id))),
+    Promise.all(pending.map((p) => findApprovalMatches(p))),
+    Promise.all(declined.map((p) => findApprovalMatches(p))),
   ]);
 
   return (
@@ -158,7 +166,7 @@ export default async function ApprovalsPage() {
           </p>
         ) : (
           pending.map((p, i) => (
-            <ApprovalRow key={p.id} profile={p} cover={covers.get(p.id)} sameNumber={matches[i]} />
+            <ApprovalRow key={p.id} profile={p} cover={covers.get(p.id)} matches={matches[i]} />
           ))
         )}
       </section>
@@ -171,8 +179,8 @@ export default async function ApprovalsPage() {
           <p className="text-sm text-ink-900/60">
             Kept in case you change your mind. Delete one from its own page to remove it for good.
           </p>
-          {declined.map((p) => (
-            <ApprovalRow key={p.id} profile={p} cover={covers.get(p.id)} sameNumber={[]} declined />
+          {declined.map((p, i) => (
+            <ApprovalRow key={p.id} profile={p} cover={covers.get(p.id)} matches={declinedMatches[i]} declined />
           ))}
         </section>
       )}

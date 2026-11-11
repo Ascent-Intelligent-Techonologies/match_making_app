@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { TriangleAlert } from "lucide-react";
-import Link from "next/link";
-import { findLiveProfilesWithPhone, getProfileWithPhotos, listProfiles } from "@/lib/data/profiles";
+import { getProfileWithPhotos, listProfiles } from "@/lib/data/profiles";
+import { describeMatches, findApprovalMatches, hasMatches } from "@/lib/data/duplicates";
 import { ProfileForm } from "@/components/ProfileForm";
 import { PhotoManager } from "@/components/PhotoManager";
 import { ShareLinkCreator } from "@/components/ShareLinkCreator";
 import { DeleteProfileButton } from "@/components/DeleteProfileButton";
 import { ApprovalButtons } from "@/components/ApprovalButtons";
+import { ApprovalResolver } from "@/components/ApprovalResolver";
 import { approveProfileAction, rejectProfileAction } from "@/lib/actions/approvals";
 import { updateProfileAction } from "@/lib/actions/profiles";
 import { formatRelativeDays } from "@/lib/format";
@@ -35,7 +35,10 @@ async function ReviewBanner({ profile }: { profile: ProfileWithPhotos }) {
   }
 
   const declined = profile.approval_status === "rejected";
-  const sameNumber = declined ? [] : await findLiveProfilesWithPhone(profile.contact_phone, profile.id);
+  // A number that is already a client or on a profile is the admin's call, not
+  // a one-click approval (see ApprovalResolver).
+  const matches = await findApprovalMatches(profile);
+  const onFile = hasMatches(matches);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-gold-400/40 bg-gold-400/10 p-4">
@@ -52,20 +55,10 @@ async function ReviewBanner({ profile }: { profile: ProfileWithPhotos }) {
         </p>
       </div>
 
-      {sameNumber.length > 0 && (
-        <p className="flex flex-wrap items-center gap-1.5 text-sm text-red-700">
-          <TriangleAlert size={14} />
-          This number is already on {sameNumber.length === 1 ? "a profile" : "profiles"}:
-          {sameNumber.map((m) => (
-            <Link key={m.id} href={`/admin/profiles/${m.id}`} className="font-medium underline">
-              {[m.full_name, m.surname].filter(Boolean).join(" ")}
-            </Link>
-          ))}
-        </p>
-      )}
+      {onFile && <ApprovalResolver data={describeMatches(profile, matches)} />}
 
       <ApprovalButtons
-        approve={approveProfileAction.bind(null, profile.id)}
+        approve={onFile ? undefined : approveProfileAction.bind(null, profile.id)}
         reject={declined ? undefined : rejectProfileAction.bind(null, profile.id)}
         approveLabel={declined ? "Approve instead" : "Approve and add to profiles"}
       />
