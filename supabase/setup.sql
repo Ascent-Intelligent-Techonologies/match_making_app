@@ -333,6 +333,25 @@ on conflict (id) do nothing;
 -- -----------------------------------------------------------------
 -- Row-level security
 -- -----------------------------------------------------------------
+-- client_matches — boy/girl profile pairs in communication (Follow-up page)
+-- -----------------------------------------------------------------
+create table if not exists client_matches (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  boy_profile_id uuid not null references profiles(id) on delete cascade,
+  girl_profile_id uuid not null references profiles(id) on delete cascade,
+  notes text,
+  check (boy_profile_id <> girl_profile_id)
+);
+
+create unique index if not exists client_matches_pair_key
+  on client_matches (boy_profile_id, girl_profile_id);
+
+-- The list is shown newest first.
+create index if not exists client_matches_created_at_idx
+  on client_matches (created_at desc);
+
+-- -----------------------------------------------------------------
 -- RLS is enabled with NO policies anywhere, so every role is denied
 -- everything. The app connects as the server's admin user, which owns these
 -- tables and therefore bypasses RLS; the browser never talks to the database
@@ -352,3 +371,4 @@ alter table client_searches     enable row level security;
 alter table client_followups    enable row level security;
 alter table team_notes          enable row level security;
 alter table journey_media       enable row level security;
+alter table client_matches      enable row level security;

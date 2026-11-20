@@ -96,6 +96,26 @@ export function formatLocation(parts: {
   return seen.size > 0 ? Array.from(seen).join(", ") : null;
 }
 
+/**
+ * "20 Nov 2026, 3:42 pm", always in Indian time. The server runs in UTC, and the
+ * people reading this are in India, so leaving the zone to the server would
+ * show every time five and a half hours early.
+ */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+}
+
 /** A client's number as it is shown. They may have none: it is optional. */
 export function formatClientPhone(client: {
   phone_display?: string | null;
